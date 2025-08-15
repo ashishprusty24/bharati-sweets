@@ -29,15 +29,13 @@ import {
 import moment from "moment";
 // Importing the ECharts for React component
 import ReactECharts from "echarts-for-react";
+import { API_BASE_URL } from "../../common/config";
 
 // The original Ant Design components
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
-
-// Mock API URL (from the original code)
-const API_URL = "http://localhost:5000/api";
 
 const AccountingDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -69,13 +67,13 @@ const AccountingDashboard = () => {
 
       // Fetch accounting summary
       const summaryRes = await fetch(
-        `${API_URL}/accounting/summary?startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/accounting/summary?startDate=${startDate}&endDate=${endDate}`
       );
       const summaryData = await summaryRes.json();
 
       // Fetch transactions
       const transactionsRes = await fetch(
-        `${API_URL}/accounting/transactions?startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/accounting/transactions?startDate=${startDate}&endDate=${endDate}`
       );
       const transactionsData = await transactionsRes.json();
 

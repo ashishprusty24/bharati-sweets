@@ -32,12 +32,11 @@ import {
   SolutionOutlined,
   HistoryOutlined,
 } from "@ant-design/icons";
+import { API_BASE_URL } from "../../common/config";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
-
-const API_URL = "http://localhost:5000/api"; // Update with your backend URL
 
 const Vendors = () => {
   const [vendors, setVendors] = useState([]);
@@ -77,7 +76,7 @@ const Vendors = () => {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/vendors`);
+      const response = await fetch(`${API_BASE_URL}/vendors`);
       const data = await response.json();
       setVendors(data);
       setFilteredVendors(data);
@@ -92,7 +91,7 @@ const Vendors = () => {
   // Fetch credit cards from backend
   const fetchCreditCards = async () => {
     try {
-      const response = await fetch(`${API_URL}/credit-cards`);
+      const response = await fetch(`${API_BASE_URL}/credit-cards`);
       const data = await response.json();
       setCreditCards(data);
     } catch (error) {
@@ -157,7 +156,7 @@ const Vendors = () => {
       let response;
       if (editingVendor) {
         // Update existing vendor
-        response = await fetch(`${API_URL}/vendors/${editingVendor._id}`, {
+        response = await fetch(`${API_BASE_URL}/vendors/${editingVendor._id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -166,7 +165,7 @@ const Vendors = () => {
         });
       } else {
         // Create new vendor
-        response = await fetch(`${API_URL}/vendors`, {
+        response = await fetch(`${API_BASE_URL}/vendors`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -207,7 +206,7 @@ const Vendors = () => {
 
       // Make API call to add payment
       const response = await fetch(
-        `${API_URL}/vendors/${currentVendor._id}/payments`,
+        `${API_BASE_URL}/vendors/${currentVendor._id}/payments`,
         {
           method: "POST",
           headers: {
@@ -233,7 +232,7 @@ const Vendors = () => {
 
   const handleDeleteVendor = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/vendors/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/vendors/${id}`, {
         method: "DELETE",
       });
 

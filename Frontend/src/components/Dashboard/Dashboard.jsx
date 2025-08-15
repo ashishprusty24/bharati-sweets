@@ -8,10 +8,10 @@ import {
   ShoppingCartOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
+import { API_BASE_URL } from "../../common/config";
 
 // Assuming this constant is defined elsewhere, but including it for context
 // You should ensure this points to your actual API endpoint.
-const API_BASE_URL = "http://localhost:5000/api";
 
 const { Title, Text } = Typography;
 
