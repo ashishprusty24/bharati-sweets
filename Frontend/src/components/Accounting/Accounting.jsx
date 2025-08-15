@@ -123,6 +123,9 @@ const AccountingDashboard = () => {
       setDateRange([start, end]);
     }
   };
+  console.log("====================================");
+  console.log(1);
+  console.log("====================================");
 
   const handleDateRangeChange = (dates) => {
     if (dates) {
