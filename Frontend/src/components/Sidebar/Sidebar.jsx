@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Layout, Menu, Drawer, Grid } from "antd";
 import {
@@ -11,6 +11,7 @@ import {
   TeamOutlined,
   CreditCardOutlined,
   SettingOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -21,69 +22,58 @@ const Sidebar = ({
   setCollapsed,
   drawerVisible,
   setDrawerVisible,
+  setPageTitle,
 }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.lg;
-
-  const location = useLocation(); // For setting active menu item
+  const location = useLocation();
 
   const menuItems = [
-    {
-      key: "/",
-      icon: <DashboardOutlined />,
-      label: <Link to="/">Dashboard</Link>,
-    },
+    { key: "/", icon: <DashboardOutlined />, name: "Dashboard" },
     {
       key: "/regular-orders",
       icon: <ShoppingCartOutlined />,
-      label: <Link to="/regular-orders">Regular Orders</Link>,
+      name: "Regular Orders",
     },
     {
       key: "/event-orders",
       icon: <ShoppingCartOutlined />,
-      label: <Link to="/event-orders">Event Orders</Link>,
+      name: "Event Orders",
     },
-    {
-      key: "/inventory",
-      icon: <ShopOutlined />,
-      label: <Link to="/inventory">Inventory</Link>,
-    },
-    {
-      key: "/expenses",
-      icon: <ShopOutlined />,
-      label: <Link to="/expenses">Expenses</Link>,
-    },
-    {
-      key: "/accounting",
-      icon: <DollarOutlined />,
-      label: <Link to="/accounting">Accounting</Link>,
-    },
-    {
-      key: "/vendors",
-      icon: <UserOutlined />,
-      label: <Link to="/vendors">Vendors</Link>,
-    },
+    { key: "/inventory", icon: <ShopOutlined />, name: "Inventory" },
+    { key: "/expenses", icon: <ShopOutlined />, name: "Expenses" },
+    { key: "/accounting", icon: <DollarOutlined />, name: "Accounting" },
+    { key: "/vendors", icon: <UserOutlined />, name: "Vendors" },
     {
       key: "/credit-cards",
       icon: <CreditCardOutlined />,
-      label: <Link to="/credit-cards">Credit Cards</Link>,
+      name: "Credit Cards",
     },
-    {
-      key: "/marketing",
-      icon: <PieChartOutlined />,
-      label: <Link to="/marketing">Marketing</Link>,
-    },
-    {
-      key: "/staff",
-      icon: <TeamOutlined />,
-      label: <Link to="/staff">Staff</Link>,
-    },
-    {
-      key: "/settings",
-      icon: <SettingOutlined />,
-      label: <Link to="/settings">Settings</Link>,
-    },
-  ];
+    { key: "/marketing", icon: <PieChartOutlined />, name: "Marketing" },
+    { key: "/staff", icon: <TeamOutlined />, name: "Staff" },
+    { key: "/settings", icon: <SettingOutlined />, name: "Settings" },
+  ].map((item) => ({
+    ...item,
+    label: <Link to={item.key}>{item.name}</Link>,
+  }));
+
+  const handleMenuClick = ({ key }) => {
+    const clickedItem = menuItems.find((item) => item.key === key);
+    if (clickedItem) {
+      setPageTitle(clickedItem.name);
+      console.log("Selected Menu Item:", clickedItem.name);
+      if (isMobile) {
+        setDrawerVisible(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const clickedItem = menuItems.find(
+      (item) => item.key === location.pathname
+    );
+    setPageTitle(clickedItem.name);
+  }, []);
 
   return (
     <>
@@ -121,22 +111,47 @@ const Sidebar = ({
             selectedKeys={[location.pathname]}
             items={menuItems}
             style={{ background: "transparent", borderRight: 0 }}
+            onClick={handleMenuClick}
           />
         </Sider>
       )}
 
-      {/* Drawer for mobile */}
       <Drawer
-        title="Menu"
+        title={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <span style={{ fontSize: 18, fontWeight: "600", color: "#333" }}>
+              Bharati Sweets
+            </span>
+            <CloseOutlined
+              onClick={() => setDrawerVisible(false)}
+              style={{ fontSize: 18, cursor: "pointer", color: "#555" }}
+            />
+          </div>
+        }
+        headerStyle={{
+          background: "#f9f9f9",
+          padding: "12px 16px",
+          borderBottom: "1px solid #eee",
+        }}
+        bodyStyle={{ padding: 0 }}
         placement="left"
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
+        closable={false}
       >
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           style={{ height: "100%", borderRight: 0 }}
+          onClick={handleMenuClick}
         />
       </Drawer>
     </>

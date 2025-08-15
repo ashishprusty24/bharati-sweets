@@ -575,74 +575,97 @@ const EventOrders = () => {
 
   return (
     <div>
-      <Card>
+      <Card style={{ height: "100%" }}>
         <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 24,
-          }}
+          style={{ display: "flex", flexDirection: "column", height: "100%" }}
         >
-          <Title level={4} style={{ margin: 0 }}>
-            <ShoppingCartOutlined style={{ marginRight: 8 }} />
-            Event Orders Management
-          </Title>
-          <div>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => showModal()}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              background: "#eef5ff",
+              borderRadius: 8,
+              marginBottom: 20,
+              flexWrap: "wrap",
+              gap: "8px",
+              padding: "12px 16px",
+            }}
+          >
+            {/* <Title
+              level={4}
+              style={{
+                margin: 0,
+                whiteSpace: "nowrap",
+                color: "#2b3a55",
+              }}
             >
+              Event Orders Management
+            </Title> */}
+
+            <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
               Create New Order
             </Button>
           </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-          <Input
-            placeholder="Search orders..."
-            prefix={<SearchOutlined />}
-            style={{ width: 300 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-
-          <Select
-            placeholder="Filter by status"
-            style={{ width: 200 }}
-            value={statusFilter}
-            onChange={setStatusFilter}
+          {/* Filters */}
+          <div
+            style={{
+              display: "flex",
+              gap: 16,
+              marginBottom: 20,
+              flexWrap: "wrap",
+            }}
           >
-            <Option value="all">All Statuses</Option>
-            {orderStatusOptions.map((option) => (
-              <Option key={option.value} value={option.value}>
-                {option.label}
-              </Option>
-            ))}
-          </Select>
+            <Input
+              placeholder="Search orders..."
+              prefix={<SearchOutlined />}
+              style={{ width: 300 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
 
-          <RangePicker
-            placeholder={["Start Date", "End Date"]}
-            style={{ width: 250 }}
-            onChange={setDateRange}
-          />
+            <Select
+              placeholder="Filter by status"
+              style={{ width: 200 }}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            >
+              <Option value="all">All Statuses</Option>
+              {orderStatusOptions.map((option) => (
+                <Option key={option.value} value={option.value}>
+                  {option.label}
+                </Option>
+              ))}
+            </Select>
+
+            <RangePicker
+              placeholder={["Start Date", "End Date"]}
+              style={{ width: 250 }}
+              onChange={setDateRange}
+            />
+          </div>
+
+          {/* Table always fills remaining height */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Table
+              style={{ flex: 1 }}
+              columns={columns}
+              dataSource={filteredOrders.map((order) => ({
+                ...order,
+                key: order._id,
+              }))}
+              rowKey="_id"
+              loading={loading}
+              pagination={{ pageSize: 10 }}
+              scroll={{ x: 1500 }}
+              expandable={{
+                expandedRowRender: renderOrderDetails,
+                rowExpandable: () => true,
+              }}
+            />
+          </div>
         </div>
-
-        <Table
-          columns={columns}
-          dataSource={filteredOrders.map((order) => ({
-            ...order,
-            key: order._id,
-          }))}
-          rowKey="_id"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          scroll={{ x: 1500 }}
-          expandable={{
-            expandedRowRender: renderOrderDetails,
-            rowExpandable: (record) => true,
-          }}
-        />
       </Card>
 
       {/* Order Form Modal */}

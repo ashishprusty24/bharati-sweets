@@ -458,13 +458,35 @@ const AccountingDashboard = () => {
 
       {/* Financial Summary Cards */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
+        {/* Total Revenue Card */}
         <Col span={8}>
-          <Card>
+          <Card
+            style={{
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              border: "none",
+              backgroundColor: "#edf9f1", // pastel green background
+            }}
+            bodyStyle={{ padding: 20 }}
+          >
+            <div
+              style={{
+                background: "linear-gradient(90deg, #e3fcef, #b6f3c0)",
+                padding: "8px 12px",
+                borderRadius: 8,
+                marginBottom: 16,
+                fontWeight: 600,
+                fontSize: 14,
+                color: "#3f8600",
+              }}
+            >
+              Total Revenue
+            </div>
             <Statistic
-              title="Total Revenue"
               value={financialData?.totalRevenue || 0}
               precision={2}
-              valueStyle={{ color: "#3f8600" }}
+              valueStyle={{ color: "#3f8600", fontWeight: 700 }}
               prefix={<DollarOutlined />}
               suffix="₹"
             />
@@ -489,13 +511,36 @@ const AccountingDashboard = () => {
             </div>
           </Card>
         </Col>
+
+        {/* Total Expenses Card */}
         <Col span={8}>
-          <Card>
+          <Card
+            style={{
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              border: "none",
+              backgroundColor: "#fff4f4", // pastel red background
+            }}
+            bodyStyle={{ padding: 20 }}
+          >
+            <div
+              style={{
+                background: "linear-gradient(90deg, #ffecec, #f8bdbd)",
+                padding: "8px 12px",
+                borderRadius: 8,
+                marginBottom: 16,
+                fontWeight: 600,
+                fontSize: 14,
+                color: "#cf1322",
+              }}
+            >
+              Total Expenses
+            </div>
             <Statistic
-              title="Total Expenses"
               value={financialData?.totalExpenses || 0}
               precision={2}
-              valueStyle={{ color: "#cf1322" }}
+              valueStyle={{ color: "#cf1322", fontWeight: 700 }}
               prefix={<DollarOutlined />}
               suffix="₹"
             />
@@ -520,14 +565,42 @@ const AccountingDashboard = () => {
             </div>
           </Card>
         </Col>
+
+        {/* Net Profit Card */}
         <Col span={8}>
-          <Card>
+          <Card
+            style={{
+              borderRadius: 12,
+              overflow: "hidden",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              border: "none",
+              backgroundColor:
+                financialData?.netProfit >= 0 ? "#edf9f1" : "#fff4f4", // dynamic pastel bg
+            }}
+            bodyStyle={{ padding: 20 }}
+          >
+            <div
+              style={{
+                background:
+                  financialData?.netProfit >= 0
+                    ? "linear-gradient(90deg, #e3fcef, #b6f3c0)"
+                    : "linear-gradient(90deg, #ffecec, #f8bdbd)",
+                padding: "8px 12px",
+                borderRadius: 8,
+                marginBottom: 16,
+                fontWeight: 600,
+                fontSize: 14,
+                color: financialData?.netProfit >= 0 ? "#3f8600" : "#cf1322",
+              }}
+            >
+              Net Profit
+            </div>
             <Statistic
-              title="Net Profit"
               value={financialData?.netProfit || 0}
               precision={2}
               valueStyle={{
                 color: financialData?.netProfit >= 0 ? "#3f8600" : "#cf1322",
+                fontWeight: 700,
               }}
               prefix={
                 financialData?.netProfit >= 0 ? (
@@ -547,6 +620,7 @@ const AccountingDashboard = () => {
                     financialData.netProfit >= 0 ? "success" : "exception"
                   }
                   format={() => `${financialData.profitMargin.toFixed(2)}%`}
+                  strokeWidth={10}
                 />
               )}
             </div>

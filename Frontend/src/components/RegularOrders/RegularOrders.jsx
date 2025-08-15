@@ -320,14 +320,14 @@ const RegularOrders = () => {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             marginBottom: 24,
           }}
         >
-          <Title level={4} style={{ margin: 0 }}>
+          {/* <Title level={4} style={{ margin: 0 }}>
             <ShoppingCartOutlined style={{ marginRight: 8 }} />
             Regular Orders Management
-          </Title>
+          </Title> */}
           <div>
             <Button
               type="primary"

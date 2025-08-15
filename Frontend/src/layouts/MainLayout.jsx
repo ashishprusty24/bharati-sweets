@@ -10,6 +10,7 @@ const { useBreakpoint } = Grid;
 const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [pageTitle, setPageTitle] = useState(null);
   const screens = useBreakpoint();
   const isMobile = !screens.lg;
 
@@ -47,6 +48,7 @@ const AppLayout = () => {
           setCollapsed={setCollapsed}
           drawerVisible={drawerVisible}
           setDrawerVisible={setDrawerVisible}
+          setPageTitle={setPageTitle}
         />
         <Layout
           style={{
@@ -61,6 +63,7 @@ const AppLayout = () => {
             setDrawerVisible={setDrawerVisible}
             toggleTheme={toggleTheme}
             isDark={isDark}
+            pageTitle={pageTitle}
           />
           <Layout.Content
             style={{

@@ -33,13 +33,12 @@ import {
 } from "@ant-design/icons";
 import ReactECharts from "echarts-for-react";
 import moment from "moment";
+import { API_BASE_URL } from "../../common/config";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-
-const API_URL = "http://localhost:5000/api"; // Update with your backend URL
 
 const ExpenseManagement = () => {
   const [expenses, setExpenses] = useState([]);
@@ -75,19 +74,16 @@ const ExpenseManagement = () => {
     { value: "upi", label: "UPI Payment" },
   ];
 
-  // Fetch expenses from backend
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      // NOTE: This assumes your backend returns ALL expenses, not just the current month.
-      // If you are fetching for the current month, the API call should be adjusted.
-      const response = await fetch(`${API_URL}/expenses/current`);
+      const response = await fetch(`${API_BASE_URL}/expenses/list`);
       const data = await response.json();
 
-      setExpenses(data.expenses); // Assuming data.expenses is the array of expenses
-      setFilteredExpenses(data.expenses);
-      calculateStats(data.expenses);
-      generateEchartOptions(data.expenses);
+      setExpenses(data); // Assuming data.expenses is the array of expenses
+      setFilteredExpenses(data);
+      calculateStats(data);
+      generateEchartOptions(data);
     } catch (error) {
       message.error("Failed to fetch expenses");
       console.error("Error fetching expenses:", error);
@@ -236,16 +232,19 @@ const ExpenseManagement = () => {
       let response;
       if (editingExpense) {
         // Update existing expense
-        response = await fetch(`${API_URL}/expenses/${editingExpense._id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(expenseData),
-        });
+        response = await fetch(
+          `${API_BASE_URL}/expenses/${editingExpense._id}/update`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(expenseData),
+          }
+        );
       } else {
         // Create new expense
-        response = await fetch(`${API_URL}/expenses`, {
+        response = await fetch(`${API_BASE_URL}/expenses/create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -272,7 +271,7 @@ const ExpenseManagement = () => {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/expenses/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/expenses/${id}/delete`, {
         method: "DELETE",
       });
 
@@ -383,10 +382,10 @@ const ExpenseManagement = () => {
             marginBottom: 24,
           }}
         >
-          <Title level={4} style={{ margin: 0 }}>
+          {/* <Title level={4} style={{ margin: 0 }}>
             <DollarOutlined style={{ marginRight: 8 }} />
             Expense Management
-          </Title>
+          </Title> */}
           <div>
             <Button
               type="primary"

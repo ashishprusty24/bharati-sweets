@@ -432,14 +432,14 @@ const Vendors = () => {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             marginBottom: 24,
           }}
         >
-          <Title level={4} style={{ margin: 0 }}>
+          {/* <Title level={4} style={{ margin: 0 }}>
             <SolutionOutlined style={{ marginRight: 8 }} />
             Vendor Management
-          </Title>
+          </Title> */}
           <div>
             <Input
               placeholder="Search vendors..."

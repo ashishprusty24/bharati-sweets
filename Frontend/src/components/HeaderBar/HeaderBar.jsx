@@ -29,6 +29,7 @@ const HeaderBar = ({
   setDrawerVisible,
   isDark,
   toggleTheme,
+  pageTitle,
 }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.lg;
@@ -70,7 +71,7 @@ const HeaderBar = ({
         />
 
         <Title level={4} style={{ margin: 0 }}>
-          Dashboard
+          {pageTitle}
         </Title>
       </div>
 
