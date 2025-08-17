@@ -20,6 +20,7 @@ const staffRoutes = require("./routes/staffRoutes");
 const accountingRoutes = require("./routes/accountingRouter");
 const dashboardRoutes = require("./routes/dashboardRouter");
 const expenseRoutes = require("./routes/expenseRouter");
+const authRoutes = require("./routes/authRoutes");
 
 var app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +48,7 @@ app.use("/api/staff", staffRoutes);
 app.use("/api/accounting", accountingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/auth", authRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI, {

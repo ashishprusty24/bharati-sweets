@@ -76,7 +76,7 @@ const Vendors = () => {
   const fetchVendors = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors`);
+      const response = await fetch(`${API_BASE_URL}/vendors/list`);
       const data = await response.json();
       setVendors(data);
       setFilteredVendors(data);
@@ -102,7 +102,7 @@ const Vendors = () => {
 
   useEffect(() => {
     fetchVendors();
-    fetchCreditCards();
+    // fetchCreditCards();
   }, []);
 
   useEffect(() => {
@@ -156,16 +156,19 @@ const Vendors = () => {
       let response;
       if (editingVendor) {
         // Update existing vendor
-        response = await fetch(`${API_BASE_URL}/vendors/${editingVendor._id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(values),
-        });
+        response = await fetch(
+          `${API_BASE_URL}/vendors/${editingVendor._id}update`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(values),
+          }
+        );
       } else {
         // Create new vendor
-        response = await fetch(`${API_BASE_URL}/vendors`, {
+        response = await fetch(`${API_BASE_URL}/vendors/create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -232,7 +235,7 @@ const Vendors = () => {
 
   const handleDeleteVendor = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/vendors/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/vendors/${id}/delete`, {
         method: "DELETE",
       });
 

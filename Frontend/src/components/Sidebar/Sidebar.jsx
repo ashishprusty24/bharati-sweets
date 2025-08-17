@@ -44,14 +44,7 @@ const Sidebar = ({
     { key: "/expenses", icon: <ShopOutlined />, name: "Expenses" },
     { key: "/accounting", icon: <DollarOutlined />, name: "Accounting" },
     { key: "/vendors", icon: <UserOutlined />, name: "Vendors" },
-    {
-      key: "/credit-cards",
-      icon: <CreditCardOutlined />,
-      name: "Credit Cards",
-    },
-    { key: "/marketing", icon: <PieChartOutlined />, name: "Marketing" },
     { key: "/staff", icon: <TeamOutlined />, name: "Staff" },
-    { key: "/settings", icon: <SettingOutlined />, name: "Settings" },
   ].map((item) => ({
     ...item,
     label: <Link to={item.key}>{item.name}</Link>,
@@ -59,6 +52,8 @@ const Sidebar = ({
 
   const handleMenuClick = ({ key }) => {
     const clickedItem = menuItems.find((item) => item.key === key);
+    console.log(clickedItem);
+
     if (clickedItem) {
       setPageTitle(clickedItem.name);
       console.log("Selected Menu Item:", clickedItem.name);
@@ -72,7 +67,9 @@ const Sidebar = ({
     const clickedItem = menuItems.find(
       (item) => item.key === location.pathname
     );
-    setPageTitle(clickedItem.name);
+    if (clickedItem) {
+      setPageTitle(clickedItem.name);
+    }
   }, []);
 
   return (

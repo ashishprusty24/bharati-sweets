@@ -298,7 +298,7 @@ const Inventory = () => {
           }))}
           rowKey="_id"
           loading={loading}
-          pagination={{ pageSize: 5 }}
+          // pagination={{ pageSize: 5 }}
           scroll={{ x: true }}
           size="small"
         />

@@ -45,6 +45,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 const { Step } = Steps;
+import moment from "moment";
 
 const EventOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -189,12 +190,15 @@ const EventOrders = () => {
   };
 
   const showModal = (order = null) => {
+    console.log(order);
+
     if (order) {
       form.setFieldsValue({
         ...order,
-        // deliveryDate: order.deliveryDate ? new Date(order.deliveryDate) : null,
-        // items: order.items.map((item) => ({ ...item, key: item._id })),
+        deliveryDate: order.deliveryDate ? moment(order.deliveryDate) : null,
+        items: order.items.map((item) => ({ ...item, key: item._id })),
       });
+
       setEditingOrder(order);
     } else {
       form.resetFields();
@@ -253,6 +257,8 @@ const EventOrders = () => {
       };
 
       let response;
+      console.log(editingOrder);
+
       if (editingOrder) {
         // Update existing order
         response = await fetch(
@@ -584,7 +590,6 @@ const EventOrders = () => {
               display: "flex",
               justifyContent: "flex-end",
               alignItems: "center",
-              background: "#eef5ff",
               borderRadius: 8,
               marginBottom: 20,
               flexWrap: "wrap",
@@ -603,7 +608,11 @@ const EventOrders = () => {
               Event Orders Management
             </Title> */}
 
-            <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => showModal()}
+            >
               Create New Order
             </Button>
           </div>
@@ -758,7 +767,6 @@ const EventOrders = () => {
           >
             <TextArea placeholder="Full delivery address" rows={2} />
           </Form.Item>
-
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -798,12 +806,17 @@ const EventOrders = () => {
                 {fields.map(({ key, name, ...restField }) => (
                   <Space
                     key={key}
-                    style={{ display: "flex", marginBottom: 8 }}
+                    style={{
+                      display: "flex",
+                      marginBottom: 8,
+                      alignItems: "center",
+                    }}
                     align="baseline"
                   >
                     <Form.Item
                       {...restField}
                       name={[name, "itemId"]}
+                      label="Select item"
                       rules={[{ required: true, message: "Select item" }]}
                     >
                       <Select

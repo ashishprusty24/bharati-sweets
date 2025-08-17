@@ -5,6 +5,7 @@ const {
   getFinancialSummary,
   getTransactions,
 } = require("../controllers/accountingController");
+// const { authMiddleware } = require("../middleware/authMiddleware");
 
 router.get("/summary", async (req, res) => {
   try {

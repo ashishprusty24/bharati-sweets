@@ -10,6 +10,8 @@ import ExpensesPage from "../pages/ExpensesPage/ExpensesPage";
 import AccountingLandings from "../pages/AccountingLandings/AccountingLandings";
 import ExpenseManagement from "../components/Expenses/Expenses";
 import DashboardLandings from "../pages/DashboardLandings/DashboardLandings";
+import LoginLandings from "../pages/LoginLandings/LoginLandings";
+import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
 
 // import Dashboard from "../pages/Dashboard";
 
@@ -24,13 +26,63 @@ const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<DashboardLandings />} />
-        <Route path="regular-orders" element={<RegularOrders />} />
-        <Route path="event-orders" element={<EventOrdersPage />} />
-        <Route path="inventory" element={<Inventory />} />
-        <Route path="accounting" element={<AccountingLandings />} />
-        <Route path="expenses" element={<ExpenseManagement />} />
-        <Route path="vendors" element={<VendorsPage />} />
+        <Route path="/login" element={<LoginLandings />} />
+        <Route
+          index
+          element={
+            <ProtectedRoute>
+              <DashboardLandings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="regular-orders"
+          element={
+            <ProtectedRoute>
+              <RegularOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="event-orders"
+          element={
+            <ProtectedRoute>
+              <EventOrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="inventory"
+          element={
+            <ProtectedRoute>
+              <Inventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="accounting"
+          element={
+            <ProtectedRoute>
+              <AccountingLandings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="expenses"
+          element={
+            <ProtectedRoute>
+              <ExpenseManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="vendors"
+          element={
+            <ProtectedRoute>
+              <VendorsPage />
+            </ProtectedRoute>
+          }
+        />
         {/* 
         <Route path="marketing" element={<Marketing />} />
         <Route path="staff" element={<Staff />} />

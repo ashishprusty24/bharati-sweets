@@ -415,12 +415,17 @@ const RegularOrders = () => {
                 {fields.map(({ key, name, ...restField }) => (
                   <Space
                     key={key}
-                    style={{ display: "flex", marginBottom: 8 }}
+                    style={{
+                      display: "flex",
+                      marginBottom: 8,
+                      alignItems: "center",
+                    }}
                     align="baseline"
                   >
                     <Form.Item
                       {...restField}
                       name={[name, "itemId"]}
+                      label="Select item"
                       rules={[{ required: true, message: "Select sweet item" }]}
                     >
                       <Select
