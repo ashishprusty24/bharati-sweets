@@ -10,8 +10,8 @@ import ExpensesPage from "../pages/ExpensesPage/ExpensesPage";
 import AccountingLandings from "../pages/AccountingLandings/AccountingLandings";
 import ExpenseManagement from "../components/Expenses/Expenses";
 import DashboardLandings from "../pages/DashboardLandings/DashboardLandings";
-import LoginLandings from "../pages/LoginLandings/LoginLandings";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
+import AuthPage from "../components/Login/Login";
 
 // import Dashboard from "../pages/Dashboard";
 
@@ -26,7 +26,8 @@ const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        <Route path="/login" element={<LoginLandings />} />
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/signup" element={<AuthPage mode={"signup"} />} />
         <Route
           index
           element={
