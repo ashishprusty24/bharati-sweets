@@ -71,8 +71,8 @@ const createRegularOrder = async (payload) => {
                 {
                   type: "body",
                   parameters: [
-                    { type: "text", text: "John" },
-                    { type: "text", text: "#12345" },
+                    { type: "text", text: customerName }, // Name
+                    { type: "text", text: `#${savedOrder._id}` }, // Order ID
                   ],
                 },
                 {
