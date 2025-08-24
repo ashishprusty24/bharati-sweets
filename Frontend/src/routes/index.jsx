@@ -26,7 +26,7 @@ const AppRouter = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<MainLayout />}>
-        <Route path="/login" element={<AuthPage />} />
+        {/* <Route path="/login" element={<AuthPage />} /> */}
         <Route path="/signup" element={<AuthPage mode={"signup"} />} />
         <Route
           index

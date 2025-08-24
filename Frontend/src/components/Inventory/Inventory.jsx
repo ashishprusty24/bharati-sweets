@@ -323,24 +323,13 @@ const Inventory = () => {
           </Form.Item>
 
           <div style={{ display: "flex", gap: "16px" }}>
-            {/* Name and Category in a row */}
             <Form.Item
               name="name"
               label="Sweet Name"
-              rules={[{ required: true, message: "Please select a sweet" }]}
-              style={{ flex: 1 }} // Take up available space
+              rules={[{ required: true, message: "Please enter a sweet" }]}
+              style={{ flex: 1 }}
             >
-              <Select
-                showSearch
-                placeholder="Select sweet"
-                style={{ width: "100%" }}
-              >
-                {sweetOptions.map((sweet) => (
-                  <Option key={sweet} value={sweet}>
-                    {sweet}
-                  </Option>
-                ))}
-              </Select>
+              <Input placeholder="Enter sweet name" />
             </Form.Item>
 
             <Form.Item
