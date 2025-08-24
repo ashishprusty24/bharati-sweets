@@ -62,7 +62,7 @@ const createRegularOrder = async (payload) => {
                     {
                       type: "document",
                       document: {
-                        link: "https://bharati-sweets-backend.onrender.com/invoices/invoice_68ab4f0c0128031c9a2f4e15.pdf",
+                        link: `https://bharati-sweets-backend.onrender.com/invoices/invoice_${savedOrder._id}.pdf`,
                         filename: `invoice_${savedOrder._id}.pdf`,
                       },
                     },
@@ -87,49 +87,7 @@ const createRegularOrder = async (payload) => {
         }
       );
 
-      console.log(
-        JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "template",
-          template: {
-            name: "purchase_receipt_3",
-            language: { code: "en_US" },
-            components: [
-              {
-                type: "header",
-                parameters: [
-                  {
-                    type: "document",
-                    document: {
-                      link: "https://bharati-sweets-backend.onrender.com/invoices/invoice_68ab4f0c0128031c9a2f4e15.pdf",
-                      filename: `invoice_${savedOrder._id}.pdf`,
-                    },
-                  },
-                ],
-              },
-              {
-                type: "body",
-                parameters: [
-                  { type: "text", text: "John" },
-                  { type: "text", text: "#12345" },
-                ],
-              },
-              {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-                parameters: [{ type: "text", text: "12345" }],
-              },
-            ],
-          },
-        })
-      );
-      console.log(process.env.WHATSAPP_API_TOKEN);
-
       if (!response.ok) {
-        console.log(response);
-
         throw new Error(`WhatsApp API error: ${response.statusText}`);
       }
 
