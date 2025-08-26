@@ -74,15 +74,21 @@ const createEventOrder = (payload) => {
                       },
                     ],
                   },
+                  // make parameter dtanamic
                   {
                     type: "body",
                     parameters: [
-                      { type: "text", text: "{{customer_name}}" },
-                      { type: "text", text: "#{{order_id}}" },
-                      { type: "text", text: "{{purpose}}" },
-                      { type: "text", text: "₹{{advance}}" },
-                      { type: "text", text: "₹{{total_amount}}" },
-                      { type: "text", text: "₹{{balance}}" },
+                      { type: "text", text: savedOrder.customerName }, // Customer Name
+                      { type: "text", text: `#${savedOrder._id}` }, // Order ID
+                      { type: "text", text: savedOrder.purpose }, // Purpose
+                      { type: "text", text: `₹${savedOrder.paidAmount}` }, // Advance Paid
+                      { type: "text", text: `₹${savedOrder.totalAmount}` }, // Total Amount
+                      {
+                        type: "text",
+                        text: `₹${
+                          savedOrder.totalAmount - savedOrder.paidAmount
+                        }`,
+                      }, // Balance
                     ],
                   },
                   {
