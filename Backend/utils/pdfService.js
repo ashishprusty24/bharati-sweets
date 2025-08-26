@@ -58,10 +58,14 @@ function generateBookingReceipt(order) {
 function generateFinalInvoice(order) {
   return new Promise((resolve, reject) => {
     try {
-      const filePath = path.join(
-        __dirname,
-        `../public/invoices/final_${order._id}.pdf`
-      );
+      const invoiceDir = path.join(process.cwd(), "receipts");
+
+      if (!fs.existsSync(invoiceDir)) {
+        fs.mkdirSync(invoiceDir);
+      }
+
+      const fileName = `final_${order._id}.pdf`;
+      const filePath = path.join(invoiceDir, fileName);
 
       const doc = new PDFDocument();
       const stream = fs.createWriteStream(filePath);
