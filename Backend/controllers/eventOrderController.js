@@ -68,8 +68,8 @@ const createEventOrder = (payload) => {
                       {
                         type: "document",
                         document: {
-                          link: `https://bharati-sweets-backend.onrender.com/receipts/booking_${updatedOrder._id}.pdf`,
-                          filename: `booking_${updatedOrder._id}.pdf`,
+                          link: `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`,
+                          filename: `booking_${savedOrder._id}.pdf`,
                         },
                       },
                     ],
@@ -92,7 +92,7 @@ const createEventOrder = (payload) => {
                     parameters: [
                       {
                         type: "text",
-                        text: `https://bharati-sweets-backend.onrender.com/receipts/booking_${order_id}.pdf`,
+                        text: `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`,
                       },
                     ],
                   },
