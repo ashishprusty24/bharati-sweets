@@ -51,6 +51,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/auth", authRoutes);
 
 app.use("/invoices", express.static(path.join(process.cwd(), "invoices")));
+app.use("/receipts", express.static(path.join(process.cwd(), "receipts")));
 
 mongoose
   .connect(process.env.MONGO_URI, {
