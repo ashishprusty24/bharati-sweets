@@ -7,6 +7,7 @@ const { sendWhatsApp } = require("../utils/whatsappService");
 const {
   generateBookingReceipt,
   generateFinalInvoice,
+  generatePartialInvoice,
 } = require("../utils/pdfService");
 
 const createEventOrder = (payload) => {
@@ -175,10 +176,10 @@ const addPayment = (orderId, paymentData) => {
                       type: "body",
                       parameters: [
                         { type: "text", text: updatedOrder.customerName },
-                        { type: "text", text: `#${updatedOrder._id}` },
+                        { type: "text", text: `${updatedOrder._id}` },
                         { type: "text", text: updatedOrder.purpose },
-                        { type: "text", text: `₹${updatedOrder.totalAmount}` },
-                        { type: "text", text: `₹${updatedOrder.paidAmount}` },
+                        { type: "text", text: `${updatedOrder.totalAmount}` },
+                        { type: "text", text: `${updatedOrder.paidAmount}` },
                       ],
                     },
                     {
@@ -208,6 +209,7 @@ const addPayment = (orderId, paymentData) => {
           console.error("❌ Failed to send WhatsApp message:", whatsappError);
         }
       } else {
+        const partialInvoiceUrl = generatePartialInvoice(updatedOrder);
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
         try {
@@ -227,6 +229,18 @@ const addPayment = (orderId, paymentData) => {
                   name: "partial_payment_invoice",
                   language: { code: "en_US" },
                   components: [
+                    {
+                      type: "header",
+                      parameters: [
+                        {
+                          type: "document",
+                          document: {
+                            link: partialInvoiceUrl,
+                            filename: `partial_${updatedOrder._id}.pdf`,
+                          },
+                        },
+                      ],
+                    },
                     {
                       type: "body",
                       parameters: [

@@ -107,4 +107,67 @@ function generateFinalInvoice(order) {
   });
 }
 
-module.exports = { generateBookingReceipt, generateFinalInvoice };
+function generatePartialInvoice(order) {
+  return new Promise((resolve, reject) => {
+    try {
+      const invoiceDir = path.join(process.cwd(), "receipts");
+
+      if (!fs.existsSync(invoiceDir)) {
+        fs.mkdirSync(invoiceDir);
+      }
+
+      const fileName = `partial_${order._id}.pdf`;
+      const filePath = path.join(invoiceDir, fileName);
+
+      const doc = new PDFDocument();
+      const stream = fs.createWriteStream(filePath);
+      doc.pipe(stream);
+
+      // Title
+      doc
+        .fontSize(20)
+        .text("Partial Payment Invoice", { align: "center" })
+        .moveDown(1);
+
+      // Customer details
+      doc.fontSize(12).text(`Customer: ${order.customerName}`);
+      doc.text(`Phone: ${order.phone}`);
+      doc.text(`Purpose: ${order.purpose}`);
+      doc.text(`Address: ${order.address}`);
+      doc.text(
+        `Delivery: ${order.deliveryDate.toDateString()} at ${
+          order.deliveryTime
+        }`
+      );
+      doc.moveDown(1);
+
+      // Items
+      doc.text("Items:");
+      order.items.forEach((item) => {
+        doc.text(
+          `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
+        );
+      });
+
+      // Payment details
+      const balance = order.totalAmount - order.paidAmount;
+
+      doc.moveDown(1).text(`Total Amount: ₹${order.totalAmount}`);
+      doc.text(`Paid So Far: ₹${order.paidAmount}`);
+      doc.text(`Balance Pending: ₹${balance}`);
+      doc.text("Status: PARTIALLY PAID");
+
+      doc.end();
+
+      stream.on("finish", () => resolve(filePath));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+module.exports = {
+  generateBookingReceipt,
+  generateFinalInvoice,
+  generatePartialInvoice,
+};
