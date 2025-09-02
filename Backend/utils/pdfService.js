@@ -1,293 +1,293 @@
-// utils/pdfService.js
-const PDFDocument = require("pdfkit");
-const fs = require("fs");
-const path = require("path");
+// // utils/pdfService.js
+// const PDFDocument = require("pdfkit");
+// const fs = require("fs");
+// const path = require("path");
 
-function generateBookingReceipt(order) {
-  return new Promise((resolve, reject) => {
-    try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
+// function generateBookingReceipt(order) {
+//   return new Promise((resolve, reject) => {
+//     try {
+//       const invoiceDir = path.join(process.cwd(), "receipts");
 
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+//       if (!fs.existsSync(invoiceDir)) {
+//         fs.mkdirSync(invoiceDir);
+//       }
 
-      const fileName = `booking_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+//       const fileName = `booking_${order._id}.pdf`;
+//       const filePath = path.join(invoiceDir, fileName);
 
-      const doc = new PDFDocument();
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
+//       const doc = new PDFDocument();
+//       const stream = fs.createWriteStream(filePath);
+//       doc.pipe(stream);
 
-      // Title
-      doc.fontSize(20).text("Booking Receipt", { align: "center" }).moveDown(1);
+//       // Title
+//       doc.fontSize(20).text("Booking Receipt", { align: "center" }).moveDown(1);
 
-      // Customer details
-      doc.fontSize(12).text(`Customer: ${order.customerName}`);
-      doc.text(`Phone: ${order.phone}`);
-      doc.text(`Purpose: ${order.purpose}`);
-      doc.text(`Address: ${order.address}`);
-      doc.text(
-        `Delivery: ${order.deliveryDate.toDateString()} at ${
-          order.deliveryTime
-        }`
-      );
-      doc.moveDown(1);
+//       // Customer details
+//       doc.fontSize(12).text(`Customer: ${order.customerName}`);
+//       doc.text(`Phone: ${order.phone}`);
+//       doc.text(`Purpose: ${order.purpose}`);
+//       doc.text(`Address: ${order.address}`);
+//       doc.text(
+//         `Delivery: ${order.deliveryDate.toDateString()} at ${
+//           order.deliveryTime
+//         }`
+//       );
+//       doc.moveDown(1);
 
-      // Items
-      doc.text("Items:");
-      order.items.forEach((item) => {
-        doc.text(
-          `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
-        );
-      });
+//       // Items
+//       doc.text("Items:");
+//       order.items.forEach((item) => {
+//         doc.text(
+//           `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
+//         );
+//       });
 
-      doc.moveDown(1).text(`Advance Paid: ₹${order.paidAmount}`);
-      doc.text(`Total Amount: ₹${order.totalAmount}`);
-      doc.text(`Balance: ₹${order.totalAmount - order.paidAmount}`);
+//       doc.moveDown(1).text(`Advance Paid: ₹${order.paidAmount}`);
+//       doc.text(`Total Amount: ₹${order.totalAmount}`);
+//       doc.text(`Balance: ₹${order.totalAmount - order.paidAmount}`);
 
-      doc.end();
+//       doc.end();
 
-      stream.on("finish", () => resolve(filePath));
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+//       stream.on("finish", () => resolve(filePath));
+//     } catch (err) {
+//       reject(err);
+//     }
+//   });
+// }
 
-function generateFinalInvoice(order) {
-  return new Promise((resolve, reject) => {
-    try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
+// function generateFinalInvoice(order) {
+//   return new Promise((resolve, reject) => {
+//     try {
+//       const invoiceDir = path.join(process.cwd(), "receipts");
 
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+//       if (!fs.existsSync(invoiceDir)) {
+//         fs.mkdirSync(invoiceDir);
+//       }
 
-      const fileName = `final_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+//       const fileName = `final_${order._id}.pdf`;
+//       const filePath = path.join(invoiceDir, fileName);
 
-      const doc = new PDFDocument();
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
+//       const doc = new PDFDocument();
+//       const stream = fs.createWriteStream(filePath);
+//       doc.pipe(stream);
 
-      // Title
-      doc.fontSize(20).text("Final Invoice", { align: "center" }).moveDown(1);
+//       // Title
+//       doc.fontSize(20).text("Final Invoice", { align: "center" }).moveDown(1);
 
-      // Customer details
-      doc.fontSize(12).text(`Customer: ${order.customerName}`);
-      doc.text(`Phone: ${order.phone}`);
-      doc.text(`Purpose: ${order.purpose}`);
-      doc.text(`Address: ${order.address}`);
-      doc.text(
-        `Delivery: ${order.deliveryDate.toDateString()} at ${
-          order.deliveryTime
-        }`
-      );
-      doc.moveDown(1);
+//       // Customer details
+//       doc.fontSize(12).text(`Customer: ${order.customerName}`);
+//       doc.text(`Phone: ${order.phone}`);
+//       doc.text(`Purpose: ${order.purpose}`);
+//       doc.text(`Address: ${order.address}`);
+//       doc.text(
+//         `Delivery: ${order.deliveryDate.toDateString()} at ${
+//           order.deliveryTime
+//         }`
+//       );
+//       doc.moveDown(1);
 
-      // Items
-      doc.text("Items:");
-      order.items.forEach((item) => {
-        doc.text(
-          `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
-        );
-      });
+//       // Items
+//       doc.text("Items:");
+//       order.items.forEach((item) => {
+//         doc.text(
+//           `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
+//         );
+//       });
 
-      doc.moveDown(1).text(`Total Paid: ₹${order.paidAmount}`);
-      doc.text(`Total Amount: ₹${order.totalAmount}`);
-      doc.text("Status: PAID IN FULL");
+//       doc.moveDown(1).text(`Total Paid: ₹${order.paidAmount}`);
+//       doc.text(`Total Amount: ₹${order.totalAmount}`);
+//       doc.text("Status: PAID IN FULL");
 
-      doc.end();
+//       doc.end();
 
-      stream.on("finish", () => resolve(filePath));
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+//       stream.on("finish", () => resolve(filePath));
+//     } catch (err) {
+//       reject(err);
+//     }
+//   });
+// }
 
-function generatePartialInvoice(order) {
-  return new Promise((resolve, reject) => {
-    try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
+// function generatePartialInvoice(order) {
+//   return new Promise((resolve, reject) => {
+//     try {
+//       const invoiceDir = path.join(process.cwd(), "receipts");
 
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+//       if (!fs.existsSync(invoiceDir)) {
+//         fs.mkdirSync(invoiceDir);
+//       }
 
-      const fileName = `partial_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+//       const fileName = `partial_${order._id}.pdf`;
+//       const filePath = path.join(invoiceDir, fileName);
 
-      const doc = new PDFDocument();
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
+//       const doc = new PDFDocument();
+//       const stream = fs.createWriteStream(filePath);
+//       doc.pipe(stream);
 
-      // Title
-      doc
-        .fontSize(20)
-        .text("Partial Payment Invoice", { align: "center" })
-        .moveDown(1);
+//       // Title
+//       doc
+//         .fontSize(20)
+//         .text("Partial Payment Invoice", { align: "center" })
+//         .moveDown(1);
 
-      // Customer details
-      doc.fontSize(12).text(`Customer: ${order.customerName}`);
-      doc.text(`Phone: ${order.phone}`);
-      doc.text(`Purpose: ${order.purpose}`);
-      doc.text(`Address: ${order.address}`);
-      doc.text(
-        `Delivery: ${order.deliveryDate.toDateString()} at ${
-          order.deliveryTime
-        }`
-      );
-      doc.moveDown(1);
+//       // Customer details
+//       doc.fontSize(12).text(`Customer: ${order.customerName}`);
+//       doc.text(`Phone: ${order.phone}`);
+//       doc.text(`Purpose: ${order.purpose}`);
+//       doc.text(`Address: ${order.address}`);
+//       doc.text(
+//         `Delivery: ${order.deliveryDate.toDateString()} at ${
+//           order.deliveryTime
+//         }`
+//       );
+//       doc.moveDown(1);
 
-      // Items
-      doc.text("Items:");
-      order.items.forEach((item) => {
-        doc.text(
-          `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
-        );
-      });
+//       // Items
+//       doc.text("Items:");
+//       order.items.forEach((item) => {
+//         doc.text(
+//           `- ${item.quantity}${item.unit || "g"} ${item.name} : ₹${item.total}`
+//         );
+//       });
 
-      // Payment details
-      const balance = order.totalAmount - order.paidAmount;
+//       // Payment details
+//       const balance = order.totalAmount - order.paidAmount;
 
-      doc.moveDown(1).text(`Total Amount: ₹${order.totalAmount}`);
-      doc.text(`Paid So Far: ₹${order.paidAmount}`);
-      doc.text(`Balance Pending: ₹${balance}`);
-      doc.text("Status: PARTIALLY PAID");
+//       doc.moveDown(1).text(`Total Amount: ₹${order.totalAmount}`);
+//       doc.text(`Paid So Far: ₹${order.paidAmount}`);
+//       doc.text(`Balance Pending: ₹${balance}`);
+//       doc.text("Status: PARTIALLY PAID");
 
-      doc.end();
+//       doc.end();
 
-      stream.on("finish", () => resolve(filePath));
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+//       stream.on("finish", () => resolve(filePath));
+//     } catch (err) {
+//       reject(err);
+//     }
+//   });
+// }
 
-const generateInvoiceUrl = async (order) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const invoiceDir = path.join(process.cwd(), "invoices");
+// const generateInvoiceUrl = async (order) => {
+//   return new Promise((resolve, reject) => {
+//     try {
+//       const invoiceDir = path.join(process.cwd(), "invoices");
 
-      // Ensure invoices folder exists
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+//       // Ensure invoices folder exists
+//       if (!fs.existsSync(invoiceDir)) {
+//         fs.mkdirSync(invoiceDir);
+//       }
 
-      const fileName = `invoice_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+//       const fileName = `invoice_${order._id}.pdf`;
+//       const filePath = path.join(invoiceDir, fileName);
 
-      const doc = new PDFDocument({ margin: 50 });
+//       const doc = new PDFDocument({ margin: 50 });
 
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
+//       const stream = fs.createWriteStream(filePath);
+//       doc.pipe(stream);
 
-      // ---------------- HEADER ----------------
-      doc
-        .fontSize(20)
-        .fillColor("#333")
-        .text("Bharati Sweets", 50, 50)
-        .fontSize(10)
-        .fillColor("gray")
-        .text("123 Sweet Street, Delhi, India", 50, 75)
-        .text("Phone: +91 9876543210", 50, 90)
-        .text("Email: info@bharatisweets.com", 50, 105);
+//       // ---------------- HEADER ----------------
+//       doc
+//         .fontSize(20)
+//         .fillColor("#333")
+//         .text("Bharati Sweets", 50, 50)
+//         .fontSize(10)
+//         .fillColor("gray")
+//         .text("123 Sweet Street, Delhi, India", 50, 75)
+//         .text("Phone: +91 9876543210", 50, 90)
+//         .text("Email: info@bharatisweets.com", 50, 105);
 
-      doc.moveDown(2);
+//       doc.moveDown(2);
 
-      // Invoice title
-      doc.fontSize(18).fillColor("#000").text("INVOICE", { align: "right" });
+//       // Invoice title
+//       doc.fontSize(18).fillColor("#000").text("INVOICE", { align: "right" });
 
-      // ---------------- CUSTOMER INFO ----------------
-      doc
-        .moveDown()
-        .fontSize(12)
-        .fillColor("#000")
-        .text(`Invoice ID: ${order._id}`, { align: "right" })
-        .text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" })
-        .moveDown();
+//       // ---------------- CUSTOMER INFO ----------------
+//       doc
+//         .moveDown()
+//         .fontSize(12)
+//         .fillColor("#000")
+//         .text(`Invoice ID: ${order._id}`, { align: "right" })
+//         .text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" })
+//         .moveDown();
 
-      doc
-        .fontSize(12)
-        .text(`Bill To:`, 50, 170)
-        .fontSize(12)
-        .fillColor("#333")
-        .text(`${order.customerName}`, 50, 185)
-        .text(`${order.phone}`, 50, 200);
+//       doc
+//         .fontSize(12)
+//         .text(`Bill To:`, 50, 170)
+//         .fontSize(12)
+//         .fillColor("#333")
+//         .text(`${order.customerName}`, 50, 185)
+//         .text(`${order.phone}`, 50, 200);
 
-      // ---------------- ITEMS TABLE ----------------
-      const tableTop = 240;
-      const itemCodeX = 50;
-      const descriptionX = 120;
-      const qtyX = 300;
-      const priceX = 360;
-      const totalX = 450;
+//       // ---------------- ITEMS TABLE ----------------
+//       const tableTop = 240;
+//       const itemCodeX = 50;
+//       const descriptionX = 120;
+//       const qtyX = 300;
+//       const priceX = 360;
+//       const totalX = 450;
 
-      // Table Header
-      doc.fontSize(12).fillColor("#000");
-      doc.text("Item", itemCodeX, tableTop);
-      doc.text("Description", descriptionX, tableTop);
-      doc.text("Qty", qtyX, tableTop);
-      doc.text("Price", priceX, tableTop);
-      doc.text("Total", totalX, tableTop);
+//       // Table Header
+//       doc.fontSize(12).fillColor("#000");
+//       doc.text("Item", itemCodeX, tableTop);
+//       doc.text("Description", descriptionX, tableTop);
+//       doc.text("Qty", qtyX, tableTop);
+//       doc.text("Price", priceX, tableTop);
+//       doc.text("Total", totalX, tableTop);
 
-      doc
-        .moveTo(50, tableTop + 15)
-        .lineTo(550, tableTop + 15)
-        .stroke();
+//       doc
+//         .moveTo(50, tableTop + 15)
+//         .lineTo(550, tableTop + 15)
+//         .stroke();
 
-      // Table Rows
-      let y = tableTop + 25;
-      order.items.forEach((item, i) => {
-        doc.fontSize(10).fillColor("#333");
-        doc.text(i + 1, itemCodeX, y);
-        doc.text(item.name, descriptionX, y);
-        doc.text(item.quantity, qtyX, y);
-        doc.text(`₹${item.price}`, priceX, y);
-        doc.text(`₹${item.total}`, totalX, y);
-        y += 20;
-      });
+//       // Table Rows
+//       let y = tableTop + 25;
+//       order.items.forEach((item, i) => {
+//         doc.fontSize(10).fillColor("#333");
+//         doc.text(i + 1, itemCodeX, y);
+//         doc.text(item.name, descriptionX, y);
+//         doc.text(item.quantity, qtyX, y);
+//         doc.text(`₹${item.price}`, priceX, y);
+//         doc.text(`₹${item.total}`, totalX, y);
+//         y += 20;
+//       });
 
-      // ---------------- TOTAL ----------------
-      doc
-        .moveTo(50, y + 10)
-        .lineTo(550, y + 10)
-        .stroke();
-      doc.fontSize(12).fillColor("#000");
-      doc.text("Grand Total:", 360, y + 25);
-      doc.fontSize(12).text(`₹${order.payment.amount}`, totalX, y + 25);
+//       // ---------------- TOTAL ----------------
+//       doc
+//         .moveTo(50, y + 10)
+//         .lineTo(550, y + 10)
+//         .stroke();
+//       doc.fontSize(12).fillColor("#000");
+//       doc.text("Grand Total:", 360, y + 25);
+//       doc.fontSize(12).text(`₹${order.payment.amount}`, totalX, y + 25);
 
-      // ---------------- FOOTER ----------------
-      doc
-        .fontSize(10)
-        .fillColor("gray")
-        .text("Thank you for your purchase!", 50, 700, { align: "center" })
-        .text("Visit us again at Bharati Sweets!", 50, 715, {
-          align: "center",
-        });
+//       // ---------------- FOOTER ----------------
+//       doc
+//         .fontSize(10)
+//         .fillColor("gray")
+//         .text("Thank you for your purchase!", 50, 700, { align: "center" })
+//         .text("Visit us again at Bharati Sweets!", 50, 715, {
+//           align: "center",
+//         });
 
-      doc.end();
+//       doc.end();
 
-      stream.on("finish", () => {
-        const invoiceUrl = `/invoices/${fileName}`;
-        resolve(invoiceUrl);
-      });
+//       stream.on("finish", () => {
+//         const invoiceUrl = `/invoices/${fileName}`;
+//         resolve(invoiceUrl);
+//       });
 
-      stream.on("error", reject);
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
+//       stream.on("error", reject);
+//     } catch (err) {
+//       reject(err);
+//     }
+//   });
+// };
 
-module.exports = {
-  generateBookingReceipt,
-  generateFinalInvoice,
-  generatePartialInvoice,
-  generateInvoiceUrl,
-};
+// module.exports = {
+//   generateBookingReceipt,
+//   generateFinalInvoice,
+//   generatePartialInvoice,
+//   generateInvoiceUrl,
+// };
 
 // utils/pdfService.js
 const PDFDocument = require("pdfkit");
