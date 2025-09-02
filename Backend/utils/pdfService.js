@@ -3,350 +3,251 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 
-// --- Helper function to add a logo and title ---
-function addHeader(doc, title) {
-  // Company Logo (a simple box to represent a logo)
+// --- REUSABLE HELPER: Adds consistent header & customer info ---
+function addHeaderAndCustomerInfo(doc, order, title) {
+  // Logo placeholder
   doc.rect(50, 50, 20, 20).fill("#3b82f6");
-  doc.fontSize(18).fillColor("#000").text("Bharati Sweets", 75, 55);
+  doc.fillColor("#000").fontSize(18).text("Bharati Sweets", 80, 55);
 
-  // Invoice Title
+  // Company info
+  doc
+    .fontSize(10)
+    .fillColor("gray")
+    .text("Infront of vyasanagar town hall, Jajpur", 755109)
+    .text("Phone: +91 7008084419", 80, 90)
+    .text("Email: info@bharatisweets.com", 80, 105);
+
+  // Title & invoice ID
   doc
     .fontSize(20)
     .fillColor("#1f2937")
-    .text(title, 350, 55, { align: "right" });
+    .text(title, 400, 55, { align: "right" });
+  doc
+    .fontSize(10)
+    .fillColor("#000")
+    .text(`Invoice ID: #${order._id}`, 400, 80, { align: "right" })
+    .text(`Date: ${new Date().toLocaleDateString()}`, 400, 95, {
+      align: "right",
+    });
 
-  doc.moveDown(2);
+  // Customer Info
+  doc.fontSize(12).fillColor("#000").text("Bill To:", 50, 140);
+  doc
+    .fontSize(10)
+    .fillColor("#333")
+    .text(`Name: ${order.customerName}`, 50, 160)
+    .text(`Phone: ${order.phone}`, 50, 175)
+    .text(`Address: ${order.address}`, 50, 190);
 }
 
-// --- Helper function to add an item table ---
-function addTable(doc, order, yPosition) {
-  const tableTop = yPosition;
+// --- REUSABLE HELPER: Adds items table ---
+function addTable(doc, order, startY) {
   const itemX = 50;
   const qtyX = 250;
   const priceX = 350;
   const totalX = 450;
 
-  // Table Header
-  doc.fontSize(12).fillColor("#000").font("Helvetica-Bold");
-  doc.text("Item", itemX, tableTop);
-  doc.text("Quantity", qtyX, tableTop);
-  doc.text("Price", priceX, tableTop);
-  doc.text("Amount", totalX, tableTop);
+  // Table header
+  doc.fontSize(12).fillColor("#000").text("Item", itemX, startY);
+  doc.text("Quantity", qtyX, startY);
+  doc.text("Price", priceX, startY);
+  doc.text("Amount", totalX, startY);
 
-  doc.moveDown(0.5);
   doc
     .strokeColor("#d1d5db")
-    .moveTo(itemX, tableTop + 20)
-    .lineTo(550, tableTop + 20)
+    .moveTo(itemX, startY + 15)
+    .lineTo(550, startY + 15)
     .stroke();
 
-  // Table Rows
-  let y = tableTop + 30;
-  doc.fontSize(10).font("Helvetica");
+  // Table rows
+  let y = startY + 25;
   order.items.forEach((item) => {
+    const qty = `${item.quantity} ${item.unit || "g"}`;
+    const price = Number(item.price || 0).toFixed(2);
+    const total = Number(item.total || 0).toFixed(2);
+
+    doc.fontSize(10).fillColor("#333");
     doc.text(item.name, itemX, y);
-    doc.text(`${item.quantity} ${item.unit || "g"}`, qtyX, y);
-    doc.text(`₹${item.price.toFixed(2)}`, priceX, y);
-    doc.text(`₹${item.total.toFixed(2)}`, totalX, y);
+    doc.text(qty, qtyX, y);
+    doc.text(`₹${price}`, priceX, y);
+    doc.text(`₹${total}`, totalX, y);
+
     y += 20;
   });
 
-  doc.moveDown(1);
   doc.strokeColor("#d1d5db").moveTo(itemX, y).lineTo(550, y).stroke();
 
-  return y; // Return the current Y position for subsequent sections
+  return y + 10; // return bottom position
 }
 
+// ------------------ BOOKING RECEIPT ------------------
 function generateBookingReceipt(order) {
   return new Promise((resolve, reject) => {
     try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+      const dir = path.join(process.cwd(), "receipts");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
       const fileName = `booking_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+      const filePath = path.join(dir, fileName);
       const doc = new PDFDocument({ margin: 50 });
       const stream = fs.createWriteStream(filePath);
+
       doc.pipe(stream);
+      addHeaderAndCustomerInfo(doc, order, "BOOKING RECEIPT");
+      const finalY = addTable(doc, order, 230);
 
-      addHeader(doc, "BOOKING RECEIPT");
-
-      // Customer Details
-      doc.fontSize(12).font("Helvetica-Bold").text("Customer Details", 50, 110);
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Name: ${order.customerName}`, 50, 130);
-      doc.text(`Phone: ${order.phone}`, 50, 145);
-      doc.text(
-        `Delivery: ${new Date(order.deliveryDate).toDateString()}`,
-        50,
-        160
-      );
-      doc.text(`Purpose: ${order.purpose}`, 50, 175);
+      const total = Number(order.totalAmount || 0);
+      const paid = Number(order.paidAmount || 0);
+      const balance = total - paid;
 
       doc
         .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Payment Summary", 350, 110, { align: "right" });
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Order ID: ${order._id}`, 350, 130, { align: "right" });
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 350, 145, {
-        align: "right",
-      });
-      doc.text(`Total Amount: ₹${order.totalAmount.toFixed(2)}`, 350, 160, {
-        align: "right",
-      });
-      doc.text(`Advance Paid: ₹${order.paidAmount.toFixed(2)}`, 350, 175, {
-        align: "right",
-      });
-
-      const balance = order.totalAmount - order.paidAmount;
+        .fillColor("#000")
+        .text("Payment Details", 50, finalY + 20);
       doc
-        .fontSize(12)
-        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(`Total Amount: ₹${total.toFixed(2)}`, 50, finalY + 40);
+      doc.text(`Advance Paid: ₹${paid.toFixed(2)}`, 50, finalY + 55);
+      doc
         .fillColor(balance > 0 ? "#ef4444" : "#22c55e")
-        .text(`Balance: ₹${balance.toFixed(2)}`, 350, 195, { align: "right" });
-
-      doc.moveDown(1);
-
-      const tableY = 220;
-      addTable(doc, order, tableY);
+        .fontSize(12)
+        .text(`Balance: ₹${balance.toFixed(2)}`, 50, finalY + 75);
 
       doc.end();
 
       stream.on("finish", () => resolve(filePath));
       stream.on("error", reject);
+      doc.on("error", reject);
     } catch (err) {
       reject(err);
     }
   });
 }
 
+// ------------------ FINAL INVOICE ------------------
 function generateFinalInvoice(order) {
   return new Promise((resolve, reject) => {
     try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+      const dir = path.join(process.cwd(), "receipts");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
       const fileName = `final_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+      const filePath = path.join(dir, fileName);
       const doc = new PDFDocument({ margin: 50 });
       const stream = fs.createWriteStream(filePath);
+
       doc.pipe(stream);
+      addHeaderAndCustomerInfo(doc, order, "FINAL INVOICE");
+      const finalY = addTable(doc, order, 230);
 
-      addHeader(doc, "FINAL INVOICE");
-
-      // Customer Details
-      doc.fontSize(12).font("Helvetica-Bold").text("Customer Details", 50, 110);
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Name: ${order.customerName}`, 50, 130);
-      doc.text(`Phone: ${order.phone}`, 50, 145);
-      doc.text(
-        `Delivery: ${new Date(order.deliveryDate).toDateString()}`,
-        50,
-        160
-      );
-      doc.text(`Purpose: ${order.purpose}`, 50, 175);
+      const total = Number(order.totalAmount || 0);
+      const paid = Number(order.paidAmount || 0);
 
       doc
         .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Invoice Details", 350, 110, { align: "right" });
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Invoice ID: ${order._id}`, 350, 130, { align: "right" });
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 350, 145, {
-        align: "right",
-      });
-      doc.text(`Total Amount: ₹${order.totalAmount.toFixed(2)}`, 350, 160, {
-        align: "right",
-      });
-
-      const tableY = 220;
-      const finalY = addTable(doc, order, tableY);
-
-      // Totals
+        .fillColor("#000")
+        .text("Summary", 50, finalY + 20);
       doc
-        .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Total Paid:", 350, finalY + 20, { align: "right" });
-      doc.text(`₹${order.paidAmount.toFixed(2)}`, 450, finalY + 20, {
-        align: "right",
-      });
-
-      doc.fontSize(14).font("Helvetica-Bold").fillColor("#22c55e");
-      doc.text("STATUS: PAID IN FULL", 50, finalY + 50);
+        .fontSize(10)
+        .text(`Total Amount: ₹${total.toFixed(2)}`, 50, finalY + 40);
+      doc.text(`Total Paid: ₹${paid.toFixed(2)}`, 50, finalY + 55);
+      doc
+        .fillColor("#22c55e")
+        .fontSize(14)
+        .text("STATUS: PAID IN FULL", 50, finalY + 80);
 
       doc.end();
 
       stream.on("finish", () => resolve(filePath));
       stream.on("error", reject);
+      doc.on("error", reject);
     } catch (err) {
       reject(err);
     }
   });
 }
 
+// ------------------ PARTIAL INVOICE ------------------
 function generatePartialInvoice(order) {
   return new Promise((resolve, reject) => {
     try {
-      const invoiceDir = path.join(process.cwd(), "receipts");
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+      const dir = path.join(process.cwd(), "receipts");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
       const fileName = `partial_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+      const filePath = path.join(dir, fileName);
       const doc = new PDFDocument({ margin: 50 });
       const stream = fs.createWriteStream(filePath);
+
       doc.pipe(stream);
+      addHeaderAndCustomerInfo(doc, order, "PARTIAL PAYMENT");
+      const finalY = addTable(doc, order, 230);
 
-      addHeader(doc, "PARTIAL PAYMENT INVOICE");
-
-      // Customer Details
-      doc.fontSize(12).font("Helvetica-Bold").text("Customer Details", 50, 110);
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Name: ${order.customerName}`, 50, 130);
-      doc.text(`Phone: ${order.phone}`, 50, 145);
-      doc.text(
-        `Delivery: ${new Date(order.deliveryDate).toDateString()}`,
-        50,
-        160
-      );
-      doc.text(`Purpose: ${order.purpose}`, 50, 175);
+      const total = Number(order.totalAmount || 0);
+      const paid = Number(order.paidAmount || 0);
+      const balance = total - paid;
 
       doc
         .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Invoice Details", 350, 110, { align: "right" });
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Invoice ID: ${order._id}`, 350, 130, { align: "right" });
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 350, 145, {
-        align: "right",
-      });
-      doc.text(`Total Amount: ₹${order.totalAmount.toFixed(2)}`, 350, 160, {
-        align: "right",
-      });
-
-      const tableY = 220;
-      const finalY = addTable(doc, order, tableY);
-
-      // Totals
-      const balance = order.totalAmount - order.paidAmount;
+        .fillColor("#000")
+        .text("Summary", 50, finalY + 20);
       doc
+        .fontSize(10)
+        .text(`Total Amount: ₹${total.toFixed(2)}`, 50, finalY + 40);
+      doc.text(`Paid So Far: ₹${paid.toFixed(2)}`, 50, finalY + 55);
+      doc
+        .fillColor("#ef4444")
         .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Total Paid:", 350, finalY + 20, { align: "right" });
-      doc.text(`₹${order.paidAmount.toFixed(2)}`, 450, finalY + 20, {
-        align: "right",
-      });
-
-      doc.fontSize(12).font("Helvetica-Bold").fillColor("#ef4444");
-      doc.text("BALANCE DUE:", 350, finalY + 40, { align: "right" });
-      doc.text(`₹${balance.toFixed(2)}`, 450, finalY + 40, { align: "right" });
+        .text(`BALANCE PENDING: ₹${balance.toFixed(2)}`, 50, finalY + 75);
 
       doc.end();
 
       stream.on("finish", () => resolve(filePath));
       stream.on("error", reject);
+      doc.on("error", reject);
     } catch (err) {
       reject(err);
     }
   });
 }
 
+// ------------------ GENERIC INVOICE ------------------
 function generateInvoiceUrl(order) {
   return new Promise((resolve, reject) => {
     try {
-      const invoiceDir = path.join(process.cwd(), "invoices");
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
+      const dir = path.join(process.cwd(), "invoices"); // unified with others
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
       const fileName = `invoice_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
+      const filePath = path.join(dir, fileName);
       const doc = new PDFDocument({ margin: 50 });
       const stream = fs.createWriteStream(filePath);
+
       doc.pipe(stream);
+      addHeaderAndCustomerInfo(doc, order, "INVOICE");
+      const finalY = addTable(doc, order, 230);
 
-      // Add a header with the "INVOICE" title
-      doc
-        .fontSize(20)
-        .fillColor("#000")
-        .text("INVOICE", 50, 50, { align: "right" });
-
-      // Add other details like the invoice number and date
-      doc.fontSize(12).fillColor("#000");
-      doc.text(`Invoice ID: ${order._id}`, 50, 80);
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 50, 95);
-
-      // Add a line separator
-      doc
-        .strokeColor("#d1d5db")
-        .lineWidth(1)
-        .moveTo(50, 120)
-        .lineTo(550, 120)
-        .stroke();
-
-      // Customer Details
-      doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", 50, 140);
-      doc.fontSize(10).font("Helvetica");
-      doc.text(order.customerName, 50, 155);
-      doc.text(order.phone, 50, 170);
-      doc.text(order.address, 50, 185);
-
-      // Add a line separator
-      doc
-        .strokeColor("#d1d5db")
-        .lineWidth(1)
-        .moveTo(50, 210)
-        .lineTo(550, 210)
-        .stroke();
-
-      // Items Table Header
-      const tableTop = 225;
-      const itemX = 50;
-      const qtyX = 250;
-      const priceX = 350;
-      const totalX = 450;
-
-      doc.fontSize(12).font("Helvetica-Bold").text("Item", itemX, tableTop);
-      doc.text("Quantity", qtyX, tableTop);
-      doc.text("Price", priceX, tableTop);
-      doc.text("Total", totalX, tableTop);
-
-      // Table Rows
-      let y = tableTop + 20;
-      doc.fontSize(10).font("Helvetica");
-      order.items.forEach((item) => {
-        doc.text(item.name, itemX, y);
-        doc.text(`${item.quantity} ${item.unit || ""}`, qtyX, y);
-        doc.text(`₹${item.price.toFixed(2)}`, priceX, y);
-        doc.text(`₹${item.total.toFixed(2)}`, totalX, y);
-        y += 20;
-      });
-
-      // Total Paid
-      // --- THE FIX IS HERE ---
-      const payments = order.payments || []; // Default to an empty array
-      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      const payments = order.payments || [];
+      const total = Number(order.totalAmount || 0);
+      const totalPaid = payments.reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      );
 
       doc
         .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Total Paid:", 350, y + 20, { align: "right" });
-      doc.text(`₹${totalPaid.toFixed(2)}`, 450, y + 20, { align: "right" });
+        .fillColor("#000")
+        .text("Summary", 50, finalY + 20);
+      doc
+        .fontSize(10)
+        .text(`Total Amount: ₹${total.toFixed(2)}`, 50, finalY + 40);
+      doc.text(`Total Paid: ₹${totalPaid.toFixed(2)}`, 50, finalY + 55);
 
       doc.end();
 
-      stream.on("finish", () => {
-        const invoiceUrl = `/invoices/${fileName}`;
-        resolve(invoiceUrl);
-      });
-
+      stream.on("finish", () => resolve(`/receipts/${fileName}`));
       stream.on("error", reject);
+      doc.on("error", reject);
     } catch (err) {
       reject(err);
     }
