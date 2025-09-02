@@ -179,7 +179,6 @@ const addPayment = (orderId, paymentData) => {
                         { type: "text", text: updatedOrder.purpose },
                         { type: "text", text: `₹${updatedOrder.totalAmount}` },
                         { type: "text", text: `₹${updatedOrder.paidAmount}` },
-                        { type: "text", text: "Paid in Full ✅" },
                       ],
                     },
                     {
