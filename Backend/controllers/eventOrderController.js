@@ -8,7 +8,6 @@ const {
   generateBookingReceipt,
   generateFinalInvoice,
   generatePartialInvoice,
-  generateStyledInvoice,
 } = require("../utils/pdfService");
 
 const createEventOrder = (payload) => {
@@ -44,7 +43,7 @@ const createEventOrder = (payload) => {
       const savedOrder = await newOrder.save();
       await updateInventoryFromOrder(items);
 
-      await generateStyledInvoice(savedOrder, "booking");
+      await generateBookingReceipt(savedOrder);
       const bookingReceiptUrl = `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`;
 
       try {
@@ -141,7 +140,7 @@ const addPayment = (orderId, paymentData) => {
       const updatedOrder = await order.save();
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-        const invoicePath = await generateStyledInvoice(updatedOrder, "final");
+        const invoicePath = await generateFinalInvoice(updatedOrder);
         const invoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`;
 
         try {
@@ -210,10 +209,7 @@ const addPayment = (orderId, paymentData) => {
           console.error("❌ Failed to send WhatsApp message:", whatsappError);
         }
       } else {
-        const partialInvoicePath = await generateStyledInvoice(
-          updatedOrder,
-          "partial"
-        );
+        const partialInvoicePath = await generatePartialInvoice(updatedOrder);
         const partialInvoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/partial_${updatedOrder._id}.pdf`;
 
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;

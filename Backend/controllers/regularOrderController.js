@@ -9,10 +9,7 @@ const { sendWhatsApp } = require("../utils/whatsappService");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
-const {
-  generateInvoiceUrl,
-  generateStyledInvoice,
-} = require("../utils/pdfService");
+const { generateInvoiceUrl } = require("../utils/pdfService");
 
 const createRegularOrder = async (payload) => {
   try {
@@ -41,7 +38,7 @@ const createRegularOrder = async (payload) => {
       .join(", ");
 
     // Generate invoice PDF link dynamically
-    const invoiceUrl = await generateStyledInvoice(savedOrder, "booking");
+    const invoiceUrl = await generateInvoiceUrl(savedOrder);
 
     try {
       const response = await fetch(
