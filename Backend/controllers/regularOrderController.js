@@ -9,6 +9,10 @@ const { sendWhatsApp } = require("../utils/whatsappService");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
+const {
+  generateInvoiceUrl,
+  generateStyledInvoice,
+} = require("../utils/pdfService");
 
 const createRegularOrder = async (payload) => {
   try {
@@ -37,7 +41,7 @@ const createRegularOrder = async (payload) => {
       .join(", ");
 
     // Generate invoice PDF link dynamically
-    const invoiceUrl = await generateInvoiceUrl(savedOrder);
+    const invoiceUrl = await generateStyledInvoice(savedOrder, "booking");
 
     try {
       const response = await fetch(
@@ -180,122 +184,6 @@ const deleteRegularOrder = (orderId) => {
     } catch (err) {
       console.log(err);
 
-      reject(err);
-    }
-  });
-};
-
-const generateInvoiceUrl = async (order) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const invoiceDir = path.join(process.cwd(), "invoices");
-
-      // Ensure invoices folder exists
-      if (!fs.existsSync(invoiceDir)) {
-        fs.mkdirSync(invoiceDir);
-      }
-
-      const fileName = `invoice_${order._id}.pdf`;
-      const filePath = path.join(invoiceDir, fileName);
-
-      const doc = new PDFDocument({ margin: 50 });
-
-      const stream = fs.createWriteStream(filePath);
-      doc.pipe(stream);
-
-      // ---------------- HEADER ----------------
-      doc
-        .fontSize(20)
-        .fillColor("#333")
-        .text("Bharati Sweets", 50, 50)
-        .fontSize(10)
-        .fillColor("gray")
-        .text("123 Sweet Street, Delhi, India", 50, 75)
-        .text("Phone: +91 9876543210", 50, 90)
-        .text("Email: info@bharatisweets.com", 50, 105);
-
-      doc.moveDown(2);
-
-      // Invoice title
-      doc.fontSize(18).fillColor("#000").text("INVOICE", { align: "right" });
-
-      // ---------------- CUSTOMER INFO ----------------
-      doc
-        .moveDown()
-        .fontSize(12)
-        .fillColor("#000")
-        .text(`Invoice ID: ${order._id}`, { align: "right" })
-        .text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" })
-        .moveDown();
-
-      doc
-        .fontSize(12)
-        .text(`Bill To:`, 50, 170)
-        .fontSize(12)
-        .fillColor("#333")
-        .text(`${order.customerName}`, 50, 185)
-        .text(`${order.phone}`, 50, 200);
-
-      // ---------------- ITEMS TABLE ----------------
-      const tableTop = 240;
-      const itemCodeX = 50;
-      const descriptionX = 120;
-      const qtyX = 300;
-      const priceX = 360;
-      const totalX = 450;
-
-      // Table Header
-      doc.fontSize(12).fillColor("#000");
-      doc.text("Item", itemCodeX, tableTop);
-      doc.text("Description", descriptionX, tableTop);
-      doc.text("Qty", qtyX, tableTop);
-      doc.text("Price", priceX, tableTop);
-      doc.text("Total", totalX, tableTop);
-
-      doc
-        .moveTo(50, tableTop + 15)
-        .lineTo(550, tableTop + 15)
-        .stroke();
-
-      // Table Rows
-      let y = tableTop + 25;
-      order.items.forEach((item, i) => {
-        doc.fontSize(10).fillColor("#333");
-        doc.text(i + 1, itemCodeX, y);
-        doc.text(item.name, descriptionX, y);
-        doc.text(item.quantity, qtyX, y);
-        doc.text(`₹${item.price}`, priceX, y);
-        doc.text(`₹${item.total}`, totalX, y);
-        y += 20;
-      });
-
-      // ---------------- TOTAL ----------------
-      doc
-        .moveTo(50, y + 10)
-        .lineTo(550, y + 10)
-        .stroke();
-      doc.fontSize(12).fillColor("#000");
-      doc.text("Grand Total:", 360, y + 25);
-      doc.fontSize(12).text(`₹${order.payment.amount}`, totalX, y + 25);
-
-      // ---------------- FOOTER ----------------
-      doc
-        .fontSize(10)
-        .fillColor("gray")
-        .text("Thank you for your purchase!", 50, 700, { align: "center" })
-        .text("Visit us again at Bharati Sweets!", 50, 715, {
-          align: "center",
-        });
-
-      doc.end();
-
-      stream.on("finish", () => {
-        const invoiceUrl = `/invoices/${fileName}`;
-        resolve(invoiceUrl);
-      });
-
-      stream.on("error", reject);
-    } catch (err) {
       reject(err);
     }
   });
