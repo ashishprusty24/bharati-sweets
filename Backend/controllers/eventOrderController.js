@@ -139,11 +139,9 @@ const addPayment = (orderId, paymentData) => {
       const updatedOrder = await order.save();
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-        // ✅ Generate final invoice PDF
         const invoicePath = await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `https://bharati-sweets-backend.onrender.com/invoices/final_${updatedOrder._id}.pdf`;
+        const invoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`;
 
-        // ✅ Send WhatsApp Final Invoice template
         try {
           const response = await fetch(
             "https://graph.facebook.com/v22.0/775800332280378/messages",
@@ -168,7 +166,7 @@ const addPayment = (orderId, paymentData) => {
                           type: "document",
                           document: {
                             link: invoiceUrl,
-                            filename: `final_invoice_${updatedOrder._id}.pdf`,
+                            filename: `final_${updatedOrder._id}.pdf`,
                           },
                         },
                       ],
@@ -191,7 +189,7 @@ const addPayment = (orderId, paymentData) => {
                       parameters: [
                         {
                           type: "text",
-                          text: invoiceUrl,
+                          text: `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`,
                         },
                       ],
                     },
