@@ -209,7 +209,9 @@ const addPayment = (orderId, paymentData) => {
           console.error("❌ Failed to send WhatsApp message:", whatsappError);
         }
       } else {
-        const partialInvoiceUrl = generatePartialInvoice(updatedOrder);
+        const partialInvoicePath = await generatePartialInvoice(updatedOrder);
+        const partialInvoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/partial_${updatedOrder._id}.pdf`;
+
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
         try {
