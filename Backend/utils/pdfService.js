@@ -271,37 +271,73 @@ function generateInvoiceUrl(order) {
       const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
 
-      addHeader(doc, "INVOICE");
+      // Add a header with the "INVOICE" title
+      doc
+        .fontSize(20)
+        .fillColor("#000")
+        .text("INVOICE", 50, 50, { align: "right" });
 
-      // Customer Info
-      doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", 50, 110);
+      // Add other details like the invoice number and date
+      doc.fontSize(12).fillColor("#000");
+      doc.text(`Invoice ID: ${order._id}`, 50, 80);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 50, 95);
+
+      // Add a line separator
+      doc
+        .strokeColor("#d1d5db")
+        .lineWidth(1)
+        .moveTo(50, 120)
+        .lineTo(550, 120)
+        .stroke();
+
+      // Customer Details
+      doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", 50, 140);
       doc.fontSize(10).font("Helvetica");
-      doc.text(`Customer: ${order.customerName}`, 50, 130);
-      doc.text(`Phone: ${order.phone}`, 50, 145);
-      doc.text(`Address: ${order.address}`, 50, 160);
+      doc.text(order.customerName, 50, 155);
+      doc.text(order.phone, 50, 170);
+      doc.text(order.address, 50, 185);
+
+      // Add a line separator
+      doc
+        .strokeColor("#d1d5db")
+        .lineWidth(1)
+        .moveTo(50, 210)
+        .lineTo(550, 210)
+        .stroke();
+
+      // Items Table Header
+      const tableTop = 225;
+      const itemX = 50;
+      const qtyX = 250;
+      const priceX = 350;
+      const totalX = 450;
+
+      doc.fontSize(12).font("Helvetica-Bold").text("Item", itemX, tableTop);
+      doc.text("Quantity", qtyX, tableTop);
+      doc.text("Price", priceX, tableTop);
+      doc.text("Total", totalX, tableTop);
+
+      // Table Rows
+      let y = tableTop + 20;
+      doc.fontSize(10).font("Helvetica");
+      order.items.forEach((item) => {
+        doc.text(item.name, itemX, y);
+        doc.text(`${item.quantity} ${item.unit || ""}`, qtyX, y);
+        doc.text(`₹${item.price.toFixed(2)}`, priceX, y);
+        doc.text(`₹${item.total.toFixed(2)}`, totalX, y);
+        y += 20;
+      });
+
+      // Total Paid
+      // --- THE FIX IS HERE ---
+      const payments = order.payments || []; // Default to an empty array
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
       doc
         .fontSize(12)
         .font("Helvetica-Bold")
-        .text("Invoice Details", 350, 110, { align: "right" });
-      doc.fontSize(10).font("Helvetica");
-      doc.text(`Invoice ID: ${order._id}`, 350, 130, { align: "right" });
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 350, 145, {
-        align: "right",
-      });
-
-      const tableY = 220;
-      const finalY = addTable(doc, order, tableY);
-
-      // Totals
-      const totalPaid = order.payments.reduce((sum, p) => sum + p.amount, 0);
-      doc
-        .fontSize(12)
-        .font("Helvetica-Bold")
-        .text("Total Paid:", 350, finalY + 20, { align: "right" });
-      doc.text(`₹${totalPaid.toFixed(2)}`, 450, finalY + 20, {
-        align: "right",
-      });
+        .text("Total Paid:", 350, y + 20, { align: "right" });
+      doc.text(`₹${totalPaid.toFixed(2)}`, 450, y + 20, { align: "right" });
 
       doc.end();
 
@@ -309,6 +345,7 @@ function generateInvoiceUrl(order) {
         const invoiceUrl = `/invoices/${fileName}`;
         resolve(invoiceUrl);
       });
+
       stream.on("error", reject);
     } catch (err) {
       reject(err);
