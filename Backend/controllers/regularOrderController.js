@@ -136,12 +136,12 @@ const getRegularOrderById = (orderId) => {
 const updateRegularOrder = (orderId, updateData) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (updateData.items || updateData.payment) {
-        return reject({
-          status: 400,
-          message: "Items and payment cannot be modified after creation",
-        });
-      }
+      // if (updateData.items || updateData.payment) {
+      //   return reject({
+      //     status: 400,
+      //     message: "Items and payment cannot be modified after creation",
+      //   });
+      // }
 
       const updatedOrder = await RegularOrder.findByIdAndUpdate(
         orderId,

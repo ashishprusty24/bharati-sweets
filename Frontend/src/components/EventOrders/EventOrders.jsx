@@ -49,6 +49,7 @@ import moment from "moment";
 
 const EventOrders = () => {
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -220,7 +221,7 @@ const EventOrders = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-
+      setIsLoading(true);
       // Prepare items
       const items = values.items.map((item) => ({
         itemId: item.itemId,
@@ -285,6 +286,7 @@ const EventOrders = () => {
       if (!response.ok) {
         throw new Error("Failed to save order");
       }
+      setIsLoading(false);
 
       message.success(
         `Order ${editingOrder ? "updated" : "created"} successfully!`
@@ -687,6 +689,7 @@ const EventOrders = () => {
           form.resetFields();
         }}
         okText={editingOrder ? "Update Order" : "Create Order"}
+        confirmLoading={isLoading}
         width={800}
       >
         <Form
@@ -727,16 +730,10 @@ const EventOrders = () => {
                 name="purpose"
                 label="Event Purpose"
                 rules={[
-                  { required: true, message: "Please select event purpose" },
+                  { required: true, message: "Please enter event purpose" },
                 ]}
               >
-                <Select placeholder="Select purpose">
-                  {purposeOptions.map((purpose) => (
-                    <Option key={purpose} value={purpose}>
-                      {purpose}
-                    </Option>
-                  ))}
-                </Select>
+                <Input placeholder="Enter purpose" />
               </Form.Item>
             </Col>
             <Col span={12}>

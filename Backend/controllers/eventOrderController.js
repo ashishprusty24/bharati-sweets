@@ -123,7 +123,8 @@ const createEventOrder = (payload) => {
         bookingReceiptUrl,
       });
     } catch (err) {
-      log;
+      console.log(err);
+
       reject({ status: 400, message: err.message });
     }
   });
