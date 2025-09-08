@@ -21,6 +21,8 @@ import {
   TimePicker,
   Divider,
   message,
+  Descriptions,
+  Statistic,
 } from "antd";
 import {
   PlusOutlined,
@@ -34,6 +36,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { API_BASE_URL } from "../../common/config";
+import ReactToPrint from "react-to-print";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -58,6 +61,7 @@ const EventOrders = () => {
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const invoiceRef = useRef();
 
   // Get real-time values from the invoice form to update the preview
   const invoiceFormItems = Form.useWatch("items", invoiceForm);
@@ -244,6 +248,7 @@ const EventOrders = () => {
         name: inventoryItems.find((i) => i._id === item.itemId)?.name || "Item",
         price: item.price,
         quantity: item.quantity,
+        packets: item.packets || 1,
         total: item.price * item.quantity,
       }));
 
@@ -620,6 +625,7 @@ const EventOrders = () => {
             render: (price) => `₹${price}`,
           },
           { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+          { title: "Packets", dataIndex: "packets", key: "packets" },
           {
             title: "Total",
             dataIndex: "total",
@@ -1383,6 +1389,100 @@ const EventOrders = () => {
               }}
             />
           )}
+        </div>
+      </Modal>
+
+      {/* Invoice Modal */}
+      <Modal
+        title={`Generate Invoice for Order ${
+          currentOrder?._id?.substring(0, 8) || ""
+        }`}
+        open={isInvoiceModalVisible}
+        onCancel={() => setIsInvoiceModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsInvoiceModalVisible(false)}>
+            Cancel
+          </Button>,
+          <ReactToPrint
+            key="print"
+            trigger={() => (
+              <Button type="primary" icon={<PrinterOutlined />}>
+                Print Invoice
+              </Button>
+            )}
+            content={() => invoiceRef.current}
+          />,
+        ]}
+        width={800}
+      >
+        <Form form={invoiceForm} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="invoiceNumber"
+                label="Invoice Number"
+                rules={[
+                  { required: true, message: "Please enter invoice number" },
+                ]}
+              >
+                <Input placeholder="Invoice number" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="invoiceDate"
+                label="Invoice Date"
+                rules={[
+                  { required: true, message: "Please select invoice date" },
+                ]}
+              >
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="customerName"
+                label="Customer Name"
+                rules={[
+                  { required: true, message: "Please enter customer name" },
+                ]}
+              >
+                <Input placeholder="Customer name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="customerPhone"
+                label="Customer Phone"
+                rules={[
+                  { required: true, message: "Please enter customer phone" },
+                ]}
+              >
+                <Input placeholder="Customer phone" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="customerAddress"
+            label="Customer Address"
+            rules={[
+              { required: true, message: "Please enter customer address" },
+            ]}
+          >
+            <TextArea rows={2} placeholder="Customer address" />
+          </Form.Item>
+        </Form>
+
+        <div style={{ display: "none" }}>
+          <InvoiceTemplate
+            ref={invoiceRef}
+            order={currentOrder}
+            invoiceData={invoiceForm.getFieldsValue()}
+          />
         </div>
       </Modal>
     </div>
