@@ -33,6 +33,7 @@ const eventOrderSchema = new mongoose.Schema(
     deliveryTime: { type: String, required: true }, // "AM" or "PM"
     items: [eventOrderItemSchema],
     payments: [paymentSchema],
+    discount: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
     paidAmount: { type: Number, default: 0 },
     paymentStatus: {
