@@ -1,5 +1,5 @@
 // src/pages/orders/EventOrdersPage.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   Button,
@@ -22,6 +22,8 @@ import {
   Badge,
   Steps,
   message,
+  Descriptions,
+  Statistic,
 } from "antd";
 import {
   PlusOutlined,
@@ -37,8 +39,11 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   DollarOutlined,
+  FileTextOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import { API_BASE_URL } from "../../common/config";
+import ReactToPrint from "react-to-print";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -53,6 +58,7 @@ const EventOrders = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isInvoiceModalVisible, setIsInvoiceModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [searchText, setSearchText] = useState("");
@@ -60,10 +66,12 @@ const EventOrders = () => {
   const [dateRange, setDateRange] = useState(null);
   const [form] = Form.useForm();
   const [paymentForm] = Form.useForm();
+  const [invoiceForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [activeTab, setActiveTab] = useState("orders");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const invoiceRef = useRef();
 
   // Order status options
   const orderStatusOptions = [
@@ -191,15 +199,16 @@ const EventOrders = () => {
   };
 
   const showModal = (order = null) => {
-    console.log(order);
-
     if (order) {
       form.setFieldsValue({
         ...order,
         deliveryDate: order.deliveryDate ? moment(order.deliveryDate) : null,
-        items: order.items.map((item) => ({ ...item, key: item._id })),
+        items: order.items.map((item) => ({
+          ...item,
+          key: item._id,
+          packets: item.packets || 1,
+        })),
       });
-
       setEditingOrder(order);
     } else {
       form.resetFields();
@@ -212,22 +221,37 @@ const EventOrders = () => {
     setCurrentOrder(order);
     paymentForm.resetFields();
     paymentForm.setFieldsValue({
-      amount: order.totalAmount - order.paidAmount,
+      amount: order.totalAmount - order.paidAmount - (order.discount || 0),
       method: "cash",
     });
     setIsPaymentModalVisible(true);
+  };
+
+  const showInvoiceModal = (order) => {
+    setCurrentOrder(order);
+    invoiceForm.resetFields();
+    invoiceForm.setFieldsValue({
+      invoiceNumber: `INV-${order._id.slice(-6).toUpperCase()}`,
+      invoiceDate: moment(),
+      customerName: order.customerName,
+      customerPhone: order.phone,
+      customerAddress: order.address,
+    });
+    setIsInvoiceModalVisible(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
+
       // Prepare items
       const items = values.items.map((item) => ({
         itemId: item.itemId,
         name: inventoryItems.find((i) => i._id === item.itemId)?.name || "Item",
         price: item.price,
         quantity: item.quantity,
+        packets: item.packets || 1,
         total: item.price * item.quantity,
       }));
 
@@ -239,7 +263,9 @@ const EventOrders = () => {
       };
 
       // Calculate total amount
-      const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const discount = values.discount || 0;
+      const totalAmount = subtotal - discount;
 
       // Prepare order data
       const orderData = {
@@ -250,6 +276,8 @@ const EventOrders = () => {
         deliveryDate: values.deliveryDate.toISOString(),
         deliveryTime: values.deliveryTime,
         items,
+        subtotal,
+        discount,
         totalAmount,
         notes: values.notes,
         orderStatus: values.orderStatus || "pending",
@@ -258,7 +286,6 @@ const EventOrders = () => {
       };
 
       let response;
-      console.log(editingOrder);
 
       if (editingOrder) {
         // Update existing order
@@ -422,6 +449,13 @@ const EventOrders = () => {
           <div style={{ marginTop: 4 }}>
             <Text type="secondary">Paid: ₹{record.paidAmount || 0}</Text>
           </div>
+          {record.discount > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" delete>
+                Discount: ₹{record.discount}
+              </Text>
+            </div>
+          )}
         </div>
       ),
     },
@@ -463,6 +497,15 @@ const EventOrders = () => {
               onClick={() => showPaymentModal(record)}
             />
           </Tooltip>
+          <Tooltip title="Generate Invoice">
+            <Button
+              type="default"
+              shape="circle"
+              icon={<FileTextOutlined />}
+              size="small"
+              onClick={() => showInvoiceModal(record)}
+            />
+          </Tooltip>
           <Popconfirm
             title="Are you sure to delete this order?"
             onConfirm={() => handleDelete(record._id)}
@@ -498,6 +541,7 @@ const EventOrders = () => {
             render: (price) => `₹${price}`,
           },
           { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+          { title: "Packets", dataIndex: "packets", key: "packets" },
           {
             title: "Total",
             dataIndex: "total",
@@ -571,6 +615,18 @@ const EventOrders = () => {
 
       {renderOrderItems(record.items)}
 
+      {record.discount > 0 && (
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={12}>
+            <Text strong>Subtotal:</Text> ₹
+            {record.subtotal || record.totalAmount + record.discount}
+          </Col>
+          <Col span={12}>
+            <Text strong>Discount:</Text> ₹{record.discount}
+          </Col>
+        </Row>
+      )}
+
       {record.payments?.length > 0 && renderPayments(record.payments)}
 
       {record.notes && (
@@ -580,6 +636,104 @@ const EventOrders = () => {
       )}
     </div>
   );
+
+  // Invoice Template Component
+  const InvoiceTemplate = React.forwardRef(({ order, invoiceData }, ref) => {
+    return (
+      <div ref={ref} style={{ padding: 20, backgroundColor: "white" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Title level={2}>Sweet Shop Invoice</Title>
+          <Text>Invoice No: {invoiceData.invoiceNumber}</Text>
+          <br />
+          <Text>
+            Date: {moment(invoiceData.invoiceDate).format("DD/MM/YYYY")}
+          </Text>
+        </div>
+
+        <Divider />
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Title level={4}>Bill To:</Title>
+            <Text strong>{invoiceData.customerName}</Text>
+            <br />
+            <Text>{invoiceData.customerPhone}</Text>
+            <br />
+            <Text>{invoiceData.customerAddress}</Text>
+          </Col>
+          <Col span={12}>
+            <Title level={4}>Order Details:</Title>
+            <Text>Order ID: {order._id}</Text>
+            <br />
+            <Text>Event: {order.purpose}</Text>
+            <br />
+            <Text>
+              Delivery: {moment(order.deliveryDate).format("DD/MM/YYYY")} at{" "}
+              {order.deliveryTime}
+            </Text>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <Table
+          dataSource={order.items}
+          pagination={false}
+          columns={[
+            { title: "Item", dataIndex: "name", key: "name" },
+            {
+              title: "Price",
+              dataIndex: "price",
+              key: "price",
+              render: (price) => `₹${price}`,
+            },
+            { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+            { title: "Packets", dataIndex: "packets", key: "packets" },
+            {
+              title: "Total",
+              dataIndex: "total",
+              key: "total",
+              render: (total) => `₹${total}`,
+            },
+          ]}
+        />
+
+        <Divider />
+
+        <Row gutter={16} style={{ marginTop: 20 }}>
+          <Col span={12}></Col>
+          <Col span={12}>
+            {order.discount > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <Text>
+                  Subtotal: ₹
+                  {order.subtotal || order.totalAmount + order.discount}
+                </Text>
+                <br />
+                <Text>Discount: ₹{order.discount}</Text>
+              </div>
+            )}
+            <Title level={4}>Total: ₹{order.totalAmount}</Title>
+            <Text>Paid: ₹{order.paidAmount || 0}</Text>
+            <br />
+            <Text strong>
+              Balance: ₹{order.totalAmount - (order.paidAmount || 0)}
+            </Text>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <div style={{ textAlign: "center", marginTop: 30 }}>
+          <Text>Thank you for your business!</Text>
+          <br />
+          <Text>
+            Sweet Shop Name • Phone: +91 XXXXX XXXXX • Address: Shop Address
+          </Text>
+        </div>
+      </div>
+    );
+  });
 
   return (
     <div>
@@ -599,17 +753,6 @@ const EventOrders = () => {
               padding: "12px 16px",
             }}
           >
-            {/* <Title
-              level={4}
-              style={{
-                margin: 0,
-                whiteSpace: "nowrap",
-                color: "#2b3a55",
-              }}
-            >
-              Event Orders Management
-            </Title> */}
-
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -690,7 +833,7 @@ const EventOrders = () => {
         }}
         okText={editingOrder ? "Update Order" : "Create Order"}
         confirmLoading={isLoading}
-        width={800}
+        width={900}
       >
         <Form
           form={form}
@@ -733,7 +876,13 @@ const EventOrders = () => {
                   { required: true, message: "Please enter event purpose" },
                 ]}
               >
-                <Input placeholder="Enter purpose" />
+                <Select placeholder="Select purpose">
+                  {purposeOptions.map((purpose) => (
+                    <Option key={purpose} value={purpose}>
+                      {purpose}
+                    </Option>
+                  ))}
+                </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -764,6 +913,7 @@ const EventOrders = () => {
           >
             <TextArea placeholder="Full delivery address" rows={2} />
           </Form.Item>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -806,7 +956,7 @@ const EventOrders = () => {
                     style={{
                       display: "flex",
                       marginBottom: 8,
-                      alignItems: "center",
+                      alignItems: "flex-start",
                     }}
                     align="baseline"
                   >
@@ -852,13 +1002,26 @@ const EventOrders = () => {
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
-                      label="Quantity"
+                      label="Quantity (kg/pcs)"
                       rules={[{ required: true, message: "Enter quantity" }]}
                     >
                       <InputNumber
                         min={0.1}
                         step={0.1}
                         placeholder="Qty"
+                        style={{ width: 120 }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      {...restField}
+                      name={[name, "packets"]}
+                      label="Packets"
+                      rules={[{ required: true, message: "Enter packets" }]}
+                    >
+                      <InputNumber
+                        min={1}
+                        placeholder="Packets"
                         style={{ width: 100 }}
                       />
                     </Form.Item>
@@ -868,6 +1031,7 @@ const EventOrders = () => {
                       danger
                       icon={<DeleteOutlined />}
                       onClick={() => remove(name)}
+                      style={{ marginTop: 30 }}
                     />
                   </Space>
                 ))}
@@ -884,6 +1048,15 @@ const EventOrders = () => {
               </>
             )}
           </Form.List>
+
+          <Form.Item name="discount" label="Discount Amount (₹)">
+            <InputNumber
+              min={0}
+              placeholder="Discount amount"
+              style={{ width: "100%" }}
+              prefix="₹"
+            />
+          </Form.Item>
 
           <Form.Item name="notes" label="Special Notes">
             <TextArea placeholder="Any special instructions" rows={3} />
@@ -904,11 +1077,14 @@ const EventOrders = () => {
                   },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
+                      const items = getFieldValue("items") || [];
+                      const discount = getFieldValue("discount") || 0;
                       const total =
-                        getFieldValue("items")?.reduce(
-                          (sum, item) => sum + item.price * item.quantity,
+                        items.reduce(
+                          (sum, item) =>
+                            sum + (item.price * item.quantity || 0),
                           0
-                        ) || 0;
+                        ) - discount;
 
                       if (!value || value <= total) {
                         return Promise.resolve();
@@ -1083,6 +1259,100 @@ const EventOrders = () => {
             </Col>
           </Row>
         </Form>
+      </Modal>
+
+      {/* Invoice Modal */}
+      <Modal
+        title={`Generate Invoice for Order ${
+          currentOrder?._id?.substring(0, 8) || ""
+        }`}
+        open={isInvoiceModalVisible}
+        onCancel={() => setIsInvoiceModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsInvoiceModalVisible(false)}>
+            Cancel
+          </Button>,
+          <ReactToPrint
+            key="print"
+            trigger={() => (
+              <Button type="primary" icon={<PrinterOutlined />}>
+                Print Invoice
+              </Button>
+            )}
+            content={() => invoiceRef.current}
+          />,
+        ]}
+        width={800}
+      >
+        <Form form={invoiceForm} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="invoiceNumber"
+                label="Invoice Number"
+                rules={[
+                  { required: true, message: "Please enter invoice number" },
+                ]}
+              >
+                <Input placeholder="Invoice number" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="invoiceDate"
+                label="Invoice Date"
+                rules={[
+                  { required: true, message: "Please select invoice date" },
+                ]}
+              >
+                <DatePicker style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="customerName"
+                label="Customer Name"
+                rules={[
+                  { required: true, message: "Please enter customer name" },
+                ]}
+              >
+                <Input placeholder="Customer name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="customerPhone"
+                label="Customer Phone"
+                rules={[
+                  { required: true, message: "Please enter customer phone" },
+                ]}
+              >
+                <Input placeholder="Customer phone" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="customerAddress"
+            label="Customer Address"
+            rules={[
+              { required: true, message: "Please enter customer address" },
+            ]}
+          >
+            <TextArea rows={2} placeholder="Customer address" />
+          </Form.Item>
+        </Form>
+
+        <div style={{ display: "none" }}>
+          <InvoiceTemplate
+            ref={invoiceRef}
+            order={currentOrder}
+            invoiceData={invoiceForm.getFieldsValue()}
+          />
+        </div>
       </Modal>
     </div>
   );
