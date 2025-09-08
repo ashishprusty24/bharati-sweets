@@ -22,6 +22,7 @@ const createEventOrder = (payload) => {
         deliveryTime,
         items,
         payments,
+        discount,
       } = payload;
 
       const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
@@ -36,6 +37,7 @@ const createEventOrder = (payload) => {
         deliveryTime,
         items,
         payments,
+        discount,
         totalAmount,
         paidAmount,
       });

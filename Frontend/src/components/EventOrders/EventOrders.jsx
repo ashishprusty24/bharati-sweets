@@ -1,5 +1,6 @@
-// src/pages/orders/EventOrdersPage.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
   Table,
   Button,
@@ -19,8 +20,6 @@ import {
   DatePicker,
   TimePicker,
   Divider,
-  Badge,
-  Steps,
   message,
 } from "antd";
 import {
@@ -28,24 +27,18 @@ import {
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  ShoppingCartOutlined,
   UserOutlined,
   PhoneOutlined,
-  CalendarOutlined,
-  ClockCircleOutlined,
-  WalletOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
   DollarOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
 import { API_BASE_URL } from "../../common/config";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-const { Step } = Steps;
-import moment from "moment";
 
 const EventOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -53,6 +46,7 @@ const EventOrders = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isInvoiceModalVisible, setIsInvoiceModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [searchText, setSearchText] = useState("");
@@ -60,10 +54,14 @@ const EventOrders = () => {
   const [dateRange, setDateRange] = useState(null);
   const [form] = Form.useForm();
   const [paymentForm] = Form.useForm();
+  const [invoiceForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [inventoryItems, setInventoryItems] = useState([]);
-  const [activeTab, setActiveTab] = useState("orders");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+
+  // Get real-time values from the invoice form to update the preview
+  const invoiceFormItems = Form.useWatch("items", invoiceForm);
+  const invoiceFormDiscount = Form.useWatch("discount", invoiceForm);
 
   // Order status options
   const orderStatusOptions = [
@@ -178,12 +176,12 @@ const EventOrders = () => {
 
     // Apply date filter
     if (dateRange && dateRange.length === 2) {
-      const start = dateRange[0].format("YYYY-MM-DD");
-      const end = dateRange[1].format("YYYY-MM-DD");
+      const start = dateRange[0].toISOString().split("T")[0];
+      const end = dateRange[1].toISOString().split("T")[0];
       result = result.filter(
         (order) =>
-          new Date(order.deliveryDate) >= new Date(start) &&
-          new Date(order.deliveryDate) <= new Date(end)
+          order.deliveryDate.substring(0, 10) >= start &&
+          order.deliveryDate.substring(0, 10) <= end
       );
     }
 
@@ -191,15 +189,15 @@ const EventOrders = () => {
   };
 
   const showModal = (order = null) => {
-    console.log(order);
-
     if (order) {
       form.setFieldsValue({
         ...order,
-        deliveryDate: order.deliveryDate ? moment(order.deliveryDate) : null,
-        items: order.items.map((item) => ({ ...item, key: item._id })),
+        deliveryDate: order.deliveryDate ? dayjs(order.deliveryDate) : null,
+        items: order.items.map((item) => ({
+          ...item,
+          key: item._id || item.itemId,
+        })),
       });
-
       setEditingOrder(order);
     } else {
       form.resetFields();
@@ -212,16 +210,34 @@ const EventOrders = () => {
     setCurrentOrder(order);
     paymentForm.resetFields();
     paymentForm.setFieldsValue({
-      amount: order.totalAmount - order.paidAmount,
+      amount: order.totalAmount - order.paidAmount - (order.discount || 0),
       method: "cash",
     });
     setIsPaymentModalVisible(true);
+  };
+
+  const showInvoiceModal = (order) => {
+    setCurrentOrder(order);
+    invoiceForm.resetFields();
+    invoiceForm.setFieldsValue({
+      invoiceNumber: `INV-${order._id.slice(-6).toUpperCase()}`,
+      invoiceDate: dayjs(),
+      customerName: order.customerName,
+      customerPhone: order.phone,
+      customerAddress: order.address,
+      items: order.items.map((item) => ({
+        ...item,
+        key: item._id || item.itemId,
+      })),
+    });
+    setIsInvoiceModalVisible(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
+
       // Prepare items
       const items = values.items.map((item) => ({
         itemId: item.itemId,
@@ -239,7 +255,9 @@ const EventOrders = () => {
       };
 
       // Calculate total amount
-      const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const discount = values.discount || 0;
+      const totalAmount = subtotal - discount;
 
       // Prepare order data
       const orderData = {
@@ -250,15 +268,17 @@ const EventOrders = () => {
         deliveryDate: values.deliveryDate.toISOString(),
         deliveryTime: values.deliveryTime,
         items,
+        subtotal,
+        discount,
         totalAmount,
         notes: values.notes,
         orderStatus: values.orderStatus || "pending",
         payments: values.paymentAmount > 0 ? [paymentData] : [],
         paidAmount: values.paymentAmount || 0,
+        packets: values.packets || 1,
       };
 
       let response;
-      console.log(editingOrder);
 
       if (editingOrder) {
         // Update existing order
@@ -375,12 +395,50 @@ const EventOrders = () => {
     return "pending";
   };
 
+  const handlePrint = async () => {
+    const invoiceElement = document.getElementById("invoiceWrapper");
+
+    if (!invoiceElement) return;
+
+    const canvas = await html2canvas(invoiceElement, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pageWidth;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    let position = 0;
+
+    // If content is longer than one page, add extra pages
+    if (pdfHeight > pageHeight) {
+      let heightLeft = pdfHeight;
+
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+        position -= pageHeight;
+        if (heightLeft > 0) {
+          pdf.addPage();
+          position = 0;
+        }
+      }
+    } else {
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    }
+
+    pdf.save(`invoice_${Date.now()}.pdf`);
+  };
+
   const columns = [
     {
       title: "Order ID",
       dataIndex: "_id",
       key: "_id",
-      render: (id) => <Text strong>{id.substring(0, 8)}...</Text>,
+      render: (id) => <Text strong>{id?.substring(0, 8)}...</Text>,
     },
     {
       title: "Customer",
@@ -400,6 +458,12 @@ const EventOrders = () => {
       dataIndex: "purpose",
       key: "purpose",
       render: (purpose) => <Text>{purpose}</Text>,
+    },
+    {
+      title: "Packets",
+      dataIndex: "packets",
+      key: "packets",
+      render: (packets) => <Text>{packets || 1}</Text>,
     },
     {
       title: "Delivery",
@@ -422,6 +486,13 @@ const EventOrders = () => {
           <div style={{ marginTop: 4 }}>
             <Text type="secondary">Paid: ₹{record.paidAmount || 0}</Text>
           </div>
+          {record.discount > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" delete>
+                Discount: ₹{record.discount}
+              </Text>
+            </div>
+          )}
         </div>
       ),
     },
@@ -463,6 +534,16 @@ const EventOrders = () => {
               onClick={() => showPaymentModal(record)}
             />
           </Tooltip>
+          <Tooltip title="Generate Invoice">
+            <Button
+              type="primary"
+              icon={<FileTextOutlined />}
+              size="small"
+              onClick={() => showInvoiceModal(record)}
+            >
+              Generate invoice
+            </Button>
+          </Tooltip>
           <Popconfirm
             title="Are you sure to delete this order?"
             onConfirm={() => handleDelete(record._id)}
@@ -483,12 +564,53 @@ const EventOrders = () => {
     },
   ];
 
+  const renderOrderDetails = (record) => (
+    <div>
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={12}>
+          <Text strong>Purpose:</Text> {record.purpose}
+        </Col>
+        <Col span={12}>
+          <Text strong>Packets:</Text> {record.packets || 1}
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <Text strong>Delivery Address:</Text> {record.address}
+        </Col>
+      </Row>
+
+      {renderOrderItems(record.items)}
+
+      {record.discount > 0 && (
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={12}>
+            <Text strong>Subtotal:</Text> ₹
+            {record.subtotal || record.totalAmount + record.discount}
+          </Col>
+          <Col span={12}>
+            <Text strong>Discount:</Text> ₹{record.discount}
+          </Col>
+        </Row>
+      )}
+
+      {record.payments?.length > 0 && renderPayments(record.payments)}
+
+      {record.notes && (
+        <div style={{ marginTop: 16 }}>
+          <Text strong>Notes:</Text> {record.notes}
+        </div>
+      )}
+    </div>
+  );
+
   const renderOrderItems = (items) => (
-    <div style={{ margin: "16px 0" }}>
-      <Title level={5} style={{ marginBottom: 8 }}>
-        Order Items
-      </Title>
+    <Card title="Order Items" size="small" style={{ marginBottom: 16 }}>
       <Table
+        dataSource={items}
+        pagination={false}
+        rowKey={(record) => record._id || record.itemId}
         columns={[
           { title: "Item", dataIndex: "name", key: "name" },
           {
@@ -502,87 +624,179 @@ const EventOrders = () => {
             title: "Total",
             dataIndex: "total",
             key: "total",
-            render: (total) => <Text strong>₹{total}</Text>,
+            render: (total) => `₹${total}`,
           },
         ]}
-        dataSource={items}
-        rowKey="_id"
-        pagination={false}
-        size="small"
       />
-    </div>
+    </Card>
   );
 
   const renderPayments = (payments) => (
-    <div style={{ margin: "16px 0" }}>
-      <Title level={5} style={{ marginBottom: 8 }}>
-        Payments
-      </Title>
+    <Card title="Payment History" size="small" style={{ marginBottom: 16 }}>
       <Table
+        dataSource={payments}
+        pagination={false}
+        rowKey={(record, index) => index}
         columns={[
-          {
-            title: "Date",
-            dataIndex: "timestamp",
-            key: "date",
-            render: (date) => new Date(date).toLocaleString(),
-          },
           {
             title: "Amount",
             dataIndex: "amount",
             key: "amount",
-            render: (amount) => <Text strong>₹{amount}</Text>,
+            render: (amount) => `₹${amount}`,
           },
           {
             title: "Method",
             dataIndex: "method",
             key: "method",
-            render: (method) => (
-              <Tag color={method === "cash" ? "green" : "blue"}>
-                {paymentMethods.find((m) => m.value === method)?.label ||
-                  method}
-              </Tag>
-            ),
-          },
-          {
-            title: "Card",
-            dataIndex: "cardId",
-            key: "card",
-            render: (cardId) => cardId || "-",
           },
         ]}
-        dataSource={payments}
-        rowKey="_id"
-        pagination={false}
-        size="small"
       />
-    </div>
+    </Card>
   );
 
-  const renderOrderDetails = (record) => (
-    <div>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={12}>
-          <Text strong>Purpose:</Text> {record.purpose}
-        </Col>
-        <Col span={12}>
-          <Text strong>Delivery Address:</Text> {record.address}
-        </Col>
-      </Row>
+  const InvoiceTemplate = ({ invoiceData, formValues }) => {
+    // Use the formValues prop to get the most up-to-date data
+    const items = formValues.items || [];
+    const discount = formValues.discount || 0;
 
-      {renderOrderItems(record.items)}
+    const totalAmount =
+      items.reduce((sum, item) => sum + item.price * item.quantity, 0) -
+      discount;
 
-      {record.payments?.length > 0 && renderPayments(record.payments)}
+    // Format date with native JavaScript
+    const formatDate = (date) => {
+      if (!date) return "";
+      const d = new Date(date);
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(d);
+    };
 
-      {record.notes && (
-        <div style={{ marginTop: 16 }}>
-          <Text strong>Notes:</Text> {record.notes}
+    return (
+      <div style={{ padding: 20, backgroundColor: "white" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Title level={2}>Bharati Sweets Invoice</Title>
+          <Text>GST No: 21BQIPP9883R1ZQ</Text>
+          <br />
+          <Text>Invoice No: {invoiceData.invoiceNumber}</Text>
+          <br />
+          <Text>Date: {formatDate(invoiceData.invoiceDate)}</Text>
         </div>
-      )}
-    </div>
-  );
+
+        <Divider />
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Title level={4}>Bill To:</Title>
+            <Text strong>{invoiceData.customerName}</Text>
+            <br />
+            <Text>{invoiceData.customerPhone}</Text>
+            <br />
+            <Text>{invoiceData.customerAddress}</Text>
+          </Col>
+          <Col span={12}>
+            <Title level={4}>Order Details:</Title>
+            <Text>Order ID: {invoiceData.orderId}</Text>
+            <br />
+            <Text>Event: {invoiceData.purpose}</Text>
+            <br />
+            <Text>Packets: {invoiceData.packets || 1}</Text>
+            <br />
+            <Text>
+              Delivery: {formatDate(invoiceData.deliveryDate)} at{" "}
+              {invoiceData.deliveryTime}
+            </Text>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <Table
+          dataSource={items}
+          pagination={false}
+          rowKey={(record) => record.itemId}
+          columns={[
+            { title: "Item", dataIndex: "name", key: "name" },
+            {
+              title: "Price",
+              dataIndex: "price",
+              key: "price",
+              render: (price) => `₹${price}`,
+            },
+            { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+            {
+              title: "Total",
+              key: "total",
+              render: (_, record) =>
+                `₹${(record.price || 0) * (record.quantity || 0)}`,
+            },
+          ]}
+        />
+
+        <Divider />
+
+        <Row gutter={16} style={{ marginTop: 20 }}>
+          <Col span={12}></Col>
+          <Col span={12}>
+            {discount > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <Text>
+                  Subtotal: ₹
+                  {items.reduce(
+                    (sum, item) =>
+                      sum + (item.price || 0) * (item.quantity || 0),
+                    0
+                  )}
+                </Text>
+                <br />
+                <Text>Discount: ₹{discount}</Text>
+              </div>
+            )}
+            <Title level={4}>Total: ₹{totalAmount}</Title>
+            <Text>Paid: ₹{invoiceData.paidAmount || 0}</Text>
+            <br />
+            <Text strong>
+              Balance: ₹{totalAmount - (invoiceData.paidAmount || 0)}
+            </Text>
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <div style={{ textAlign: "center", marginTop: 30 }}>
+          <Text>Thank you for your business!</Text>
+          <br />
+          <Text>
+            Bharati Sweets • Phone: +91 70080 84419 • Address: By-Pass, Dala,
+            Byasanagar, Odisha 755019
+          </Text>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
+      <style>
+        {`
+          @media print {
+            body > *:not(#invoiceWrapper) {
+              display: none !important;
+            }
+            #invoiceWrapper {
+              display: block !important;
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              padding: 0;
+              margin: 0;
+            }
+          }
+        `}
+      </style>
       <Card style={{ height: "100%" }}>
         <div
           style={{ display: "flex", flexDirection: "column", height: "100%" }}
@@ -599,17 +813,6 @@ const EventOrders = () => {
               padding: "12px 16px",
             }}
           >
-            {/* <Title
-              level={4}
-              style={{
-                margin: 0,
-                whiteSpace: "nowrap",
-                color: "#2b3a55",
-              }}
-            >
-              Event Orders Management
-            </Title> */}
-
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -690,13 +893,14 @@ const EventOrders = () => {
         }}
         okText={editingOrder ? "Update Order" : "Create Order"}
         confirmLoading={isLoading}
-        width={800}
+        width={900}
       >
         <Form
           form={form}
           layout="vertical"
           initialValues={{
             orderStatus: "pending",
+            packets: 1,
           }}
         >
           <Row gutter={16}>
@@ -733,9 +937,28 @@ const EventOrders = () => {
                   { required: true, message: "Please enter event purpose" },
                 ]}
               >
-                <Input placeholder="Enter purpose" />
+                <Input placeholder="Enter event purpose" />
               </Form.Item>
             </Col>
+
+            <Col span={12}>
+              <Form.Item
+                name="packets"
+                label="Number of Packets"
+                rules={[
+                  { required: true, message: "Please enter number of packets" },
+                ]}
+              >
+                <InputNumber
+                  min={1}
+                  placeholder="Packets"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 name="orderStatus"
@@ -764,6 +987,7 @@ const EventOrders = () => {
           >
             <TextArea placeholder="Full delivery address" rows={2} />
           </Form.Item>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -806,7 +1030,7 @@ const EventOrders = () => {
                     style={{
                       display: "flex",
                       marginBottom: 8,
-                      alignItems: "center",
+                      alignItems: "flex-start",
                     }}
                     align="baseline"
                   >
@@ -852,14 +1076,14 @@ const EventOrders = () => {
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
-                      label="Quantity"
+                      label="Quantity (kg/pcs)"
                       rules={[{ required: true, message: "Enter quantity" }]}
                     >
                       <InputNumber
                         min={0.1}
                         step={0.1}
                         placeholder="Qty"
-                        style={{ width: 100 }}
+                        style={{ width: 120 }}
                       />
                     </Form.Item>
 
@@ -868,6 +1092,7 @@ const EventOrders = () => {
                       danger
                       icon={<DeleteOutlined />}
                       onClick={() => remove(name)}
+                      style={{ marginTop: 30 }}
                     />
                   </Space>
                 ))}
@@ -884,6 +1109,15 @@ const EventOrders = () => {
               </>
             )}
           </Form.List>
+
+          <Form.Item name="discount" label="Discount Amount (₹)">
+            <InputNumber
+              min={0}
+              placeholder="Discount amount"
+              style={{ width: "100%" }}
+              prefix="₹"
+            />
+          </Form.Item>
 
           <Form.Item name="notes" label="Special Notes">
             <TextArea placeholder="Any special instructions" rows={3} />
@@ -904,29 +1138,32 @@ const EventOrders = () => {
                   },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
+                      const items = getFieldValue("items") || [];
+                      const discount = getFieldValue("discount") || 0;
                       const total =
-                        getFieldValue("items")?.reduce(
-                          (sum, item) => sum + item.price * item.quantity,
+                        items.reduce(
+                          (sum, item) =>
+                            sum + (item.price * item.quantity || 0),
                           0
-                        ) || 0;
+                        ) - discount;
 
-                      if (!value || value <= total) {
-                        return Promise.resolve();
+                      if (value && value > total) {
+                        return Promise.reject(
+                          new Error(
+                            "Payment amount cannot exceed total order value"
+                          )
+                        );
                       }
-                      return Promise.reject(
-                        new Error(
-                          `Payment cannot exceed total amount ₹${total}`
-                        )
-                      );
+                      return Promise.resolve();
                     },
                   }),
                 ]}
               >
                 <InputNumber
                   min={0}
-                  placeholder="Amount paid now"
-                  prefix="₹"
+                  placeholder="Payment amount"
                   style={{ width: "100%" }}
+                  prefix="₹"
                 />
               </Form.Item>
             </Col>
@@ -938,7 +1175,10 @@ const EventOrders = () => {
                   { required: true, message: "Please select payment method" },
                 ]}
               >
-                <Select placeholder="Select method" onChange={setPaymentMethod}>
+                <Select
+                  placeholder="Select method"
+                  onChange={(value) => setPaymentMethod(value)}
+                >
                   {paymentMethods.map((method) => (
                     <Option key={method.value} value={method.value}>
                       {method.label}
@@ -948,141 +1188,202 @@ const EventOrders = () => {
               </Form.Item>
             </Col>
           </Row>
-
           {paymentMethod === "card" && (
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item
-                  name="cardId"
-                  label="Card ID"
-                  rules={[
-                    {
-                      required: paymentMethod === "card",
-                      message: "Card ID is required for card payments",
-                    },
-                  ]}
-                >
-                  <Input placeholder="Enter card transaction ID" />
-                </Form.Item>
-              </Col>
-            </Row>
+            <Form.Item
+              name="cardId"
+              label="Card ID"
+              rules={[{ required: true, message: "Please enter Card ID" }]}
+            >
+              <Input placeholder="Enter Card ID" />
+            </Form.Item>
           )}
         </Form>
       </Modal>
 
-      {/* Payment Form Modal */}
+      {/* Payment Modal */}
       <Modal
         title={`Record Payment for Order ${
           currentOrder?._id?.substring(0, 8) || ""
         }`}
         open={isPaymentModalVisible}
         onOk={handlePaymentSubmit}
-        onCancel={() => {
-          setIsPaymentModalVisible(false);
-          paymentForm.resetFields();
-        }}
+        onCancel={() => setIsPaymentModalVisible(false)}
         okText="Record Payment"
-        width={600}
+        confirmLoading={isLoading}
       >
         <Form form={paymentForm} layout="vertical">
-          <Row gutter={16}>
-            <Col span={24}>
-              <Text strong>
-                Total Amount: ₹{currentOrder?.totalAmount || 0}
-              </Text>
-            </Col>
-            <Col span={24}>
-              <Text>Paid Amount: ₹{currentOrder?.paidAmount || 0}</Text>
-            </Col>
-            <Col span={24} style={{ margin: "8px 0" }}>
-              <Text strong type="danger">
-                Due Amount: ₹
-                {(currentOrder?.totalAmount || 0) -
-                  (currentOrder?.paidAmount || 0)}
-              </Text>
-            </Col>
-          </Row>
+          <Form.Item
+            name="amount"
+            label="Payment Amount"
+            rules={[
+              { required: true, message: "Please enter payment amount" },
+              {
+                type: "number",
+                min: 0.01,
+                message: "Amount must be a positive number",
+              },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (
+                    value &&
+                    value > currentOrder.totalAmount - currentOrder.paidAmount
+                  ) {
+                    return Promise.reject(
+                      new Error("Amount cannot exceed the balance due")
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              }),
+            ]}
+          >
+            <InputNumber
+              style={{ width: "100%" }}
+              prefix="₹"
+              placeholder="Enter amount"
+            />
+          </Form.Item>
+          <Form.Item
+            name="method"
+            label="Payment Method"
+            rules={[
+              { required: true, message: "Please select payment method" },
+            ]}
+          >
+            <Select
+              placeholder="Select method"
+              onChange={(value) => setPaymentMethod(value)}
+            >
+              {paymentMethods.map((method) => (
+                <Option key={method.value} value={method.value}>
+                  {method.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          {paymentMethod === "card" && (
+            <Form.Item
+              name="cardId"
+              label="Card ID"
+              rules={[{ required: true, message: "Please enter Card ID" }]}
+            >
+              <Input placeholder="Enter Card ID" />
+            </Form.Item>
+          )}
+        </Form>
+      </Modal>
 
-          <Divider />
-
+      {/* Invoice Modal */}
+      <Modal
+        title={`Invoice for Order ${currentOrder?._id?.substring(0, 8) || ""}`}
+        open={isInvoiceModalVisible}
+        onCancel={() => setIsInvoiceModalVisible(false)}
+        okText="Print Invoice"
+        onOk={handlePrint}
+        width={900}
+        ot
+        window
+        print
+      >
+        <Form form={invoiceForm} layout="vertical">
           <Row gutter={16}>
-            <Col span={24}>
-              <Form.Item
-                name="amount"
-                label="Payment Amount (₹)"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please enter payment amount",
-                  },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      const maxAmount =
-                        (currentOrder?.totalAmount || 0) -
-                        (currentOrder?.paidAmount || 0);
-                      if (value <= maxAmount) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(
-                        new Error(
-                          `Amount cannot exceed due amount ₹${maxAmount}`
-                        )
-                      );
-                    },
-                  }),
-                ]}
-              >
-                <InputNumber
-                  min={0.01}
+            <Col span={12}>
+              <Form.Item name="invoiceNumber" label="Invoice Number">
+                <Input readOnly />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="invoiceDate" label="Invoice Date">
+                <DatePicker
                   style={{ width: "100%" }}
-                  placeholder="Payment amount"
+                  format="DD/MM/YYYY"
+                  readOnly
                 />
               </Form.Item>
             </Col>
           </Row>
-
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                name="method"
-                label="Payment Method"
-                rules={[
-                  { required: true, message: "Please select payment method" },
-                ]}
-              >
-                <Select placeholder="Select method">
-                  {paymentMethods.map((method) => (
-                    <Option key={method.value} value={method.value}>
-                      {method.label}
-                    </Option>
-                  ))}
-                </Select>
+              <Form.Item name="customerName" label="Customer Name">
+                <Input readOnly />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prevValues, currentValues) =>
-                  prevValues.method !== currentValues.method
-                }
-              >
-                {({ getFieldValue }) =>
-                  getFieldValue("method") === "card" ? (
-                    <Form.Item
-                      name="cardId"
-                      label="Card ID"
-                      rules={[
-                        { required: true, message: "Please enter card ID" },
-                      ]}
-                    >
-                      <Input placeholder="Enter card ID" />
-                    </Form.Item>
-                  ) : null
-                }
+              <Form.Item name="customerPhone" label="Customer Phone">
+                <Input readOnly />
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item name="customerAddress" label="Customer Address">
+            <TextArea readOnly />
+          </Form.Item>
+
+          <Divider>Invoice Items</Divider>
+          <Form.List name="items">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space
+                    key={key}
+                    style={{ display: "flex", marginBottom: 8 }}
+                    align="baseline"
+                  >
+                    <Form.Item
+                      {...restField}
+                      name={[name, "name"]}
+                      label="Item"
+                    >
+                      <Input readOnly />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, "price"]}
+                      label="Price"
+                      rules={[{ required: true, message: "Price is required" }]}
+                    >
+                      <InputNumber min={0} prefix="₹" />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, "quantity"]}
+                      label="Quantity"
+                      rules={[
+                        { required: true, message: "Quantity is required" },
+                      ]}
+                    >
+                      <InputNumber min={0.1} step={0.1} />
+                    </Form.Item>
+                  </Space>
+                ))}
+              </>
+            )}
+          </Form.List>
+
+          <Form.Item name="discount" label="Discount Amount (₹)">
+            <InputNumber min={0} style={{ width: "100%" }} prefix="₹" />
+          </Form.Item>
         </Form>
+        <div
+          id="invoiceWrapper"
+          style={{
+            padding: "20px",
+            border: "1px solid #f0f0f0",
+            marginTop: "20px",
+          }}
+        >
+          {currentOrder && (
+            <InvoiceTemplate
+              invoiceData={{
+                ...currentOrder,
+                ...invoiceForm.getFieldsValue(),
+              }}
+              formValues={{
+                items: invoiceFormItems,
+                discount: invoiceFormDiscount,
+              }}
+            />
+          )}
+        </div>
       </Modal>
     </div>
   );
