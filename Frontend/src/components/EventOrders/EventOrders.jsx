@@ -36,7 +36,6 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { API_BASE_URL } from "../../common/config";
-import ReactToPrint from "react-to-print";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -242,17 +241,19 @@ const EventOrders = () => {
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // Prepare items
-      const items = values.items.map((item) => ({
-        itemId: item.itemId,
-        name: inventoryItems.find((i) => i._id === item.itemId)?.name || "Item",
-        price: item.price,
-        quantity: item.quantity,
-        packets: item.packets || 1,
-        total: item.price * item.quantity,
-      }));
+      // Prepare items (packets NOT applied here)
+      const items = values.items.map((item) => {
+        const baseQuantity = item.quantity; // per packet quantity
 
-      console.log(values);
+        return {
+          itemId: item.itemId,
+          name:
+            inventoryItems.find((i) => i._id === item.itemId)?.name || "Item",
+          price: item.price,
+          quantity: baseQuantity, // store base quantity per packet
+          total: item.price * baseQuantity, // per packet total
+        };
+      });
 
       // Prepare payment data
       const paymentData = {
@@ -261,8 +262,17 @@ const EventOrders = () => {
         ...(values.paymentMethod === "card" && { cardId: values.cardId }),
       };
 
-      // Calculate total amount
-      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      // Subtotal (per packet)
+      const subtotalPerPacket = items.reduce(
+        (sum, item) => sum + item.total,
+        0
+      );
+
+      // Apply packets at invoice level
+      const packets = values.packets || 1;
+      const subtotal = subtotalPerPacket * packets;
+
+      // Apply discount after packets
       const discount = values.discount || 0;
       const totalAmount = subtotal - discount;
 
@@ -278,11 +288,11 @@ const EventOrders = () => {
         subtotal,
         discount,
         totalAmount,
+        packets, // store global packets
         notes: values.notes,
         orderStatus: values.orderStatus || "pending",
         payments: values.paymentAmount > 0 ? [paymentData] : [],
         paidAmount: values.paymentAmount || 0,
-        packets: values.packets || 1,
       };
 
       let response;
@@ -668,8 +678,10 @@ const EventOrders = () => {
     const discount = formValues.discount || 0;
 
     const totalAmount =
-      items.reduce((sum, item) => sum + item.price * item.quantity, 0) -
-      discount;
+      items.reduce(
+        (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+        0
+      ) - discount;
 
     // Format date with native JavaScript
     const formatDate = (date) => {
@@ -1148,12 +1160,15 @@ const EventOrders = () => {
                     validator(_, value) {
                       const items = getFieldValue("items") || [];
                       const discount = getFieldValue("discount") || 0;
+                      const packets = getFieldValue("packets") || 1;
                       const total =
                         items.reduce(
                           (sum, item) =>
-                            sum + (item.price * item.quantity || 0),
+                            sum + item.price * (item.quantity || 0),
                           0
-                        ) - discount;
+                        ) *
+                          packets -
+                        discount;
 
                       if (value && value > total) {
                         return Promise.reject(
@@ -1336,6 +1351,7 @@ const EventOrders = () => {
                     style={{ display: "flex", marginBottom: 8 }}
                     align="baseline"
                   >
+                    {/* Item name */}
                     <Form.Item
                       {...restField}
                       name={[name, "name"]}
@@ -1343,23 +1359,45 @@ const EventOrders = () => {
                     >
                       <Input readOnly />
                     </Form.Item>
+
+                    {/* Price */}
                     <Form.Item
                       {...restField}
                       name={[name, "price"]}
                       label="Price"
                       rules={[{ required: true, message: "Price is required" }]}
                     >
-                      <InputNumber min={0} prefix="₹" />
+                      <InputNumber min={0} prefix="₹" readOnly />
                     </Form.Item>
+
+                    {/* Base Quantity per packet */}
+                    <Form.Item
+                      {...restField}
+                      name={[name, "baseQuantity"]}
+                      label="Qty (per packet)"
+                    >
+                      <InputNumber readOnly />
+                    </Form.Item>
+
+                    {/* Packets */}
+                    <Form.Item
+                      {...restField}
+                      name={[name, "packets"]}
+                      label="Packets"
+                    >
+                      <InputNumber readOnly />
+                    </Form.Item>
+
+                    {/* Total Quantity */}
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
-                      label="Quantity"
+                      label="Total Qty"
                       rules={[
                         { required: true, message: "Quantity is required" },
                       ]}
                     >
-                      <InputNumber min={0.1} step={0.1} />
+                      <InputNumber min={0.1} step={0.1} readOnly />
                     </Form.Item>
                   </Space>
                 ))}

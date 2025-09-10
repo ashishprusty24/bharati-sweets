@@ -22,12 +22,26 @@ const createEventOrder = (payload) => {
         deliveryTime,
         items,
         payments,
-        discount,
-        packets,
+        discount = 0,
+        packets = 1,
       } = payload;
 
-      const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+      // Apply packets AFTER summing items
+      const subtotalPerPacket = items.reduce(
+        (sum, item) => sum + item.total,
+        0
+      );
+      const subtotal = subtotalPerPacket * packets;
+      const totalAmount = subtotal - discount;
+
       const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+
+      // Adjust inventory quantities based on packets
+      const itemsWithPackets = items.map((item) => ({
+        ...item,
+        quantity: item.quantity * packets, // total quantity for inventory
+        total: item.total * packets, // total price for all packets
+      }));
 
       const newOrder = new EventOrder({
         customerName,
@@ -36,16 +50,22 @@ const createEventOrder = (payload) => {
         address,
         deliveryDate: new Date(deliveryDate),
         deliveryTime,
-        items,
+        items: itemsWithPackets,
         payments,
         discount,
         packets,
+        subtotal,
         totalAmount,
         paidAmount,
       });
 
+      console.log(999, itemsWithPackets);
+
       const savedOrder = await newOrder.save();
-      await updateInventoryFromOrder(items);
+
+      // Update inventory using total quantities
+
+      await updateInventoryFromOrder(itemsWithPackets);
 
       await generateBookingReceipt(savedOrder);
       const bookingReceiptUrl = `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`;
@@ -73,13 +93,12 @@ const createEventOrder = (payload) => {
                       {
                         type: "document",
                         document: {
-                          link: `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`,
+                          link: bookingReceiptUrl,
                           filename: `booking_${savedOrder._id}.pdf`,
                         },
                       },
                     ],
                   },
-                  // make parameter dtanamic
                   {
                     type: "body",
                     parameters: [
@@ -103,7 +122,7 @@ const createEventOrder = (payload) => {
                     parameters: [
                       {
                         type: "text",
-                        text: `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`,
+                        text: bookingReceiptUrl,
                       },
                     ],
                   },
@@ -112,6 +131,7 @@ const createEventOrder = (payload) => {
             }),
           }
         );
+
         if (!response.ok) {
           throw new Error(`WhatsApp API error: ${response.statusText}`);
         }
@@ -128,7 +148,6 @@ const createEventOrder = (payload) => {
       });
     } catch (err) {
       console.log(err);
-
       reject({ status: 400, message: err.message });
     }
   });
