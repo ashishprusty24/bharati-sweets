@@ -26,14 +26,32 @@ const createInventoryItem = (payload) => {
 const updateInventoryItem = (itemId, updateData) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const updatedItem = await Inventory.findByIdAndUpdate(
-        itemId,
-        updateData,
-        { new: true }
-      );
+      // Update the item first
+      let updatedItem = await Inventory.findByIdAndUpdate(itemId, updateData, {
+        new: true,
+      });
+
       if (!updatedItem) {
         return reject({ status: 404, message: "Inventory item not found" });
       }
+
+      // Auto-update stock status
+      let newStatus = "in-stock";
+
+      if (updatedItem.quantity <= 0) {
+        newStatus = "out-of-stock";
+      } else if (updatedItem.quantity <= updatedItem.minStock) {
+        newStatus = "low-stock";
+      }
+
+      if (updatedItem.status !== newStatus) {
+        updatedItem = await Inventory.findByIdAndUpdate(
+          updatedItem._id,
+          { status: newStatus, lastUpdated: new Date() },
+          { new: true }
+        );
+      }
+
       resolve(updatedItem);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -59,9 +77,28 @@ const updateInventoryFromOrder = (orderItems) => {
   return new Promise(async (resolve, reject) => {
     try {
       for (const item of orderItems) {
-        await Inventory.findByIdAndUpdate(item.itemId, {
-          $inc: { quantity: -item.quantity },
-        });
+        const updatedItem = await Inventory.findByIdAndUpdate(
+          item.itemId,
+          { $inc: { quantity: -item.quantity } },
+          { new: true } // return updated document
+        );
+
+        if (updatedItem) {
+          let newStatus = "in-stock";
+
+          if (updatedItem.quantity <= 0) {
+            newStatus = "out-of-stock";
+          } else if (updatedItem.quantity <= updatedItem.minStock) {
+            newStatus = "low-stock";
+          }
+
+          if (updatedItem.status !== newStatus) {
+            await Inventory.findByIdAndUpdate(updatedItem._id, {
+              status: newStatus,
+              lastUpdated: new Date(),
+            });
+          }
+        }
       }
       resolve();
     } catch (err) {

@@ -252,6 +252,8 @@ const EventOrders = () => {
         total: item.price * item.quantity,
       }));
 
+      console.log(values);
+
       // Prepare payment data
       const paymentData = {
         amount: values.paymentAmount || 0,

@@ -205,6 +205,7 @@ const getPopularProducts = () => {
         return {
           ...product,
           category: item?.category || "Unknown",
+          unit: item?.unit,
         };
       });
 
