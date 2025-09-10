@@ -34,6 +34,7 @@ const eventOrderSchema = new mongoose.Schema(
     items: [eventOrderItemSchema],
     payments: [paymentSchema],
     discount: { type: Number, default: 0 },
+    packets: { type: Number, default: 1 },
     totalAmount: { type: Number, required: true },
     paidAmount: { type: Number, default: 0 },
     paymentStatus: {

@@ -392,10 +392,13 @@ const PopularProducts = () => {
     },
     {
       title: "Quantity Sold",
-      dataIndex: "quantitySold",
       key: "quantitySold",
       align: "right",
-      render: (text) => <Text>{text} kg</Text>,
+      render: (_, record) => (
+        <Text>
+          {record.quantitySold} {record.unit || ""}
+        </Text>
+      ),
     },
     {
       title: "Revenue",
