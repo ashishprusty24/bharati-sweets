@@ -77,9 +77,15 @@ const updateInventoryFromOrder = (orderItems) => {
   return new Promise(async (resolve, reject) => {
     try {
       for (const item of orderItems) {
+        // Pick finalQuantity if available, else fall back to quantity
+        const quantityToDeduct =
+          item.finalQuantity !== undefined && item.finalQuantity !== null
+            ? -item.finalQuantity
+            : -item.quantity;
+
         const updatedItem = await Inventory.findByIdAndUpdate(
           item.itemId,
-          { $inc: { quantity: -item.quantity } },
+          { $inc: { quantity: quantityToDeduct } },
           { new: true } // return updated document
         );
 

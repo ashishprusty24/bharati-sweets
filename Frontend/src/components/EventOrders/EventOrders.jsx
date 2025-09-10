@@ -65,6 +65,7 @@ const EventOrders = () => {
   // Get real-time values from the invoice form to update the preview
   const invoiceFormItems = Form.useWatch("items", invoiceForm);
   const invoiceFormDiscount = Form.useWatch("discount", invoiceForm);
+  const invoiceFormPacket = Form.useWatch("packets", invoiceForm);
 
   // Order status options
   const orderStatusOptions = [
@@ -232,7 +233,10 @@ const EventOrders = () => {
         ...item,
         key: item._id || item.itemId,
       })),
+      packets: order.packets,
     });
+    console.log(order);
+
     setIsInvoiceModalVisible(true);
   };
 
@@ -681,7 +685,9 @@ const EventOrders = () => {
       items.reduce(
         (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
         0
-      ) - discount;
+      ) *
+        invoiceData.packets -
+      discount;
 
     // Format date with native JavaScript
     const formatDate = (date) => {
@@ -750,7 +756,11 @@ const EventOrders = () => {
               title: "Total",
               key: "total",
               render: (_, record) =>
-                `₹${(record.price || 0) * (record.quantity || 0)}`,
+                `₹${
+                  (record.price || 0) *
+                  (record.quantity || 0) *
+                  invoiceData.packets
+                }`,
             },
           ]}
         />
@@ -1304,9 +1314,6 @@ const EventOrders = () => {
         okText="Print Invoice"
         onOk={handlePrint}
         width={900}
-        ot
-        window
-        print
       >
         <Form form={invoiceForm} layout="vertical">
           <Row gutter={16}>
@@ -1325,6 +1332,7 @@ const EventOrders = () => {
               </Form.Item>
             </Col>
           </Row>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="customerName" label="Customer Name">
@@ -1337,13 +1345,23 @@ const EventOrders = () => {
               </Form.Item>
             </Col>
           </Row>
+
           <Form.Item name="customerAddress" label="Customer Address">
             <TextArea readOnly />
           </Form.Item>
 
+          {/* 🔹 Global packets */}
+          <Form.Item
+            name="packets"
+            label="Number of Packets"
+            rules={[{ required: true, message: "Please enter no. of packets" }]}
+          >
+            <InputNumber min={1} style={{ width: "100%" }} />
+          </Form.Item>
+
           <Divider>Invoice Items</Divider>
           <Form.List name="items">
-            {(fields, { add, remove }) => (
+            {(fields) => (
               <>
                 {fields.map(({ key, name, ...restField }) => (
                   <Space
@@ -1351,7 +1369,7 @@ const EventOrders = () => {
                     style={{ display: "flex", marginBottom: 8 }}
                     align="baseline"
                   >
-                    {/* Item name */}
+                    {/* Item Name */}
                     <Form.Item
                       {...restField}
                       name={[name, "name"]}
@@ -1367,37 +1385,38 @@ const EventOrders = () => {
                       label="Price"
                       rules={[{ required: true, message: "Price is required" }]}
                     >
-                      <InputNumber min={0} prefix="₹" readOnly />
+                      <InputNumber min={0} prefix="₹" />
                     </Form.Item>
 
-                    {/* Base Quantity per packet */}
-                    <Form.Item
-                      {...restField}
-                      name={[name, "baseQuantity"]}
-                      label="Qty (per packet)"
-                    >
-                      <InputNumber readOnly />
-                    </Form.Item>
-
-                    {/* Packets */}
-                    <Form.Item
-                      {...restField}
-                      name={[name, "packets"]}
-                      label="Packets"
-                    >
-                      <InputNumber readOnly />
-                    </Form.Item>
-
-                    {/* Total Quantity */}
+                    {/* Base Quantity (per packet) */}
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
-                      label="Total Qty"
+                      label="Base Qty (per packet)"
                       rules={[
                         { required: true, message: "Quantity is required" },
                       ]}
                     >
-                      <InputNumber min={0.1} step={0.1} readOnly />
+                      <InputNumber min={0.1} step={0.1} />
+                    </Form.Item>
+
+                    {/* 🔹 Final Quantity (calculated live = base × packets) */}
+                    <Form.Item
+                      label="Final Qty"
+                      shouldUpdate={(prev, curr) =>
+                        prev.packets !== curr.packets ||
+                        prev.items?.[name]?.quantity !==
+                          curr.items?.[name]?.quantity
+                      }
+                    >
+                      {({ getFieldValue }) => {
+                        const packets = getFieldValue("packets") || 1;
+                        const baseQty =
+                          getFieldValue(["items", name, "quantity"]) || 0;
+                        return (
+                          <InputNumber value={baseQty * packets} disabled />
+                        );
+                      }}
                     </Form.Item>
                   </Space>
                 ))}
@@ -1409,6 +1428,7 @@ const EventOrders = () => {
             <InputNumber min={0} style={{ width: "100%" }} prefix="₹" />
           </Form.Item>
         </Form>
+
         <div
           id="invoiceWrapper"
           style={{
@@ -1426,6 +1446,7 @@ const EventOrders = () => {
               formValues={{
                 items: invoiceFormItems,
                 discount: invoiceFormDiscount,
+                packets: invoiceFormPacket,
               }}
             />
           )}

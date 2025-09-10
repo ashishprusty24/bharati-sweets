@@ -39,8 +39,8 @@ const createEventOrder = (payload) => {
       // Adjust inventory quantities based on packets
       const itemsWithPackets = items.map((item) => ({
         ...item,
-        quantity: item.quantity * packets, // total quantity for inventory
-        total: item.total * packets, // total price for all packets
+        finalQuantity: item.quantity * packets, // total quantity for inventory
+        finalTotal: item.total * packets, // total price for all packets
       }));
 
       const newOrder = new EventOrder({
