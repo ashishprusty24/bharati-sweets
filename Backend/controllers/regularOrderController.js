@@ -38,70 +38,70 @@ const createRegularOrder = async (payload) => {
       .join(", ");
 
     // Generate invoice PDF link dynamically
-    const invoiceUrl = await generateInvoiceUrl(savedOrder);
+    // const invoiceUrl = await generateInvoiceUrl(savedOrder);
 
-    try {
-      const response = await fetch(
-        "https://graph.facebook.com/v22.0/775800332280378/messages",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: phone,
-            type: "template",
-            template: {
-              name: "purchase_receipt_3",
-              language: { code: "en_US" },
-              components: [
-                {
-                  type: "header",
-                  parameters: [
-                    {
-                      type: "document",
-                      document: {
-                        link: `https://bharati-sweets-backend.onrender.com/invoices/invoice_${savedOrder._id}.pdf`,
-                        filename: `invoice_${savedOrder._id}.pdf`,
-                      },
-                    },
-                  ],
-                },
-                {
-                  type: "body",
-                  parameters: [
-                    { type: "text", text: customerName }, // Name
-                    { type: "text", text: `#${savedOrder._id}` }, // Order ID
-                  ],
-                },
-                {
-                  type: "button",
-                  sub_type: "url",
-                  index: "0",
-                  parameters: [{ type: "text", text: "12345" }],
-                },
-              ],
-            },
-          }),
-        }
-      );
+    // try {
+    //   const response = await fetch(
+    //     "https://graph.facebook.com/v22.0/775800332280378/messages",
+    //     {
+    //       method: "POST",
+    //       headers: {
+    //         Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify({
+    //         messaging_product: "whatsapp",
+    //         to: phone,
+    //         type: "template",
+    //         template: {
+    //           name: "purchase_receipt_3",
+    //           language: { code: "en_US" },
+    //           components: [
+    //             {
+    //               type: "header",
+    //               parameters: [
+    //                 {
+    //                   type: "document",
+    //                   document: {
+    //                     link: `https://bharati-sweets-backend.onrender.com/invoices/invoice_${savedOrder._id}.pdf`,
+    //                     filename: `invoice_${savedOrder._id}.pdf`,
+    //                   },
+    //                 },
+    //               ],
+    //             },
+    //             {
+    //               type: "body",
+    //               parameters: [
+    //                 { type: "text", text: customerName }, // Name
+    //                 { type: "text", text: `#${savedOrder._id}` }, // Order ID
+    //               ],
+    //             },
+    //             {
+    //               type: "button",
+    //               sub_type: "url",
+    //               index: "0",
+    //               parameters: [{ type: "text", text: "12345" }],
+    //             },
+    //           ],
+    //         },
+    //       }),
+    //     }
+    //   );
 
-      if (!response.ok) {
-        throw new Error(`WhatsApp API error: ${response.statusText}`);
-      }
+    //   if (!response.ok) {
+    //     throw new Error(`WhatsApp API error: ${response.statusText}`);
+    //   }
 
-      const data = await response.json();
-      console.log("✅ WhatsApp message sent successfully:", data);
-    } catch (whatsappError) {
-      console.error("❌ Failed to send WhatsApp message:", whatsappError);
-      // Don’t reject order if WhatsApp fails
-    }
+    //   const data = await response.json();
+    //   console.log("✅ WhatsApp message sent successfully:", data);
+    // } catch (whatsappError) {
+    //   console.error("❌ Failed to send WhatsApp message:", whatsappError);
+    //   // Don’t reject order if WhatsApp fails
+    // }
 
     return {
       ...savedOrder.toObject(),
-      invoiceUrl: invoiceUrl,
+      // invoiceUrl: invoiceUrl,
     };
   } catch (err) {
     throw err;

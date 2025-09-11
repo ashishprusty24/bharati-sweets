@@ -67,84 +67,84 @@ const createEventOrder = (payload) => {
 
       await updateInventoryFromOrder(itemsWithPackets);
 
-      await generateBookingReceipt(savedOrder);
-      const bookingReceiptUrl = `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`;
+      // await generateBookingReceipt(savedOrder);
+      // const bookingReceiptUrl = `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`;
 
-      try {
-        const response = await fetch(
-          "https://graph.facebook.com/v22.0/775800332280378/messages",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: phone,
-              type: "template",
-              template: {
-                name: "booking_receipt",
-                language: { code: "en_US" },
-                components: [
-                  {
-                    type: "header",
-                    parameters: [
-                      {
-                        type: "document",
-                        document: {
-                          link: bookingReceiptUrl,
-                          filename: `booking_${savedOrder._id}.pdf`,
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    type: "body",
-                    parameters: [
-                      { type: "text", text: savedOrder.customerName }, // Customer Name
-                      { type: "text", text: `#${savedOrder._id}` }, // Order ID
-                      { type: "text", text: savedOrder.purpose }, // Purpose
-                      { type: "text", text: `₹${savedOrder.paidAmount}` }, // Advance Paid
-                      { type: "text", text: `₹${savedOrder.totalAmount}` }, // Total Amount
-                      {
-                        type: "text",
-                        text: `₹${
-                          savedOrder.totalAmount - savedOrder.paidAmount
-                        }`,
-                      }, // Balance
-                    ],
-                  },
-                  {
-                    type: "button",
-                    sub_type: "url",
-                    index: "0",
-                    parameters: [
-                      {
-                        type: "text",
-                        text: bookingReceiptUrl,
-                      },
-                    ],
-                  },
-                ],
-              },
-            }),
-          }
-        );
+      // try {
+      //   const response = await fetch(
+      //     "https://graph.facebook.com/v22.0/775800332280378/messages",
+      //     {
+      //       method: "POST",
+      //       headers: {
+      //         Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+      //         "Content-Type": "application/json",
+      //       },
+      //       body: JSON.stringify({
+      //         messaging_product: "whatsapp",
+      //         to: phone,
+      //         type: "template",
+      //         template: {
+      //           name: "booking_receipt",
+      //           language: { code: "en_US" },
+      //           components: [
+      //             {
+      //               type: "header",
+      //               parameters: [
+      //                 {
+      //                   type: "document",
+      //                   document: {
+      //                     link: bookingReceiptUrl,
+      //                     filename: `booking_${savedOrder._id}.pdf`,
+      //                   },
+      //                 },
+      //               ],
+      //             },
+      //             {
+      //               type: "body",
+      //               parameters: [
+      //                 { type: "text", text: savedOrder.customerName }, // Customer Name
+      //                 { type: "text", text: `#${savedOrder._id}` }, // Order ID
+      //                 { type: "text", text: savedOrder.purpose }, // Purpose
+      //                 { type: "text", text: `₹${savedOrder.paidAmount}` }, // Advance Paid
+      //                 { type: "text", text: `₹${savedOrder.totalAmount}` }, // Total Amount
+      //                 {
+      //                   type: "text",
+      //                   text: `₹${
+      //                     savedOrder.totalAmount - savedOrder.paidAmount
+      //                   }`,
+      //                 }, // Balance
+      //               ],
+      //             },
+      //             {
+      //               type: "button",
+      //               sub_type: "url",
+      //               index: "0",
+      //               parameters: [
+      //                 {
+      //                   type: "text",
+      //                   text: bookingReceiptUrl,
+      //                 },
+      //               ],
+      //             },
+      //           ],
+      //         },
+      //       }),
+      //     }
+      //   );
 
-        if (!response.ok) {
-          throw new Error(`WhatsApp API error: ${response.statusText}`);
-        }
+      //   if (!response.ok) {
+      //     throw new Error(`WhatsApp API error: ${response.statusText}`);
+      //   }
 
-        const data = await response.json();
-        console.log("✅ WhatsApp message sent successfully:", data);
-      } catch (whatsappError) {
-        console.error("❌ Failed to send WhatsApp message:", whatsappError);
-      }
+      //   const data = await response.json();
+      //   console.log("✅ WhatsApp message sent successfully:", data);
+      // } catch (whatsappError) {
+      //   console.error("❌ Failed to send WhatsApp message:", whatsappError);
+      // }
 
       resolve({
         ...savedOrder.toObject(),
-        bookingReceiptUrl,
+        // bookingReceiptUrl,
       });
     } catch (err) {
       console.log(err);
@@ -163,140 +163,140 @@ const addPayment = (orderId, paymentData) => {
       order.paidAmount += paymentData.amount;
       const updatedOrder = await order.save();
 
-      if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-        const invoicePath = await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`;
+      // if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
+      //   const invoicePath = await generateFinalInvoice(updatedOrder);
+      //   const invoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`;
 
-        try {
-          const response = await fetch(
-            "https://graph.facebook.com/v22.0/775800332280378/messages",
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: updatedOrder.phone,
-                type: "template",
-                template: {
-                  name: "final_invoice",
-                  language: { code: "en_US" },
-                  components: [
-                    {
-                      type: "header",
-                      parameters: [
-                        {
-                          type: "document",
-                          document: {
-                            link: invoiceUrl,
-                            filename: `final_${updatedOrder._id}.pdf`,
-                          },
-                        },
-                      ],
-                    },
-                    {
-                      type: "body",
-                      parameters: [
-                        { type: "text", text: updatedOrder.customerName },
-                        { type: "text", text: `${updatedOrder._id}` },
-                        { type: "text", text: updatedOrder.purpose },
-                        { type: "text", text: `${updatedOrder.totalAmount}` },
-                        { type: "text", text: `${updatedOrder.paidAmount}` },
-                      ],
-                    },
-                    {
-                      type: "button",
-                      sub_type: "url",
-                      index: "0",
-                      parameters: [
-                        {
-                          type: "text",
-                          text: `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`,
-                        },
-                      ],
-                    },
-                  ],
-                },
-              }),
-            }
-          );
+      //   try {
+      //     const response = await fetch(
+      //       "https://graph.facebook.com/v22.0/775800332280378/messages",
+      //       {
+      //         method: "POST",
+      //         headers: {
+      //           Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+      //           "Content-Type": "application/json",
+      //         },
+      //         body: JSON.stringify({
+      //           messaging_product: "whatsapp",
+      //           to: updatedOrder.phone,
+      //           type: "template",
+      //           template: {
+      //             name: "final_invoice",
+      //             language: { code: "en_US" },
+      //             components: [
+      //               {
+      //                 type: "header",
+      //                 parameters: [
+      //                   {
+      //                     type: "document",
+      //                     document: {
+      //                       link: invoiceUrl,
+      //                       filename: `final_${updatedOrder._id}.pdf`,
+      //                     },
+      //                   },
+      //                 ],
+      //               },
+      //               {
+      //                 type: "body",
+      //                 parameters: [
+      //                   { type: "text", text: updatedOrder.customerName },
+      //                   { type: "text", text: `${updatedOrder._id}` },
+      //                   { type: "text", text: updatedOrder.purpose },
+      //                   { type: "text", text: `${updatedOrder.totalAmount}` },
+      //                   { type: "text", text: `${updatedOrder.paidAmount}` },
+      //                 ],
+      //               },
+      //               {
+      //                 type: "button",
+      //                 sub_type: "url",
+      //                 index: "0",
+      //                 parameters: [
+      //                   {
+      //                     type: "text",
+      //                     text: `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`,
+      //                   },
+      //                 ],
+      //               },
+      //             ],
+      //           },
+      //         }),
+      //       }
+      //     );
 
-          if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.statusText}`);
-          }
+      //     if (!response.ok) {
+      //       throw new Error(`WhatsApp API error: ${response.statusText}`);
+      //     }
 
-          const data = await response.json();
-          console.log("✅ Final Invoice WhatsApp message sent:", data);
-        } catch (whatsappError) {
-          console.error("❌ Failed to send WhatsApp message:", whatsappError);
-        }
-      } else {
-        const partialInvoicePath = await generatePartialInvoice(updatedOrder);
-        const partialInvoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/partial_${updatedOrder._id}.pdf`;
+      //     const data = await response.json();
+      //     console.log("✅ Final Invoice WhatsApp message sent:", data);
+      //   } catch (whatsappError) {
+      //     console.error("❌ Failed to send WhatsApp message:", whatsappError);
+      //   }
+      // } else {
+      //   const partialInvoicePath = await generatePartialInvoice(updatedOrder);
+      //   const partialInvoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/partial_${updatedOrder._id}.pdf`;
 
-        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
+      //   const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
-        try {
-          const response = await fetch(
-            "https://graph.facebook.com/v22.0/775800332280378/messages",
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: updatedOrder.phone,
-                type: "template",
-                template: {
-                  name: "partial_payment_invoice",
-                  language: { code: "en_US" },
-                  components: [
-                    {
-                      type: "header",
-                      parameters: [
-                        {
-                          type: "document",
-                          document: {
-                            link: partialInvoiceUrl,
-                            filename: `partial_${updatedOrder._id}.pdf`,
-                          },
-                        },
-                      ],
-                    },
-                    {
-                      type: "body",
-                      parameters: [
-                        { type: "text", text: updatedOrder.customerName },
-                        { type: "text", text: `#${updatedOrder._id}` },
-                        { type: "text", text: updatedOrder.purpose },
-                        { type: "text", text: `₹${updatedOrder.totalAmount}` },
-                        { type: "text", text: `₹${updatedOrder.paidAmount}` },
-                        { type: "text", text: `₹${balance}` },
-                      ],
-                    },
-                  ],
-                },
-              }),
-            }
-          );
+      //   try {
+      //     const response = await fetch(
+      //       "https://graph.facebook.com/v22.0/775800332280378/messages",
+      //       {
+      //         method: "POST",
+      //         headers: {
+      //           Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+      //           "Content-Type": "application/json",
+      //         },
+      //         body: JSON.stringify({
+      //           messaging_product: "whatsapp",
+      //           to: updatedOrder.phone,
+      //           type: "template",
+      //           template: {
+      //             name: "partial_payment_invoice",
+      //             language: { code: "en_US" },
+      //             components: [
+      //               {
+      //                 type: "header",
+      //                 parameters: [
+      //                   {
+      //                     type: "document",
+      //                     document: {
+      //                       link: partialInvoiceUrl,
+      //                       filename: `partial_${updatedOrder._id}.pdf`,
+      //                     },
+      //                   },
+      //                 ],
+      //               },
+      //               {
+      //                 type: "body",
+      //                 parameters: [
+      //                   { type: "text", text: updatedOrder.customerName },
+      //                   { type: "text", text: `#${updatedOrder._id}` },
+      //                   { type: "text", text: updatedOrder.purpose },
+      //                   { type: "text", text: `₹${updatedOrder.totalAmount}` },
+      //                   { type: "text", text: `₹${updatedOrder.paidAmount}` },
+      //                   { type: "text", text: `₹${balance}` },
+      //                 ],
+      //               },
+      //             ],
+      //           },
+      //         }),
+      //       }
+      //     );
 
-          if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.statusText}`);
-          }
+      //     if (!response.ok) {
+      //       throw new Error(`WhatsApp API error: ${response.statusText}`);
+      //     }
 
-          const data = await response.json();
-          console.log("✅ Partial Payment WhatsApp message sent:", data);
-        } catch (whatsappError) {
-          console.error(
-            "❌ Failed to send WhatsApp partial payment:",
-            whatsappError
-          );
-        }
-      }
+      //     const data = await response.json();
+      //     console.log("✅ Partial Payment WhatsApp message sent:", data);
+      //   } catch (whatsappError) {
+      //     console.error(
+      //       "❌ Failed to send WhatsApp partial payment:",
+      //       whatsappError
+      //     );
+      //   }
+      // }
 
       resolve(updatedOrder);
     } catch (err) {
@@ -317,12 +317,12 @@ const updateStatus = (orderId, status) => {
         return reject({ status: 404, message: "Order not found" });
       }
 
-      if (status === "delivered") {
-        await sendWhatsApp(
-          updatedOrder.phone,
-          "Your order has been delivered! Thank you for your business."
-        );
-      }
+      // if (status === "delivered") {
+      //   await sendWhatsApp(
+      //     updatedOrder.phone,
+      //     "Your order has been delivered! Thank you for your business."
+      //   );
+      // }
       resolve(updatedOrder);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -388,7 +388,7 @@ const deleteEventOrder = (orderId) => {
       if (order.paidAmount > 0) {
         message += ` ₹${order.paidAmount} will be refunded.`;
       }
-      await sendWhatsApp(order.phone, message);
+      // await sendWhatsApp(order.phone, message);
 
       resolve({ message: "Event order deleted successfully" });
     } catch (err) {
