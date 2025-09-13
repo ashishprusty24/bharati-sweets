@@ -26,22 +26,28 @@ const createEventOrder = (payload) => {
         packets = 1,
       } = payload;
 
-      // Apply packets AFTER summing items
-      const subtotalPerPacket = items.reduce(
-        (sum, item) => sum + item.total,
+      // Apply discount per packet for each item
+      const itemsWithPackets = items.map((item) => {
+        const totalPerPacket = item.total - (discount || 0); // discount per packet
+        return {
+          ...item,
+          finalQuantity: item.quantity * packets, // total quantity for inventory
+          finalTotal: totalPerPacket * packets, // total price for all packets after per-packet discount
+        };
+      });
+
+      console.log(itemsWithPackets);
+
+      // Sum all items
+      const subtotal = itemsWithPackets.reduce(
+        (sum, item) => sum + item.finalTotal,
         0
       );
-      const subtotal = subtotalPerPacket * packets;
-      const totalAmount = subtotal - discount;
+
+      // Total amount is now already discounted per packet
+      const totalAmount = subtotal;
 
       const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
-
-      // Adjust inventory quantities based on packets
-      const itemsWithPackets = items.map((item) => ({
-        ...item,
-        finalQuantity: item.quantity * packets, // total quantity for inventory
-        finalTotal: item.total * packets, // total price for all packets
-      }));
 
       const newOrder = new EventOrder({
         customerName,

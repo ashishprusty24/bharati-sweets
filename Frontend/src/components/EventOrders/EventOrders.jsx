@@ -221,6 +221,8 @@ const EventOrders = () => {
   };
 
   const showInvoiceModal = (order) => {
+    console.log(9999, order);
+
     setCurrentOrder(order);
     invoiceForm.resetFields();
     invoiceForm.setFieldsValue({
@@ -234,6 +236,7 @@ const EventOrders = () => {
         key: item._id || item.itemId,
       })),
       packets: order.packets,
+      discount: order.discount,
     });
     console.log(order);
 
@@ -267,6 +270,7 @@ const EventOrders = () => {
       };
 
       // Subtotal (per packet)
+      // Subtotal (per packet)
       const subtotalPerPacket = items.reduce(
         (sum, item) => sum + item.total,
         0
@@ -276,9 +280,9 @@ const EventOrders = () => {
       const packets = values.packets || 1;
       const subtotal = subtotalPerPacket * packets;
 
-      // Apply discount after packets
+      // Discount per packet
       const discount = values.discount || 0;
-      const totalAmount = subtotal - discount;
+      const totalAmount = subtotal - discount * packets;
 
       // Prepare order data
       const orderData = {
@@ -416,42 +420,18 @@ const EventOrders = () => {
     return "pending";
   };
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     const invoiceElement = document.getElementById("invoiceWrapper");
 
-    if (!invoiceElement) return;
+    const opt = {
+      margin: 5,
+      filename: `invoice_${Date.now()}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "p" },
+    };
 
-    const canvas = await html2canvas(invoiceElement, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pageWidth;
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-    let position = 0;
-
-    // If content is longer than one page, add extra pages
-    if (pdfHeight > pageHeight) {
-      let heightLeft = pdfHeight;
-
-      while (heightLeft > 0) {
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-        position -= pageHeight;
-        if (heightLeft > 0) {
-          pdf.addPage();
-          position = 0;
-        }
-      }
-    } else {
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    }
-
-    pdf.save(`invoice_${Date.now()}.pdf`);
+    html2pdf().set(opt).from(invoiceElement).save();
   };
 
   const columns = [
@@ -676,20 +656,19 @@ const EventOrders = () => {
     </Card>
   );
 
-  const InvoiceTemplate = ({ invoiceData, formValues }) => {
-    // Use the formValues prop to get the most up-to-date data
-    const items = formValues.items || [];
-    const discount = formValues.discount || 0;
+  const InvoiceTemplate = ({ invoiceData }) => {
+    const items = invoiceData.items || [];
+    const discount = invoiceData.discount || 0;
+
+    const packetTotal = items.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+      0
+    );
+    console.log(invoiceData);
 
     const totalAmount =
-      items.reduce(
-        (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
-        0
-      ) *
-        invoiceData.packets -
-      discount;
+      packetTotal * invoiceData.packets - discount * invoiceData.packets;
 
-    // Format date with native JavaScript
     const formatDate = (date) => {
       if (!date) return "";
       const d = new Date(date);
@@ -701,104 +680,218 @@ const EventOrders = () => {
     };
 
     return (
-      <div style={{ padding: 20, backgroundColor: "white" }}>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Title level={2}>Bharati Sweets Invoice</Title>
-          <Text>GST No: 21BQIPP9883R1ZQ</Text>
-          <br />
-          <Text>Invoice No: {invoiceData.invoiceNumber}</Text>
-          <br />
-          <Text>Date: {formatDate(invoiceData.invoiceDate)}</Text>
+      <div
+        style={{
+          fontFamily: "Arial, sans-serif",
+          backgroundColor: "white",
+          margin: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            marginBottom: 20,
+            borderBottom: "1px solid #ddd",
+            paddingBottom: 10,
+          }}
+        >
+          <div style={{ textAlign: "left" }}>
+            <Title level={2} style={{ color: "#333", margin: 0 }}>
+              Bharati Sweets
+            </Title>
+            <Text
+              style={{
+                fontSize: 13,
+                color: "#555",
+                display: "block",
+                margin: 0,
+              }}
+            >
+              GST No: 21BQIPP9883R1ZQ
+            </Text>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#555",
+                display: "block",
+                marginBottom: 3,
+              }}
+            >
+              Invoice No:{" "}
+              <span style={{ fontWeight: "bold" }}>{invoiceData._id}</span>
+            </Text>
+            <Text style={{ fontSize: 14, color: "#555", display: "block" }}>
+              Date:{" "}
+              <span style={{ fontWeight: "bold" }}>
+                {invoiceData.invoiceDate
+                  ? formatDate(invoiceData.invoiceDate)
+                  : formatDate(new Date())}{" "}
+                {/* fallback to current date */}
+              </span>
+            </Text>
+          </div>
         </div>
 
-        <Divider />
-
-        <Row gutter={16}>
+        <Divider style={{ margin: "20px 0" }} />
+        <Row gutter={16} style={{ marginBottom: 20 }}>
           <Col span={12}>
-            <Title level={4}>Bill To:</Title>
-            <Text strong>{invoiceData.customerName}</Text>
-            <br />
-            <Text>{invoiceData.customerPhone}</Text>
-            <br />
-            <Text>{invoiceData.customerAddress}</Text>
+            <Title level={4} style={{ color: "#333", marginBottom: 10 }}>
+              Bill To:
+            </Title>
+            <Text strong style={{ display: "block", marginBottom: 3 }}>
+              {invoiceData.customerName}
+            </Text>
+            <Text style={{ display: "block", marginBottom: 3 }}>
+              {invoiceData.phone}
+            </Text>
+            <Text style={{ display: "block" }}>{invoiceData.address}</Text>
           </Col>
-          <Col span={12}>
-            <Title level={4}>Order Details:</Title>
-            <Text>Order ID: {invoiceData.orderId}</Text>
-            <br />
-            <Text>Event: {invoiceData.purpose}</Text>
-            <br />
-            <Text>Packets: {invoiceData.packets || 1}</Text>
-            <br />
-            <Text>
+          <Col span={12} style={{ textAlign: "right" }}>
+            <Title level={4} style={{ color: "#333", marginBottom: 10 }}>
+              Order Details:
+            </Title>
+            <Text style={{ display: "block", marginBottom: 3 }}>
+              Order ID: {invoiceData.orderId}
+            </Text>
+            <Text style={{ display: "block", marginBottom: 3 }}>
+              Event: {invoiceData.purpose}
+            </Text>
+            <Text style={{ display: "block", marginBottom: 3 }}>
               Delivery: {formatDate(invoiceData.deliveryDate)} at{" "}
               {invoiceData.deliveryTime}
             </Text>
           </Col>
         </Row>
+        <Divider style={{ margin: "20px 0" }} />
 
-        <Divider />
-
+        <Title level={4} style={{ color: "#333", marginBottom: 15 }}>
+          Items per Packet ({invoiceData.packets || 1} Packets total)
+        </Title>
         <Table
           dataSource={items}
           pagination={false}
           rowKey={(record) => record.itemId}
           columns={[
-            { title: "Item", dataIndex: "name", key: "name" },
             {
-              title: "Price",
-              dataIndex: "price",
-              key: "price",
-              render: (price) => `₹${price}`,
+              title: "Description",
+              dataIndex: "name",
+              key: "name",
             },
-            { title: "Quantity", dataIndex: "quantity", key: "quantity" },
             {
-              title: "Total",
-              key: "total",
-              render: (_, record) =>
-                `₹${
-                  (record.price || 0) *
-                  (record.quantity || 0) *
-                  invoiceData.packets
-                }`,
+              title: "Qty/Packet",
+              dataIndex: "quantity",
+              key: "quantity",
+              align: "center",
+            },
+            {
+              title: "Price/Packet",
+              key: "pricePerPacket",
+              align: "center",
+              render: (_, __, index) => {
+                // We only want to render the value on the first row
+                if (index === 0) {
+                  return {
+                    children: `₹${packetTotal}`,
+                    props: {
+                      rowSpan: items.length, // This makes the cell span all rows
+                    },
+                  };
+                }
+                // For all other rows, we return a cell with a rowSpan of 0 to hide it
+                return {
+                  props: {
+                    rowSpan: 0,
+                  },
+                };
+              },
             },
           ]}
+          style={{ marginBottom: 20 }}
         />
 
-        <Divider />
+        <Divider style={{ margin: "20px 0" }} />
 
-        <Row gutter={16} style={{ marginTop: 20 }}>
-          <Col span={12}></Col>
+        <Row gutter={16} style={{ marginTop: 24 }}>
+          {/* Left Card */}
           <Col span={12}>
-            {discount > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <Text>
-                  Subtotal: ₹
-                  {items.reduce(
-                    (sum, item) =>
-                      sum + (item.price || 0) * (item.quantity || 0),
-                    0
-                  )}
+            <div
+              style={{
+                padding: "16px",
+                borderRadius: 10,
+                background: "linear-gradient(135deg, #e6f7ff, #f0f5ff)",
+                textAlign: "center",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              }}
+            >
+              <Text
+                strong
+                style={{ fontSize: 18, display: "block", marginBottom: 6 }}
+              >
+                Delivery Date & Time
+              </Text>
+              <Text style={{ fontSize: 16, color: "#555" }}>
+                {formatDate(invoiceData.deliveryDate)} at{" "}
+                {invoiceData.deliveryTime}
+              </Text>
+            </div>
+          </Col>
+
+          {/* Right Card */}
+          <Col span={12}>
+            <div
+              style={{
+                padding: "16px",
+                borderRadius: 10,
+                background: "#fffbe6",
+                textAlign: "right",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+              }}
+            >
+              <Text style={{ fontSize: 15, display: "block", marginBottom: 6 }}>
+                Price per Packet: <b>₹{packetTotal}</b>
+              </Text>
+              <Text style={{ fontSize: 15, display: "block", marginBottom: 6 }}>
+                Total for {invoiceData.packets} Packets:{" "}
+                <b>₹{packetTotal * invoiceData.packets}</b>
+              </Text>
+              {discount > 0 && (
+                <Text
+                  style={{
+                    fontSize: 15,
+                    display: "block",
+                    marginBottom: 6,
+                    color: "#cf1322",
+                  }}
+                >
+                  Discount: -₹{discount * invoiceData.packets}
                 </Text>
-                <br />
-                <Text>Discount: ₹{discount}</Text>
-              </div>
-            )}
-            <Title level={4}>Total: ₹{totalAmount}</Title>
-            <Text>Paid: ₹{invoiceData.paidAmount || 0}</Text>
-            <br />
-            <Text strong>
-              Balance: ₹{totalAmount - (invoiceData.paidAmount || 0)}
-            </Text>
+              )}
+              <Title
+                level={3}
+                style={{ margin: "10px 0 5px 0", color: "#141414" }}
+              >
+                Total: ₹{totalAmount}
+              </Title>
+              <Text style={{ display: "block", marginBottom: 4 }}>
+                Paid: ₹{invoiceData.paidAmount || 0}
+              </Text>
+              <Text strong style={{ color: "#d9363e" }}>
+                Balance: ₹{totalAmount - (invoiceData.paidAmount || 0)}
+              </Text>
+            </div>
           </Col>
         </Row>
 
-        <Divider />
-
+        <Divider style={{ margin: "30px 0" }} />
         <div style={{ textAlign: "center", marginTop: 30 }}>
-          <Text>Thank you for your business!</Text>
-          <br />
-          <Text>
+          <Text style={{ fontSize: 14, color: "#555", display: "block" }}>
+            Thank you for your business!
+          </Text>
+          <Text style={{ fontSize: 12, color: "#777", marginTop: 10 }}>
             Bharati Sweets • Phone: +91 70080 84419 • Address: By-Pass, Dala,
             Byasanagar, Odisha 755019
           </Text>
@@ -1064,6 +1157,7 @@ const EventOrders = () => {
                     }}
                     align="baseline"
                   >
+                    {/* 🔹 Select Item */}
                     <Form.Item
                       {...restField}
                       name={[name, "itemId"]}
@@ -1075,9 +1169,26 @@ const EventOrders = () => {
                         style={{ width: 200 }}
                         showSearch
                         optionFilterProp="children"
+                        onChange={(value) => {
+                          const selected = inventoryItems.find(
+                            (i) => i._id === value
+                          );
+
+                          if (selected) {
+                            // update the price for this row
+                            const currentItems =
+                              form.getFieldValue("items") || [];
+                            const updatedItems = currentItems.map((it, idx) =>
+                              idx === name
+                                ? { ...it, price: selected.costPerUnit }
+                                : it
+                            );
+                            form.setFieldsValue({ items: updatedItems });
+                          }
+                        }}
                         filterOption={(input, option) =>
-                          option.children
-                            .toLowerCase()
+                          option?.children
+                            ?.toLowerCase()
                             .indexOf(input.toLowerCase()) >= 0
                         }
                       >
@@ -1089,6 +1200,7 @@ const EventOrders = () => {
                       </Select>
                     </Form.Item>
 
+                    {/* 🔹 Price auto-filled */}
                     <Form.Item
                       {...restField}
                       name={[name, "price"]}
@@ -1096,6 +1208,9 @@ const EventOrders = () => {
                       rules={[{ required: true, message: "Enter price" }]}
                     >
                       <InputNumber
+                        this
+                        value
+                        change
                         min={0}
                         placeholder="Price"
                         prefix="₹"
@@ -1103,6 +1218,7 @@ const EventOrders = () => {
                       />
                     </Form.Item>
 
+                    {/* Quantity */}
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
@@ -1155,6 +1271,37 @@ const EventOrders = () => {
 
           <Divider>Payment Information</Divider>
           <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                shouldUpdate={(prevValues, currentValues) =>
+                  prevValues.items !== currentValues.items ||
+                  prevValues.discount !== currentValues.discount ||
+                  prevValues.packets !== currentValues.packets
+                }
+              >
+                {({ getFieldValue }) => {
+                  const items = getFieldValue("items") || [];
+                  const discount = getFieldValue("discount") || 0;
+                  const packets = getFieldValue("packets") || 1;
+
+                  const total =
+                    items.reduce(
+                      (sum, item) =>
+                        sum + (item.price || 0) * (item.quantity || 0),
+                      0
+                    ) *
+                      packets -
+                    discount * packets;
+
+                  return (
+                    <Button type="primary" block style={{ fontWeight: "bold" }}>
+                      Total Amount: ₹{total}
+                    </Button>
+                  );
+                }}
+              </Form.Item>
+            </Col>
+
             <Col span={12}>
               <Form.Item
                 name="paymentAmount"
@@ -1178,7 +1325,7 @@ const EventOrders = () => {
                           0
                         ) *
                           packets -
-                        discount;
+                        discount * packets;
 
                       if (value && value > total) {
                         return Promise.reject(
@@ -1221,15 +1368,6 @@ const EventOrders = () => {
               </Form.Item>
             </Col>
           </Row>
-          {paymentMethod === "card" && (
-            <Form.Item
-              name="cardId"
-              label="Card ID"
-              rules={[{ required: true, message: "Please enter Card ID" }]}
-            >
-              <Input placeholder="Enter Card ID" />
-            </Form.Item>
-          )}
         </Form>
       </Modal>
 
@@ -1315,7 +1453,8 @@ const EventOrders = () => {
         onOk={handlePrint}
         width={900}
       >
-        <Form form={invoiceForm} layout="vertical">
+        {/* can u make this form */}
+        {/* <Form form={invoiceForm} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="invoiceNumber" label="Invoice Number">
@@ -1350,8 +1489,7 @@ const EventOrders = () => {
             <TextArea readOnly />
           </Form.Item>
 
-          {/* 🔹 Global packets */}
-          <Form.Item
+       
             name="packets"
             label="Number of Packets"
             rules={[{ required: true, message: "Please enter no. of packets" }]}
@@ -1369,7 +1507,7 @@ const EventOrders = () => {
                     style={{ display: "flex", marginBottom: 8 }}
                     align="baseline"
                   >
-                    {/* Item Name */}
+                   
                     <Form.Item
                       {...restField}
                       name={[name, "name"]}
@@ -1378,7 +1516,7 @@ const EventOrders = () => {
                       <Input readOnly />
                     </Form.Item>
 
-                    {/* Price */}
+                
                     <Form.Item
                       {...restField}
                       name={[name, "price"]}
@@ -1388,7 +1526,7 @@ const EventOrders = () => {
                       <InputNumber min={0} prefix="₹" />
                     </Form.Item>
 
-                    {/* Base Quantity (per packet) */}
+                 
                     <Form.Item
                       {...restField}
                       name={[name, "quantity"]}
@@ -1400,7 +1538,7 @@ const EventOrders = () => {
                       <InputNumber min={0.1} step={0.1} />
                     </Form.Item>
 
-                    {/* 🔹 Final Quantity (calculated live = base × packets) */}
+                  
                     <Form.Item
                       label="Final Qty"
                       shouldUpdate={(prev, curr) =>
@@ -1427,7 +1565,7 @@ const EventOrders = () => {
           <Form.Item name="discount" label="Discount Amount (₹)">
             <InputNumber min={0} style={{ width: "100%" }} prefix="₹" />
           </Form.Item>
-        </Form>
+        </Form> */}
 
         <div
           id="invoiceWrapper"
@@ -1442,11 +1580,6 @@ const EventOrders = () => {
               invoiceData={{
                 ...currentOrder,
                 ...invoiceForm.getFieldsValue(),
-              }}
-              formValues={{
-                items: invoiceFormItems,
-                discount: invoiceFormDiscount,
-                packets: invoiceFormPacket,
               }}
             />
           )}
