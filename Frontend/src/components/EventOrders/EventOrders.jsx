@@ -214,10 +214,12 @@ const EventOrders = () => {
     setCurrentOrder(order);
     paymentForm.resetFields();
     paymentForm.setFieldsValue({
-      amount: order.totalAmount - order.paidAmount - (order.discount || 0),
+      amount: order.totalAmount - order.paidAmount,
       method: "cash",
     });
     setIsPaymentModalVisible(true);
+
+    console.log(order);
   };
 
   const showInvoiceModal = (order) => {
@@ -1287,7 +1289,7 @@ const EventOrders = () => {
                   const total =
                     items.reduce(
                       (sum, item) =>
-                        sum + (item.price || 0) * (item.quantity || 0),
+                        sum + (item?.price || 0) * (item?.quantity || 0),
                       0
                     ) *
                       packets -
