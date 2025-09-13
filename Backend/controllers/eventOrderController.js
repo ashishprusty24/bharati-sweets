@@ -62,7 +62,7 @@ const createEventOrder = (payload) => {
       await updateInventoryFromOrder(itemsWithPackets);
 
       await generateBookingReceipt(savedOrder);
-      const bookingReceiptUrl = `https://bharati-sweets-backend.onrender.com/receipts/booking_${savedOrder._id}.pdf`;
+      const bookingReceiptUrl = `${API_BASE_URL}/receipts/booking_${savedOrder._id}.pdf`;
 
       try {
         const response = await fetch(
@@ -161,7 +161,7 @@ const addPayment = (orderId, paymentData) => {
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
         const invoicePath = await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`;
+        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf`;
 
         try {
           const response = await fetch(
@@ -209,7 +209,7 @@ const addPayment = (orderId, paymentData) => {
                       parameters: [
                         {
                           type: "text",
-                          text: `https://bharati-sweets-backend.onrender.com/receipts/final_${updatedOrder._id}.pdf`,
+                          text: `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf`,
                         },
                       ],
                     },
@@ -230,7 +230,7 @@ const addPayment = (orderId, paymentData) => {
         }
       } else {
         const partialInvoicePath = await generatePartialInvoice(updatedOrder);
-        const partialInvoiceUrl = `https://bharati-sweets-backend.onrender.com/receipts/partial_${updatedOrder._id}.pdf`;
+        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf`;
 
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
