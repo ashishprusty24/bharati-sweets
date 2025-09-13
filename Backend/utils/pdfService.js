@@ -1,229 +1,304 @@
-// utils/pdfService.js
 const fs = require("fs");
 const path = require("path");
 const pdf = require("html-pdf");
 
-// The single, reusable HTML template for all documents
 const invoiceTemplate = (order, title, status) => {
-  const isFullPayment = status === "PAID IN FULL";
-  const balance = (
-    Number(order.totalAmount || 0) - Number(order.paidAmount || 0)
-  ).toFixed(2);
-  const payments = order.payments || [];
-  const totalPaid = payments
+  const packets = order.packets || 1;
+  const items = order.items || [];
+  const discountPerPacket = Number(order.discount || 0);
+
+  const packetTotal = items.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+    0
+  );
+
+  const finalPacketPrice = (packetTotal - discountPerPacket).toFixed(2);
+  const calculatedTotal = (finalPacketPrice * packets).toFixed(2);
+
+  const totalPaid = (order.payments || [])
     .reduce((sum, p) => sum + Number(p.amount || 0), 0)
     .toFixed(2);
 
-  const isPartial = status.includes("PARTIAL");
-  const isFinal = status.includes("FINAL") || status.includes("PAID IN FULL");
-  const isBooking = status.includes("BOOKING");
+  const balance = (calculatedTotal - totalPaid).toFixed(2);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>${title}</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 50px;
-                color: #1f2937;
-            }
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                border: 1px solid #e5e7eb;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            .header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                border-bottom: 2px solid #e5e7eb;
-                padding-bottom: 20px;
-            }
-            .company-info h1 {
-                font-size: 24px;
-                font-weight: bold;
-                margin: 0;
-            }
-            .company-info p {
-                font-size: 12px;
-                color: #6b7280;
-                margin: 2px 0;
-            }
-            .invoice-details {
-                text-align: right;
-            }
-            .invoice-details h2 {
-                font-size: 28px;
-                font-weight: bold;
-                margin: 0;
-            }
-            .invoice-details p {
-                font-size: 14px;
-                margin: 2px 0;
-            }
-            .customer-section {
-                margin-top: 30px;
-            }
-            .customer-section h3 {
-                font-size: 16px;
-                border-bottom: 1px solid #e5e7eb;
-                padding-bottom: 5px;
-                margin-bottom: 10px;
-            }
-            .customer-section p {
-                font-size: 14px;
-                margin: 2px 0;
-            }
-            .table-container {
-                margin-top: 30px;
-            }
-            .items-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            .items-table th, .items-table td {
-                text-align: left;
-                padding: 12px;
-                border-bottom: 1px solid #e5e7eb;
-            }
-            .items-table th {
-                font-size: 14px;
-                background-color: #f3f4f6;
-            }
-            .items-table td {
-                font-size: 14px;
-            }
-            .summary-section {
-                margin-top: 30px;
-                text-align: right;
-            }
-            .summary-row {
-                display: flex;
-                justify-content: flex-end;
-                margin-bottom: 5px;
-            }
-            .summary-label {
-                font-weight: bold;
-                font-size: 16px;
-                width: 200px;
-            }
-            .summary-value {
-                width: 150px;
-                font-size: 16px;
-                margin-left: 20px;
-            }
-            .status {
-                font-size: 18px;
-                font-weight: bold;
-                margin-top: 20px;
-            }
-            .paid-status {
-                color: #22c55e;
-            }
-            .balance-status {
-                color: #ef4444;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="company-info">
-                    <h1>Bharati Sweets</h1>
-                    <p>Infront of Vyasanagar town hall, Jajpur, 755109</p>
-                    <p>Phone: +91 7008084419</p>
-                    <p>Email: info@bharatisweets.com</p>
-                </div>
-                <div class="invoice-details">
-                    <h2>${title}</h2>
-                    <p><strong>Invoice ID:</strong> #${order._id}</p>
-                    <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-                </div>
-            </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>${title}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #1f2937;
+      background-color: white;
+    }
+    .container {
+     
+      margin: 0 auto;
+      
+    }
+    .header {
+      display: table;
+      width: 100%;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .header > div {
+      display: table-cell;
+      vertical-align: bottom;
+    }
+    .header-left {
+      width: 50%;
+    }
+    .header-right {
+      width: 50%;
+      text-align: right;
+    }
+    h2 {
+      margin: 0;
+      color: #333;
+      font-size: 24px;
+    }
+    p {
+      font-size: 13px;
+      color: #555;
+      margin: 0;
+    }
+    .divider {
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+    .details-table {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .details-table td {
+      vertical-align: top;
+    }
+    .details-table td:first-child {
+      width: 50%;
+    }
+    .details-table td:last-child {
+      width: 50%;
+      text-align: right;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .items-table th,
+    .items-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+      text-align: center;
+    }
+    .items-table th:first-child,
+    .items-table td:first-child {
+      text-align: left;
+    }
+    .summary-cards-table {
+      width: 100%;
+      margin-top: 24px;
+    }
+    .summary-cards-table td {
+      padding: 0 8px;
+      vertical-align: top;
+    }
+    .delivery-card,
+    .total-card {
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .delivery-card {
+      background: linear-gradient(135deg, #e6f7ff, #f0f5ff);
+      text-align: center;
+    }
+    .total-card {
+      background: #fffbe6;
+      text-align: right;
+    }
+    .card-title {
+      font-weight: bold;
+      font-size: 18px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .card-text {
+      font-size: 16px;
+      color: #555;
+    }
+    .total-card h3 {
+      margin: 10px 0 5px 0;
+      color: #141414;
+    }
+    .paid-text {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .balance-text {
+      font-weight: bold;
+      color: #d9363e;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 14px;
+      color: #555;
+    }
+    .footer .address {
+      font-size: 12px;
+      color: #777;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
 
-            <div class="customer-section">
-                <h3>Bill To</h3>
-                <p><strong>Name:</strong> ${order.customerName}</p>
-                <p><strong>Phone:</strong> ${order.phone}</p>
-                <p><strong>Address:</strong> ${order.address || "N/A"}</p>
-                <p><strong>Purpose:</strong> ${order.purpose || "N/A"}</p>
-            </div>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h2>Bharati Sweets</h2>
+      <p>GST No: 21BQIPP9883R1ZQ</p>
+    </div>
+    <div class="header-right">
+      <p>Invoice No: <span>#${order._id}</span></p>
+      <p>Date: <span>${formatDate(order.invoiceDate || new Date())}</span></p>
+    </div>
+  </div>
 
-            <div class="table-container">
-                <table class="items-table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${order.items
-                          .map(
-                            (item) => `
-                            <tr>
-                                <td>${item.name}</td>
-                                <td>${item.quantity} ${item.unit || "g"}</td>
-                                <td>₹${Number(item.price).toFixed(2)}</td>
-                                <td>₹${Number(item.total).toFixed(2)}</td>
-                            </tr>
-                        `
-                          )
-                          .join("")}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="summary-section">
-                <div class="summary-row">
-                    <span class="summary-label">Total Amount:</span>
-                    <span class="summary-value">₹${Number(
-                      order.totalAmount
-                    ).toFixed(2)}</span>
-                </div>
-                ${
-                  isFinal
-                    ? `
-                    <div class="summary-row">
-                        <span class="summary-label">Total Paid:</span>
-                        <span class="summary-value">₹${totalPaid}</span>
-                    </div>
-                `
-                    : ""
-                }
-                ${
-                  isPartial || isBooking
-                    ? `
-                    <div class="summary-row">
-                        <span class="summary-label">Paid So Far:</span>
-                        <span class="summary-value">₹${Number(
-                          order.paidAmount
-                        ).toFixed(2)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Balance Due:</span>
-                        <span class="summary-value">₹${balance}</span>
-                    </div>
-                `
-                    : ""
-                }
-                <div class="status ${
-                  isFullPayment ? "paid-status" : "balance-status"
-                }">
-                    STATUS: ${status}
-                </div>
-            </div>
+  <!-- Customer & Order Details -->
+  <table class="details-table" cellspacing="0" cellpadding="0">
+    <tr>
+      <td>
+        <div class="customer-details">
+          <h4>Bill To:</h4>
+          <p><strong>${order.customerName}</strong></p>
+          <p>${order.phone}</p>
+          <p>${order.address || "N/A"}</p>
         </div>
-    </body>
-    </html>
-    `;
+      </td>
+      <td>
+        <div class="order-details">
+          <h4>Order Details:</h4>
+          <p>Order ID: ${order.orderId || order._id}</p>
+          <p>Event: ${order.purpose || "N/A"}</p>
+          <p>Delivery: ${formatDate(order.deliveryDate)} at ${
+    order.deliveryTime || ""
+  }</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+ 
+
+  <!-- Items -->
+  <h4>Items per Packet (${packets} Packets total)</h4>
+  <div class="table-container">
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Qty/Packet</th>
+          <th>Price/Packet</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items
+          .map(
+            (item, index) => `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            ${
+              index === 0
+                ? `<td rowspan="${items.length}" style="text-align: center;">₹${finalPacketPrice}</td>`
+                : ""
+            }
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  </div>
+
+ 
+
+  <!-- Summary -->
+  <table class="summary-cards-table" cellspacing="0" cellpadding="0">
+    <tr>
+      <td>
+        ${
+          status === "BOOKING RECEIPT"
+            ? `<div class="delivery-card">
+                 <span class="card-title">Delivery Date & Time</span>
+                 <span class="card-text">${formatDate(order.deliveryDate)} at ${
+                order.deliveryTime || ""
+              }</span>
+               </div>`
+            : ``
+        }
+      </td>
+      <td>
+        <div class="total-card">
+          ${
+            status === "PAID IN FULL"
+              ? `
+                <h3>Total: ₹${calculatedTotal}</h3>
+                <h5>Amount Paid: ₹${totalPaid}</h5>
+                <p style="color: green; font-weight: bold;">Status: Paid in Full</p>
+              `
+              : status === "PARTIALLY PAID"
+              ? `
+                <p style="color: orange; font-weight: bold;">Status: Partially Paid</p>
+                <h3>Total: ₹${calculatedTotal}</h3>
+                <p>Paid So Far: ₹${totalPaid}</p>
+                <p>Balance: ₹${balance}</p>
+              `
+              : status === "BOOKING RECEIPT"
+              ? `
+                <p>Price per Packet: <b>₹${finalPacketPrice}</b></p>
+                <p>Total for ${packets} Packets: <b>₹${calculatedTotal}</b></p>
+                <h3>Total: ₹${calculatedTotal}</h3>
+                <p class="paid-text">Paid: ₹${totalPaid}</p>
+                <p class="balance-text">Balance: ₹${balance}</p>
+              `
+              : ``
+          }
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Thank you for your business!</p>
+    <p class="address">Bharati Sweets • Phone: +91 70080 84419 • Address: By-Pass, Dala, Byasanagar, Odisha 755019</p>
+  </div>
+
+</div>
+</body>
+</html>
+`;
 };
 
 // Configuration for html-pdf
