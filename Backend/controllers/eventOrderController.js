@@ -98,10 +98,10 @@ const createEventOrder = (payload) => {
                     type: "body",
                     parameters: [
                       { type: "text", text: savedOrder.customerName }, // Customer Name
-                      { type: "text", text: `#${savedOrder._id}` }, // Order ID
+                      { type: "text", text: `${savedOrder._id}` }, // Order ID
                       { type: "text", text: savedOrder.purpose }, // Purpose
-                      { type: "text", text: `₹${savedOrder.paidAmount}` }, // Advance Paid
-                      { type: "text", text: `₹${savedOrder.totalAmount}` }, // Total Amount
+                      { type: "text", text: `${savedOrder.paidAmount}` }, // Advance Paid
+                      { type: "text", text: `${savedOrder.totalAmount}` }, // Total Amount
                       {
                         type: "text",
                         text: `₹${
@@ -268,11 +268,11 @@ const addPayment = (orderId, paymentData) => {
                       type: "body",
                       parameters: [
                         { type: "text", text: updatedOrder.customerName },
-                        { type: "text", text: `#${updatedOrder._id}` },
+                        { type: "text", text: `${updatedOrder._id}` },
                         { type: "text", text: updatedOrder.purpose },
-                        { type: "text", text: `₹${updatedOrder.totalAmount}` },
-                        { type: "text", text: `₹${updatedOrder.paidAmount}` },
-                        { type: "text", text: `₹${balance}` },
+                        { type: "text", text: `${updatedOrder.totalAmount}` },
+                        { type: "text", text: `${updatedOrder.paidAmount}` },
+                        { type: "text", text: `${balance}` },
                       ],
                     },
                   ],
