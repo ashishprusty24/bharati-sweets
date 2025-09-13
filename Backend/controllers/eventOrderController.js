@@ -9,6 +9,7 @@ const {
   generateFinalInvoice,
   generatePartialInvoice,
 } = require("../utils/pdfService");
+const { API_BASE_URL } = require("../common/config");
 
 const createEventOrder = (payload) => {
   return new Promise(async (resolve, reject) => {
