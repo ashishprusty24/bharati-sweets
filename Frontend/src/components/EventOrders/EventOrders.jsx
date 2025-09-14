@@ -36,6 +36,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { API_BASE_URL } from "../../common/config";
+import PreparationReportModal from "../common/PreparationReportModal/PreparationReportModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -968,6 +969,7 @@ const EventOrders = () => {
               padding: "12px 16px",
             }}
           >
+            <PreparationReportModal />
             <Button
               type="primary"
               icon={<PlusOutlined />}

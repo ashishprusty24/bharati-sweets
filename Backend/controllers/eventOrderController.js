@@ -394,6 +394,56 @@ const deleteEventOrder = (orderId) => {
   });
 };
 
+const getPreparationReport = (date) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!date) {
+        return reject({ status: 400, message: "Date is required" });
+      }
+
+      const startDate = new Date(date);
+      startDate.setUTCHours(0, 0, 0, 0);
+
+      const endDate = new Date(date);
+      endDate.setUTCHours(23, 59, 59, 999);
+
+      const orders = await EventOrder.find({
+        deliveryDate: { $gte: startDate, $lte: endDate },
+      });
+
+      if (orders.length === 0) {
+        return resolve([]);
+      }
+
+      // aggregate packets
+      let totalPackets = 0;
+      const itemTotals = {};
+
+      orders.forEach((order) => {
+        totalPackets += order.packets || 1;
+
+        order.items.forEach((item) => {
+          const key = item.name; // aggregate by name
+          if (!itemTotals[key]) {
+            itemTotals[key] = { name: item.name, quantity: 0 };
+          }
+          itemTotals[key].quantity += item.quantity * (order.packets || 1);
+        });
+      });
+
+      const report = {
+        deliveryDate: orders[0].deliveryDate, // all same day
+        packets: totalPackets,
+        items: Object.values(itemTotals),
+      };
+
+      resolve([report]); // return in array format
+    } catch (err) {
+      reject({ status: 500, message: err.message });
+    }
+  });
+};
+
 function generateBookingReceiptUrl(order) {
   return `https://api.bharatisweets.com/receipts/event/${order._id}`;
 }
@@ -406,4 +456,5 @@ module.exports = {
   updateStatus,
   updateEventOrder,
   deleteEventOrder,
+  getPreparationReport,
 };

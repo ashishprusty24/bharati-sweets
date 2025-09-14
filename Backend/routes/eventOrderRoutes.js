@@ -81,4 +81,15 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
+router.get("/preparation-report", async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    const report = await eventOrderController.getPreparationReport(date);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
