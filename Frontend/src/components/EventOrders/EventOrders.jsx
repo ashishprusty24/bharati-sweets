@@ -681,7 +681,7 @@ const EventOrders = () => {
     };
 
     // Logic to split the items array for a two-column layout
-    const twoColumns = items.length > 10;
+    const twoColumns = items.length > 7;
     let firstColumnItems = [];
     let secondColumnItems = [];
     if (twoColumns) {
@@ -852,6 +852,7 @@ const EventOrders = () => {
             rowKey={(record) => record.itemId}
             columns={itemTableColumns}
             style={{ marginBottom: 20 }}
+            size="small"
           />
         )}
 
