@@ -67,7 +67,7 @@ const AppLayout = () => {
           />
           <Layout.Content
             style={{
-              padding: "24px",
+              padding: isMobile ? 0 : "24px",
               background: "#f0f2f5",
               minHeight: "calc(100vh - 64px)",
             }}

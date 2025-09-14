@@ -508,7 +508,7 @@ const PendingOrders = () => {
 // Main Dashboard Component
 const Dashboard = () => {
   return (
-    <div className="bg-gray-100 p-8 min-h-screen">
+    <div className="bg-gray-100 min-h-screen" style={{ padding: "24px" }}>
       <SummaryCards />
       <Row gutter={[16, 16]} style={{ margin: "5px 0px" }}>
         <Col xs={24} lg={12}>
