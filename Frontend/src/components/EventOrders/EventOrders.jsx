@@ -666,7 +666,6 @@ const EventOrders = () => {
       (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
       0
     );
-    console.log(invoiceData);
 
     const totalAmount =
       packetTotal * invoiceData.packets - discount * invoiceData.packets;
@@ -680,6 +679,53 @@ const EventOrders = () => {
         year: "numeric",
       }).format(d);
     };
+
+    // Logic to split the items array for a two-column layout
+    const twoColumns = items.length > 10;
+    let firstColumnItems = [];
+    let secondColumnItems = [];
+    if (twoColumns) {
+      const splitIndex = Math.ceil(items.length / 2);
+      firstColumnItems = items.slice(0, splitIndex);
+      secondColumnItems = items.slice(splitIndex);
+    }
+
+    // The columns for the items table
+    const itemTableColumns = [
+      {
+        title: "Description",
+        dataIndex: "name",
+        key: "name",
+      },
+      {
+        title: "Qty/Packet",
+        dataIndex: "quantity",
+        key: "quantity",
+        align: "center",
+      },
+      {
+        title: "Price/Packet",
+        key: "pricePerPacket",
+        align: "center",
+        render: (_, __, index) => {
+          // We only want to render the value on the first row
+          if (index === 0) {
+            return {
+              children: `₹${packetTotal}`,
+              props: {
+                rowSpan: items.length, // This makes the cell span all rows
+              },
+            };
+          }
+          // For all other rows, we return a cell with a rowSpan of 0 to hide it
+          return {
+            props: {
+              rowSpan: 0,
+            },
+          };
+        },
+      },
+    ];
 
     return (
       <div
@@ -732,16 +778,17 @@ const EventOrders = () => {
                 {invoiceData.invoiceDate
                   ? formatDate(invoiceData.invoiceDate)
                   : formatDate(new Date())}{" "}
-                {/* fallback to current date */}
               </span>
             </Text>
           </div>
         </div>
 
-        <Divider style={{ margin: "20px 0" }} />
         <Row gutter={16} style={{ marginBottom: 20 }}>
           <Col span={12}>
-            <Title level={4} style={{ color: "#333", marginBottom: 10 }}>
+            <Title
+              level={4}
+              style={{ color: "#333", marginBottom: 10, marginTop: 10 }}
+            >
               Bill To:
             </Title>
             <Text strong style={{ display: "block", marginBottom: 3 }}>
@@ -753,7 +800,10 @@ const EventOrders = () => {
             <Text style={{ display: "block" }}>{invoiceData.address}</Text>
           </Col>
           <Col span={12} style={{ textAlign: "right" }}>
-            <Title level={4} style={{ color: "#333", marginBottom: 10 }}>
+            <Title
+              level={4}
+              style={{ color: "#333", marginBottom: 10, marginTop: 10 }}
+            >
               Order Details:
             </Title>
             <Text style={{ display: "block", marginBottom: 3 }}>
@@ -768,52 +818,42 @@ const EventOrders = () => {
             </Text>
           </Col>
         </Row>
-        <Divider style={{ margin: "20px 0" }} />
 
         <Title level={4} style={{ color: "#333", marginBottom: 15 }}>
           Items per Packet ({invoiceData.packets || 1} Packets total)
         </Title>
-        <Table
-          dataSource={items}
-          pagination={false}
-          rowKey={(record) => record.itemId}
-          columns={[
-            {
-              title: "Description",
-              dataIndex: "name",
-              key: "name",
-            },
-            {
-              title: "Qty/Packet",
-              dataIndex: "quantity",
-              key: "quantity",
-              align: "center",
-            },
-            {
-              title: "Price/Packet",
-              key: "pricePerPacket",
-              align: "center",
-              render: (_, __, index) => {
-                // We only want to render the value on the first row
-                if (index === 0) {
-                  return {
-                    children: `₹${packetTotal}`,
-                    props: {
-                      rowSpan: items.length, // This makes the cell span all rows
-                    },
-                  };
-                }
-                // For all other rows, we return a cell with a rowSpan of 0 to hide it
-                return {
-                  props: {
-                    rowSpan: 0,
-                  },
-                };
-              },
-            },
-          ]}
-          style={{ marginBottom: 20 }}
-        />
+
+        {/* Conditionally render single or two-column layout */}
+        {twoColumns ? (
+          <Row gutter={12} style={{ marginBottom: 20 }}>
+            <Col span={12}>
+              <Table
+                dataSource={firstColumnItems}
+                pagination={false}
+                rowKey={(record) => record.itemId}
+                columns={itemTableColumns}
+                size="small"
+              />
+            </Col>
+            <Col span={12}>
+              <Table
+                dataSource={secondColumnItems}
+                pagination={false}
+                rowKey={(record) => record.itemId}
+                columns={itemTableColumns}
+                size="small"
+              />
+            </Col>
+          </Row>
+        ) : (
+          <Table
+            dataSource={items}
+            pagination={false}
+            rowKey={(record) => record.itemId}
+            columns={itemTableColumns}
+            style={{ marginBottom: 20 }}
+          />
+        )}
 
         <Divider style={{ margin: "20px 0" }} />
 
@@ -860,18 +900,7 @@ const EventOrders = () => {
                 Total for {invoiceData.packets} Packets:{" "}
                 <b>₹{packetTotal * invoiceData.packets}</b>
               </Text>
-              {discount > 0 && (
-                <Text
-                  style={{
-                    fontSize: 15,
-                    display: "block",
-                    marginBottom: 6,
-                    color: "#cf1322",
-                  }}
-                >
-                  Discount: -₹{discount * invoiceData.packets}
-                </Text>
-              )}
+
               <Title
                 level={3}
                 style={{ margin: "10px 0 5px 0", color: "#141414" }}
