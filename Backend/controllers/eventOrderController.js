@@ -11,6 +11,13 @@ const {
 } = require("../utils/pdfService");
 const { API_BASE_URL } = require("../common/config");
 
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const createEventOrder = (payload) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -401,11 +408,11 @@ const getPreparationReport = (date) => {
         return reject({ status: 400, message: "Date is required" });
       }
 
-      const startDate = new Date(date);
-      startDate.setUTCHours(0, 0, 0, 0);
+      const localDate = date; // "2025-09-16"
+      const tz = "Asia/Kolkata"; // your timezone
 
-      const endDate = new Date(date);
-      endDate.setUTCHours(23, 59, 59, 999);
+      const startDate = dayjs.tz(localDate, tz).startOf("day").utc().toDate();
+      const endDate = dayjs.tz(localDate, tz).endOf("day").utc().toDate();
 
       const orders = await EventOrder.find({
         deliveryDate: { $gte: startDate, $lte: endDate },
