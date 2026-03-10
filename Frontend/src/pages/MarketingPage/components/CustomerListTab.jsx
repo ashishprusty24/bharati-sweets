@@ -114,7 +114,7 @@ const CustomerListTab = () => {
           bordered={false}
           className="mkt-card"
           title={
-            <div className="customer-header">
+            <div className="customer-header" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <Space>
                 <TeamOutlined style={{ color: "#3b82f6" }} />
                 <span className="mkt-card-title">Customer Contacts</span>
@@ -122,7 +122,7 @@ const CustomerListTab = () => {
                   {filtered.length} contacts
                 </Tag>
               </Space>
-              <Space>
+              <Space style={{ flexWrap: "wrap" }}>
                 {selected.length > 0 && (
                   <>
                     <Tag color="blue" className="tag-rounded" style={{ fontWeight: 600 }}>
@@ -144,17 +144,19 @@ const CustomerListTab = () => {
               </Space>
             </div>
           }
-          extra={
+          extra={null}
+        >
+          {/* Search moved into body for mobile overflow handling */}
+          <div style={{ marginBottom: 20 }}>
             <Input
               placeholder="Search name or phone…"
               prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 200, borderRadius: 10 }}
+              style={{ width: "100%", borderRadius: 10, height: 40 }}
               allowClear
             />
-          }
-        >
+          </div>
           {/* Segment Filters */}
           <div className="segment-filters">
             {Object.entries(SEGMENT_CONFIG).map(([key, cfg]) => (

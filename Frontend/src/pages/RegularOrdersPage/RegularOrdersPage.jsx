@@ -107,7 +107,7 @@ const RegularOrdersPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Regular Orders</Title>
           <Text type="secondary">Track daily walk-in customer sales and history.</Text>
@@ -124,12 +124,13 @@ const RegularOrdersPage = () => {
       </div>
 
       <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
-        <div style={{ marginBottom: 24 }}>
+        <div className="search-filter-row">
           <Input
             placeholder="Search by customer, phone, or ID..."
             prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
             style={{ 
-              width: 350, 
+              maxWidth: 350, 
+              width: "100%",
               height: 45, 
               borderRadius: 12,
               background: "#f8fafc",
@@ -140,13 +141,15 @@ const RegularOrdersPage = () => {
           />
         </div>
 
-        <RegularOrdersTable
-          data={filteredOrders}
-          loading={loading}
-          onEdit={handleAddEdit}
-          onDelete={handleDelete}
-          getPaymentMethodTag={getPaymentMethodTag}
-        />
+        <div className="responsive-table-container">
+          <RegularOrdersTable
+            data={filteredOrders}
+            loading={loading}
+            onEdit={handleAddEdit}
+            onDelete={handleDelete}
+            getPaymentMethodTag={getPaymentMethodTag}
+          />
+        </div>
       </Card>
 
       <RegularOrderModal

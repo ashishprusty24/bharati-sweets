@@ -54,7 +54,7 @@ const InventoryPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Inventory</Title>
           <Text type="secondary">Manage your sweets, ingredients, and stock levels.</Text>
@@ -71,12 +71,13 @@ const InventoryPage = () => {
       </div>
 
       <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
-        <div style={{ marginBottom: 24 }}>
+        <div className="search-filter-row">
           <Input
             placeholder="Search items by name..."
             prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
             style={{ 
-              width: 350, 
+              maxWidth: 350, 
+              width: "100%",
               height: 45, 
               borderRadius: 12,
               background: "#f8fafc",
@@ -87,12 +88,14 @@ const InventoryPage = () => {
           />
         </div>
 
-        <InventoryTable
-          data={filteredInventory}
-          loading={loading}
-          onEdit={handleAddEdit}
-          onDelete={handleDelete}
-        />
+        <div className="responsive-table-container">
+          <InventoryTable
+            data={filteredInventory}
+            loading={loading}
+            onEdit={handleAddEdit}
+            onDelete={handleDelete}
+          />
+        </div>
       </Card>
 
       <InventoryModal

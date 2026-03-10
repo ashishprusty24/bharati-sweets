@@ -65,40 +65,50 @@ const TransactionTable = ({ transactions, loading, onGenerateReport }) => {
 
   return (
     <Card
-      title="Financial Transactions"
+      bordered={false}
+      className="glass-card"
+      style={{ borderRadius: 20 }}
+      title={<span style={{ fontWeight: 700 }}>Financial Transactions</span>}
       extra={
-        <Button type="primary" icon={<DownloadOutlined />} onClick={onGenerateReport}>
-          Generate Report
+        <Button 
+          type="primary" 
+          icon={<DownloadOutlined />} 
+          onClick={onGenerateReport}
+          style={{ borderRadius: 8 }}
+        >
+          Report
         </Button>
       }
     >
-      <Table
-        columns={columns}
-        dataSource={transactions || []}
-        rowKey="id"
-        pagination={{ pageSize: 10 }}
-        loading={loading}
-        summary={(pageData) => {
-          const total = pageData.reduce(
-            (sum, item) => sum + (item.type === "revenue" ? item.amount : -item.amount),
-            0
-          );
-          return (
-            <Table.Summary fixed>
-              <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={3}>
-                  <Text strong>Page Total</Text>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="right">
-                  <Text strong type={total >= 0 ? "success" : "danger"}>
-                    ₹{total.toLocaleString()}
-                  </Text>
-                </Table.Summary.Cell>
-              </Table.Summary.Row>
-            </Table.Summary>
-          );
-        }}
-      />
+      <div className="responsive-table-container">
+        <Table
+          columns={columns}
+          dataSource={transactions || []}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          loading={loading}
+          summary={(pageData) => {
+            const total = pageData.reduce(
+              (sum, item) => sum + (item.type === "revenue" ? item.amount : -item.amount),
+              0
+            );
+            return (
+              <Table.Summary fixed>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={3}>
+                    <Text strong>Page Total</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1} align="right">
+                    <Text strong type={total >= 0 ? "success" : "danger"}>
+                      ₹{total.toLocaleString()}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            );
+          }}
+        />
+      </div>
     </Card>
   );
 };

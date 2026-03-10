@@ -16,20 +16,21 @@ const AccountingFilters = ({ timeframe, dateRange, onTimeframeChange, onDateRang
   ];
 
   return (
-    <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-      <Col>
-        <Title level={3} style={{ margin: 0 }}>
+    <Row gutter={[16, 16]} justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+      <Col xs={24} lg={12}>
+        <Title level={3} style={{ margin: 0, fontSize: "clamp(18px, 4vw, 24px)" }}>
           <DollarOutlined /> Accounting Dashboard
         </Title>
         <Text type="secondary">
           {dateRange[0].format("MMM D, YYYY")} to {dateRange[1].format("MMM D, YYYY")}
         </Text>
       </Col>
-      <Col>
+      <Col xs={24} lg={12} style={{ textAlign: "right", display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
         <Select
           value={timeframe}
           onChange={onTimeframeChange}
-          style={{ width: 180, marginRight: 16 }}
+          style={{ width: "100%", maxWidth: 180, height: 45 }}
+          dropdownStyle={{ borderRadius: 12 }}
         >
           {timeframes.map((tf) => (
             <Select.Option key={tf.value} value={tf.value}>
@@ -40,13 +41,14 @@ const AccountingFilters = ({ timeframe, dateRange, onTimeframeChange, onDateRang
         <RangePicker
           value={dateRange}
           onChange={onDateRangeChange}
-          style={{ width: 250 }}
+          style={{ width: "100%", maxWidth: 280, height: 45, borderRadius: 12 }}
         />
         <Button
           type="primary"
           icon={<ReloadOutlined />}
           onClick={onRefresh}
-          style={{ marginLeft: 16 }}
+          size="large"
+          style={{ height: 45, borderRadius: 10 }}
         >
           Refresh
         </Button>

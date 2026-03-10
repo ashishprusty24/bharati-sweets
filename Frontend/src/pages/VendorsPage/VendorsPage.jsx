@@ -117,42 +117,61 @@ const VendorsPage = () => {
   );
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
+    <div style={{ padding: "0 8px" }}>
+      <div className="page-header-container">
+        <div>
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Vendors</Title>
+          <Text type="secondary">Manage your suppliers, balances, and transaction history.</Text>
+        </div>
+      </div>
+
+      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 16 }} className="search-filter-row">
           <Input
             placeholder="Search vendors..."
             prefix={<SearchOutlined />}
-            style={{ width: 300 }}
+            style={{ maxWidth: 350, width: "100%", height: 45, borderRadius: 12 }}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAddEdit()}>Add New Vendor</Button>
+          <Button 
+            type="primary" 
+            size="large"
+            icon={<PlusOutlined />} 
+            onClick={() => handleAddEdit()}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
+          >
+            Add New Vendor
+          </Button>
         </div>
 
         <Tabs defaultActiveKey="vendors">
           <TabPane tab={<span><UserOutlined /> Vendors</span>} key="vendors">
-            <VendorTable
-              data={filteredVendors}
-              loading={loading}
-              vendorTypes={vendorTypes}
-              onEdit={handleAddEdit}
-              onDelete={handleDeleteVendor}
-              onPay={handlePay}
-              expandedRowRender={renderVendorTransactions}
-            />
+            <div className="responsive-table-container">
+              <VendorTable
+                data={filteredVendors}
+                loading={loading}
+                vendorTypes={vendorTypes}
+                onEdit={handleAddEdit}
+                onDelete={handleDeleteVendor}
+                onPay={handlePay}
+                expandedRowRender={renderVendorTransactions}
+              />
+            </div>
           </TabPane>
           <TabPane tab={<span><HistoryOutlined /> All Transactions</span>} key="transactions">
             {vendors?.map(vendor => vendor.transactions?.length > 0 && (
               <div key={vendor._id} style={{ marginBottom: 24 }}>
                 <Title level={5}>{vendor.name} - {vendor.type}</Title>
-                <Table
-                  columns={transactionColumns}
-                  dataSource={vendor.transactions}
-                  rowKey="_id"
-                  pagination={false}
-                  size="small"
-                />
+                <div className="responsive-table-container">
+                  <Table
+                    columns={transactionColumns}
+                    dataSource={vendor.transactions}
+                    rowKey="_id"
+                    pagination={false}
+                    size="small"
+                  />
+                </div>
               </div>
             ))}
           </TabPane>

@@ -131,18 +131,18 @@ const DailyLedgerPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Daily Digital Ledger</Title>
           <Text type="secondary">Digital register for tracking daily cash flow and inventory petty cash.</Text>
         </div>
-        <Space size="large">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: "auto" }} className="header-actions">
           <DatePicker 
             value={date} 
             onChange={setDate} 
             allowClear={false}
             format="MMMM D, YYYY"
-            style={{ width: 220, height: 45, borderRadius: 10 }}
+            style={{ width: "100%", maxWidth: 220, height: 45, borderRadius: 10 }}
           />
           <Button 
             type="primary" 
@@ -150,108 +150,111 @@ const DailyLedgerPage = () => {
             icon={<SaveOutlined />} 
             onClick={handleSave} 
             loading={loading}
-            style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px", flex: 1 }}
           >
             Save Ledger
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16 }}>
-            <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Opening</Text>
-            <div style={{ marginTop: 8 }}>
+      <Row gutter={[12, 12]} style={{ marginBottom: 32 }}>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Opening</Text>
+            <div style={{ marginTop: 4 }}>
               <InputNumber 
                 value={ledgerData.openingBalance} 
                 onChange={(v) => setLedgerData({...ledgerData, openingBalance: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
                 bordered={false}
                 prefix="₹"
               />
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #3b82f6" }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#3b82f6" }}>Cash Sales</Text>
-            <div style={{ marginTop: 8 }}>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #3b82f6", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#3b82f6" }}>Cash Sales</Text>
+            <div style={{ marginTop: 4 }}>
               <InputNumber 
                 value={ledgerData.cashSales} 
                 onChange={(v) => setLedgerData({...ledgerData, cashSales: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
                 bordered={false}
                 prefix="₹"
               />
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #10b981" }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#10b981" }}>Digital (P/P)</Text>
-            <div style={{ marginTop: 8 }}>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #10b981", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#10b981" }}>Digital (P/P)</Text>
+            <div style={{ marginTop: 4 }}>
               <InputNumber 
                 value={ledgerData.digitalSales} 
                 onChange={(v) => setLedgerData({...ledgerData, digitalSales: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
                 bordered={false}
                 prefix="₹"
               />
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #f59e0b" }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#f59e0b" }}>Other Income</Text>
-            <div style={{ marginTop: 8 }}>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #f59e0b", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#f59e0b" }}>Other Income</Text>
+            <div style={{ marginTop: 4 }}>
               <InputNumber 
                 value={ledgerData.otherIncome} 
                 onChange={(v) => setLedgerData({...ledgerData, otherIncome: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
                 bordered={false}
                 prefix="₹"
               />
             </div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #ef4444" }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#ef4444" }}>Expenses</Text>
-            <Title level={3} style={{ margin: "8px 0 0 0", color: "#ef4444", fontWeight: 700 }}>₹{totals.totalExpenses}</Title>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #ef4444", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#ef4444" }}>Expenses</Text>
+            <Title level={4} style={{ margin: "4px 0 0 0", color: "#ef4444", fontWeight: 700, fontSize: 18 }}>₹{totals.totalExpenses}</Title>
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={4}>
-          <Card bordered={false} style={{ borderRadius: 16, background: "var(--primary-color)", color: "white" }}>
-            <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>Closing</Text>
-            <Title level={3} style={{ margin: "8px 0 0 0", color: "white", fontWeight: 700 }}>₹{totals.closingBalance}</Title>
+        <Col xs={12} sm={12} lg={4}>
+          <Card bordered={false} style={{ borderRadius: 16, background: "var(--primary-color)", color: "white", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>Closing Balance</Text>
+            <Title level={4} style={{ margin: "4px 0 0 0", color: "white", fontWeight: 700, fontSize: 18 }}>₹{totals.closingBalance}</Title>
           </Card>
         </Col>
       </Row>
 
       <Card 
         bordered={false}
-        className="glass-card"
-        title={<Title level={4} style={{ margin: 0 }}>Entry Details</Title>}
-        extra={
-          <Button 
-            type="primary" 
-            ghost
-            onClick={addItem} 
-            icon={<PlusOutlined />}
-            style={{ borderRadius: 8 }}
-          >
-            Add New Entry
-          </Button>
+        className="glass-card ledger-details-card"
+        title={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <Title level={4} style={{ margin: 0 }}>Entry Details</Title>
+            <Button 
+              type="primary" 
+              onClick={addItem} 
+              icon={<PlusOutlined />}
+              style={{ borderRadius: 8 }}
+            >
+              Add New Entry
+            </Button>
+          </div>
         }
         style={{ borderRadius: 20 }}
       >
-        <Table 
-          dataSource={ledgerData.items} 
-          columns={columns} 
-          pagination={false}
-          rowKey={(_, index) => index}
-          size="middle"
-        />
+        <div className="responsive-table-container">
+          <Table 
+            dataSource={ledgerData.items} 
+            columns={columns} 
+            pagination={false}
+            rowKey={(_, index) => index}
+            size="middle"
+          />
+        </div>
       </Card>
     </div>
   );

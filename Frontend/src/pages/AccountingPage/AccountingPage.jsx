@@ -115,7 +115,7 @@ const AccountingPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Accounting</Title>
           <Text type="secondary">In-depth financial analysis, revenue tracking, and reports.</Text>

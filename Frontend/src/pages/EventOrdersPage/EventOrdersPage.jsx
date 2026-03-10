@@ -179,27 +179,27 @@ const EventOrdersPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+      <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Event Orders</Title>
           <Text type="secondary">Manage large bookings, delivery schedules, and payments.</Text>
         </div>
-        <Space size="middle">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: "100%", maxWidth: "fit-content" }} className="header-actions">
           <PreparationReportModal />
           <Button 
             type="primary" 
             size="large"
             icon={<PlusOutlined />} 
             onClick={() => handleAddEdit()}
-            style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px", flex: 1, minWidth: "160px" }}
           >
             New Booking
           </Button>
-        </Space>
+        </div>
       </div>
 
       <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} className="search-filter-row">
           <Col xs={24} md={8}>
             <Input
               placeholder="Search orders..."
@@ -209,7 +209,7 @@ const EventOrdersPage = () => {
               onChange={e => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={12} md={4}>
+          <Col xs={24} sm={12} md={4}>
             <Select 
               value={statusFilter} 
               onChange={setStatusFilter} 
@@ -220,7 +220,7 @@ const EventOrdersPage = () => {
               {ORDER_STATUS_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={12} md={12}>
+          <Col xs={24} sm={12} md={12}>
             <RangePicker 
               onChange={setDateRange} 
               style={{ width: "100%", height: 45, borderRadius: 12 }} 
@@ -228,18 +228,20 @@ const EventOrdersPage = () => {
           </Col>
         </Row>
 
-        <EventOrdersTable
-          data={filteredOrders}
-          loading={loading}
-          orderStatusOptions={ORDER_STATUS_OPTIONS}
-          paymentStatusOptions={PAYMENT_STATUS_OPTIONS}
-          onEdit={handleAddEdit}
-          onDelete={handleDelete}
-          onPay={handlePay}
-          onGenerateInvoice={handleInvoice}
-          onGenerateChefSlip={handleChefSlip}
-          expandedRowRender={(record) => <EventOrderDetails record={record} />}
-        />
+        <div className="responsive-table-container">
+          <EventOrdersTable
+            data={filteredOrders}
+            loading={loading}
+            orderStatusOptions={ORDER_STATUS_OPTIONS}
+            paymentStatusOptions={PAYMENT_STATUS_OPTIONS}
+            onEdit={handleAddEdit}
+            onDelete={handleDelete}
+            onPay={handlePay}
+            onGenerateInvoice={handleInvoice}
+            onGenerateChefSlip={handleChefSlip}
+            expandedRowRender={(record) => <EventOrderDetails record={record} />}
+          />
+        </div>
       </Card>
 
       {isOrderModalVisible && (
