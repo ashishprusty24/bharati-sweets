@@ -1,0 +1,113 @@
+.dashboard-container {
+    padding: 0 24px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 48px;
+    margin-top: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dashboard-title {
+    margin: 0 !important;
+    font-weight: 800 !important;
+    background: linear-gradient(45deg, #0f172a 30%, #334155 90%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
+
+.dashboard-subtitle {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.header-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.header-switches {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 8px 24px;
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    display: flex;
+    gap: 32px;
+}
+
+/* Responsive Overrides */
+@media (max-width: 1200px) {
+    .dashboard-title {
+        font-size: 36px !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-header {
+        margin-bottom: 32px;
+    }
+
+    .dashboard-title {
+        font-size: 32px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 0 16px 32px;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 24px;
+    }
+
+    .header-controls {
+        align-items: flex-start !important;
+        width: 100%;
+    }
+
+    .header-switches {
+        width: 100%;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 16px;
+    }
+
+    .dashboard-title {
+        font-size: 28px !important;
+        letter-spacing: -0.5px;
+    }
+
+    .analytics-title {
+        font-size: 24px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .header-switches {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .dashboard-title {
+        font-size: 24px !important;
+        /* Prevent vertical letter stacking noticed in user screenshot */
+        white-space: nowrap;
+    }
+
+    .dashboard-subtitle {
+        font-size: 14px;
+    }
+}

@@ -105,19 +105,32 @@ const Sidebar = ({
           >
             <div
               style={{
-                background: "linear-gradient(135deg, #3b82f6 0%, #1e2a38 100%)",
-                padding: "8px",
-                borderRadius: "12px",
-                color: "white",
-                fontWeight: "bold",
-                fontSize: collapsed ? 16 : 20,
-                letterSpacing: "0.5px",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                padding: "4px",
+                borderRadius: "16px",
+                overflow: "hidden",
+                background: "white",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                height: collapsed ? 48 : 70,
+                width: collapsed ? 48 : 120,
+                margin: "0 auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.3s ease"
               }}
             >
-              {collapsed ? "BS" : "BHARATI"}
+              <img 
+                src="/assets/logo.jpeg" 
+                alt="Logo" 
+                style={{ 
+                  height: "100%", 
+                  width: "100%", 
+                  objectFit: "contain",
+                  borderRadius: "12px"
+                }} 
+              />
             </div>
-            {!collapsed && <div style={{ color: "#94a3b8", fontSize: 10, marginTop: 4, fontWeight: 600, letterSpacing: 1 }}>MANAGEMENT</div>}
+            {!collapsed && <div style={{ color: "#cbd5e1", fontSize: 10, marginTop: 12, fontWeight: 700, letterSpacing: 1.5 }}>BHARATI SWEETS</div>}
           </div>
 
           <Menu
@@ -146,9 +159,21 @@ const Sidebar = ({
               width: "100%",
             }}
           >
-            <span style={{ fontSize: 18, fontWeight: "700", color: "var(--primary-color)" }}>
-              Bharati Sweets
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <img 
+                src="/assets/logo.jpeg" 
+                alt="Logo" 
+                style={{ 
+                  height: "32px", 
+                  width: "32px", 
+                  objectFit: "contain",
+                  borderRadius: "6px"
+                }} 
+              />
+              <span style={{ fontSize: 18, fontWeight: "700", color: "#0f172a" }}>
+                Bharati Sweets
+              </span>
+            </div>
             <CloseOutlined
               onClick={() => setDrawerVisible(false)}
               style={{ fontSize: 18, cursor: "pointer", color: "#64748b" }}
