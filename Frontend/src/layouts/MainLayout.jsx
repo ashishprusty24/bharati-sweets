@@ -30,53 +30,43 @@ const AppLayout = () => {
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: isDark
-          ? antdTheme.darkAlgorithm
-          : antdTheme.defaultAlgorithm,
-        token: {
-          colorPrimary: "#f39c12",
-          colorBgLayout: isDark ? "#141414" : "#f5f5f5",
-          borderRadius: 8,
-        },
-      }}
-    >
-      <Layout style={{ minHeight: "100vh" }}>
-        <Sidebar
+    <Layout style={{ minHeight: "100vh", background: "var(--bg-gradient)" }}>
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        drawerVisible={drawerVisible}
+        setDrawerVisible={setDrawerVisible}
+        setPageTitle={setPageTitle}
+      />
+      <Layout
+        style={{
+          marginLeft: isMobile ? 0 : collapsed ? 80 : 220,
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          background: "transparent",
+        }}
+      >
+        <HeaderBar
           collapsed={collapsed}
           setCollapsed={setCollapsed}
           drawerVisible={drawerVisible}
           setDrawerVisible={setDrawerVisible}
-          setPageTitle={setPageTitle}
+          toggleTheme={toggleTheme}
+          isDark={isDark}
+          pageTitle={pageTitle}
         />
-        <Layout
+        <Layout.Content
           style={{
-            marginLeft: isMobile ? 0 : collapsed ? 80 : 220,
-            transition: "all 0.2s ease",
+            padding: isMobile ? "16px" : "32px",
+            minHeight: "calc(100vh - 64px)",
+            background: "transparent",
           }}
         >
-          <HeaderBar
-            collapsed={collapsed}
-            setCollapsed={setCollapsed}
-            drawerVisible={drawerVisible}
-            setDrawerVisible={setDrawerVisible}
-            toggleTheme={toggleTheme}
-            isDark={isDark}
-            pageTitle={pageTitle}
-          />
-          <Layout.Content
-            style={{
-              padding: isMobile ? 0 : "24px",
-              background: "#f0f2f5",
-              minHeight: "calc(100vh - 64px)",
-            }}
-          >
-            <Outlet /> {/* This renders the child route */}
-          </Layout.Content>
-        </Layout>
+          <div className="fade-in">
+            <Outlet />
+          </div>
+        </Layout.Content>
       </Layout>
-    </ConfigProvider>
+    </Layout>
   );
 };
 

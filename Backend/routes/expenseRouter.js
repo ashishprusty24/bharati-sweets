@@ -1,55 +1,40 @@
-// routes/expenseRoutes.js
 const express = require("express");
 const router = express.Router();
-const {
-  getExpenses,
-  createExpense,
-  updateExpense,
-  deleteExpense,
-} = require("../controllers/expenseController");
+const expenseController = require("../controllers/expenseController");
 
 router.get("/list", async (req, res) => {
   try {
-    const expenses = await getExpenses();
+    const expenses = await expenseController.getExpenses();
     res.json(expenses);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// CREATE expense
 router.post("/create", async (req, res) => {
   try {
-    const expense = await createExpense(req.body);
-    res.status(201).json(expense);
+    const newExpense = await expenseController.createExpense(req.body);
+    res.status(201).json(newExpense);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// UPDATE expense
 router.put("/:id/update", async (req, res) => {
   try {
-    const updated = await updateExpense(req.params.id, req.body);
-    if (!updated) {
-      return res.status(404).json({ message: "Expense not found" });
-    }
-    res.json(updated);
+    const updatedExpense = await expenseController.updateExpense(req.params.id, req.body);
+    res.json(updatedExpense);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// DELETE expense
 router.delete("/:id/delete", async (req, res) => {
   try {
-    const deleted = await deleteExpense(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: "Expense not found" });
-    }
-    res.json({ message: "Expense deleted" });
+    const result = await expenseController.deleteExpense(req.params.id);
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 

@@ -3,94 +3,40 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 
 import Inventory from "../pages/InventoryPage/InventoryPage";
-import RegularOrders from "../components/RegularOrders/RegularOrders";
+import RegularOrders from "../pages/RegularOrdersPage/RegularOrdersPage";
 import VendorsPage from "../pages/VendorsPage/VendorsPage";
 import EventOrdersPage from "../pages/EventOrdersPage/EventOrdersPage";
 import ExpensesPage from "../pages/ExpensesPage/ExpensesPage";
-import AccountingLandings from "../pages/AccountingLandings/AccountingLandings";
-import ExpenseManagement from "../components/Expenses/Expenses";
-import DashboardLandings from "../pages/DashboardLandings/DashboardLandings";
+import AccountingPage from "../pages/AccountingPage/AccountingPage";
+import DailyLedgerPage from "../pages/DailyLedgerPage/DailyLedgerPage";
+import MarketingPage from "../pages/MarketingPage/MarketingPage";
+import DashboardPage from "../pages/DashboardPage/DashboardPage";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
-import AuthPage from "../components/Login/Login";
-
-// import Dashboard from "../pages/Dashboard";
-
-// import Accounting from "../pages/Accounting";
-// import Vendors from "../pages/Vendors";
-// import CreditCards from "../pages/CreditCards";
-// import Marketing from "../pages/Marketing";
-// import Staff from "../pages/Staff";
-// import Settings from "../pages/Settings";
+import AuthPage from "../pages/LoginPage/LoginPage";
+import { ConfigProvider } from "antd";
+import { themeConfig } from "../theme";
 
 const AppRouter = () => (
-  <BrowserRouter>
+  <ConfigProvider theme={themeConfig}>
+    <BrowserRouter>
     <Routes>
-      <Route path="/" element={<MainLayout />}>
-        {/* <Route path="/login" element={<AuthPage />} /> */}
-        <Route path="/signup" element={<AuthPage mode={"signup"} />} />
-        <Route
-          index
-          element={
-            <ProtectedRoute>
-              <DashboardLandings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="regular-orders"
-          element={
-            <ProtectedRoute>
-              <RegularOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="event-orders"
-          element={
-            <ProtectedRoute>
-              <EventOrdersPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="inventory"
-          element={
-            <ProtectedRoute>
-              <Inventory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="accounting"
-          element={
-            <ProtectedRoute>
-              <AccountingLandings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="expenses"
-          element={
-            <ProtectedRoute>
-              <ExpenseManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="vendors"
-          element={
-            <ProtectedRoute>
-              <VendorsPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* 
-        <Route path="marketing" element={<Marketing />} />
-        <Route path="staff" element={<Staff />} />
-        <Route path="settings" element={<Settings />} /> */}
+      <Route path="/login" element={<AuthPage mode={"login"} />} />
+      <Route path="/signup" element={<AuthPage mode={"signup"} />} />
+      
+      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+        <Route index element={<DashboardPage />} />
+        <Route path="regular-orders" element={<RegularOrders />} />
+        <Route path="event-orders" element={<EventOrdersPage />} />
+        <Route path="inventory" element={<Inventory />} />
+        <Route path="accounting" element={<AccountingPage />} />
+        <Route path="ledger" element={<DailyLedgerPage />} />
+        <Route path="marketing" element={<MarketingPage />} />
+        <Route path="expenses" element={<ExpensesPage />} />
+        <Route path="vendors" element={<VendorsPage />} />
       </Route>
     </Routes>
   </BrowserRouter>
+  </ConfigProvider>
 );
 
 export default AppRouter;

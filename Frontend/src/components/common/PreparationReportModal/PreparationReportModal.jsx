@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button, Modal, DatePicker, Table, Space, message } from "antd";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { API_BASE_URL } from "../../../common/config";
+import api from "../../../services/api";
 
 dayjs.extend(utc);
 
@@ -16,15 +16,10 @@ const PreparationReportModal = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_BASE_URL}/event-orders/preparation-report?date=${selectedDate.format(
-          "YYYY-MM-DD"
-        )}`
-      );
-      const data = await res.json();
+      const data = await api.get(`/event-orders/preparation-report?date=${selectedDate.format("YYYY-MM-DD")}`);
       setReport(data || []);
     } catch (err) {
-      message.error("Failed to fetch report");
+      console.error(err);
     } finally {
       setLoading(false);
     }

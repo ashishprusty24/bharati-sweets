@@ -258,9 +258,13 @@ const invoiceTemplate = (order, title, status) => {
                <p>Paid So Far: ₹${totalPaid}</p>
                <p>Balance: ₹${balance}</p>`
             : status === "BOOKING RECEIPT"
-            ? `<p>Price per Packet: <b>₹${finalPacketPrice}</b></p>
-               <p>Total for ${packets} Packets: <b>₹${calculatedTotal}</b></p>
-               <h3>Total: ₹${calculatedTotal}</h3>
+            ? `<p>Packet Total: <b>₹${packetTotal.toFixed(2)}</b></p>
+               <p>Discount: <b style="color: #d9363e;">-₹${discountPerPacket.toFixed(2)}</b></p>
+               <p>Net per Packet: <b>₹${finalPacketPrice}</b></p>
+               <p>Packets: <b>${packets}</b></p>
+               <div style="border-top: 2px solid #ddd; margin: 8px 0; padding-top: 8px;">
+                 <h3>Total: ₹${calculatedTotal}</h3>
+               </div>
                <p class="paid-text">Paid: ₹${totalPaid}</p>
                <p class="balance-text">Balance: ₹${balance}</p>`
             : ``

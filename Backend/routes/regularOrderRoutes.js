@@ -1,63 +1,49 @@
-// routes/orderRoutes.js
 const express = require("express");
-const {
-  createEventOrder,
-  getRegularOrderById,
-  deleteRegularOrder,
-  createRegularOrder,
-  getAllRegularOrders,
-  updateRegularOrder,
-} = require("../controllers/regularOrderController");
 const router = express.Router();
-
-router.get("/list", async (req, res) => {
-  try {
-    const orders = await getAllRegularOrders();
-    res.status(200).json(orders);
-  } catch (error) {
-    console.log(error);
-
-    res.status(500).json({ message: "Error fetching orders", error });
-  }
-});
+const regularOrderController = require("../controllers/regularOrderController");
 
 router.post("/create", async (req, res) => {
   try {
-    const savedOrder = await createRegularOrder(req.body);
-    console.log(savedOrder);
+    const order = await regularOrderController.createRegularOrder(req.body);
+    res.status(201).json(order);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
 
-    res.status(201).json(savedOrder);
-  } catch (error) {
-    console.log(error);
+router.get("/list", async (req, res) => {
+  try {
+    const orders = await regularOrderController.getAllRegularOrders();
+    res.json(orders);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
 
-    res.status(400).json({ message: "Error creating order", error });
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await regularOrderController.getRegularOrderById(req.params.id);
+    res.json(order);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
 router.put("/:id/update", async (req, res) => {
   try {
-    const { items, ...updateData } = req.body;
-    const orderId = req.params.id;
-    const updatedOrder = await updateRegularOrder(orderId, updateData);
-    if (!updatedOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-    res.status(200).json({ data: updatedOrder });
-  } catch (error) {
-    res.status(400).json({ message: "Error updating order", error });
+    const order = await regularOrderController.updateRegularOrder(req.params.id, req.body);
+    res.json(order);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
 router.delete("/:id/delete", async (req, res) => {
   try {
-    const orderId = req.params.id;
-    const deletedOrder = await deleteRegularOrder(orderId);
-    if (!deletedOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-    res.status(200).json({ message: "Order deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting order", error });
+    const result = await regularOrderController.deleteRegularOrder(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 

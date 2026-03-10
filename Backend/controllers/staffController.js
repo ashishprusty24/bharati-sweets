@@ -1,71 +1,26 @@
-// controllers/staffController.js
 const Staff = require("../models/Staff");
 
-// Get all staff members
-exports.getAllStaff = async (req, res) => {
-  try {
-    const staff = await Staff.find();
-    res.json(staff);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Create new staff member
-exports.createStaff = async (req, res) => {
-  const staff = new Staff(req.body);
-
-  try {
-    const newStaff = await staff.save();
-    res.status(201).json(newStaff);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-// Update staff member
-exports.updateStaff = async (req, res) => {
-  try {
-    const updatedStaff = await Staff.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    res.json(updatedStaff);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-// Delete staff member
-exports.deleteStaff = async (req, res) => {
-  try {
-    await Staff.findByIdAndDelete(req.params.id);
-    res.json({ message: "Staff member deleted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// Record staff attendance
-exports.recordAttendance = async (req, res) => {
-  try {
-    const staff = await Staff.findById(req.params.id);
-    if (!staff) {
-      return res.status(404).json({ message: "Staff member not found" });
+const getAllStaff = () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const staff = await Staff.find();
+      resolve(staff);
+    } catch (err) {
+      reject({ status: 500, message: err.message });
     }
-
-    const attendance = {
-      date: req.body.date,
-      checkIn: req.body.checkIn,
-      checkOut: req.body.checkOut,
-      status: req.body.status,
-    };
-
-    staff.attendance.push(attendance);
-    const updatedStaff = await staff.save();
-    res.json(updatedStaff);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+  });
 };
+
+const createStaff = (data) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const staff = new Staff(data);
+      const newStaff = await staff.save();
+      resolve(newStaff);
+    } catch (err) {
+      reject({ status: 400, message: err.message });
+    }
+  });
+};
+
+module.exports = { getAllStaff, createStaff };

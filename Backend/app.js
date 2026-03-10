@@ -1,68 +1,48 @@
-var createError = require("http-errors");
-var express = require("express");
-var path = require("path");
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const logger = require("morgan");
+const cors = require("cors");
 require("dotenv").config();
 
-const mongoose = require("mongoose");
-const cors = require("cors");
+const connectDB = require("./config/db");
+const apiRoutes = require("./routes/api");
 
-// Import routes
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
-const inventoryRoutes = require("./routes/inventoryRoutes");
-const regularOrderRoutes = require("./routes/regularOrderRoutes");
-const eventOrderRoutes = require("./routes/eventOrderRoutes");
-const vendorRoutes = require("./routes/vendorRoutes");
-const creditCardRoutes = require("./routes/creditCardRoutes");
-const staffRoutes = require("./routes/staffRoutes");
-const accountingRoutes = require("./routes/accountingRouter");
-const dashboardRoutes = require("./routes/dashboardRouter");
-const expenseRoutes = require("./routes/expenseRouter");
-const authRoutes = require("./routes/authRoutes");
+const app = express();
 
-var app = express();
-const PORT = process.env.PORT || 5000;
+// Connect to Database
+connectDB();
 
-// View engine setup (optional if not serving HTML templates)
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "jade");
-
+// Middleware
 app.use(logger("dev"));
-app.use(cors()); // Allow frontend to connect
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-
-// API routes
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
-app.use("/api/inventory", inventoryRoutes);
-app.use("/api/regular-orders", regularOrderRoutes);
-app.use("/api/event-orders", eventOrderRoutes);
-app.use("/api/vendors", vendorRoutes);
-app.use("/api/credit-cards", creditCardRoutes);
-app.use("/api/staff", staffRoutes);
-app.use("/api/accounting", accountingRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/expenses", expenseRoutes);
-app.use("/api/auth", authRoutes);
-
 app.use("/invoices", express.static(path.join(process.cwd(), "invoices")));
 app.use("/receipts", express.static(path.join(process.cwd(), "receipts")));
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+// Routes
+app.use("/api", apiRoutes);
 
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Catch-all route for status check
+app.get("/status", (req, res) => {
+  res.json({ success: true, message: "Bharati Sweets Backend is operational" });
+});
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "API Route not found" });
+});
+
+// Final Error Handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
 module.exports = app;
-
-// BLNHE9791S3BN9WDWFNY6ERN

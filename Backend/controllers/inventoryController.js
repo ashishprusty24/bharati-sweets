@@ -26,7 +26,6 @@ const createInventoryItem = (payload) => {
 const updateInventoryItem = (itemId, updateData) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Update the item first
       let updatedItem = await Inventory.findByIdAndUpdate(itemId, updateData, {
         new: true,
       });
@@ -37,7 +36,6 @@ const updateInventoryItem = (itemId, updateData) => {
 
       // Auto-update stock status
       let newStatus = "in-stock";
-
       if (updatedItem.quantity <= 0) {
         newStatus = "out-of-stock";
       } else if (updatedItem.quantity <= updatedItem.minStock) {
@@ -51,7 +49,6 @@ const updateInventoryItem = (itemId, updateData) => {
           { new: true }
         );
       }
-
       resolve(updatedItem);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -73,61 +70,43 @@ const deleteInventoryItem = (itemId) => {
   });
 };
 
-const updateInventoryFromOrder = (orderItems) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      for (const item of orderItems) {
-        // Pick finalQuantity if available, else fall back to quantity
-        const quantityToDeduct =
-          item.finalQuantity !== undefined && item.finalQuantity !== null
-            ? -item.finalQuantity
-            : -item.quantity;
+const updateInventoryFromOrder = async (orderItems) => {
+  for (const item of orderItems) {
+    const quantityToDeduct =
+      item.finalQuantity !== undefined && item.finalQuantity !== null
+        ? -item.finalQuantity
+        : -item.quantity;
 
-        const updatedItem = await Inventory.findByIdAndUpdate(
-          item.itemId,
-          { $inc: { quantity: quantityToDeduct } },
-          { new: true } // return updated document
-        );
+    const updatedItem = await Inventory.findByIdAndUpdate(
+      item.itemId,
+      { $inc: { quantity: quantityToDeduct } },
+      { new: true }
+    );
 
-        if (updatedItem) {
-          let newStatus = "in-stock";
-
-          if (updatedItem.quantity <= 0) {
-            newStatus = "out-of-stock";
-          } else if (updatedItem.quantity <= updatedItem.minStock) {
-            newStatus = "low-stock";
-          }
-
-          if (updatedItem.status !== newStatus) {
-            await Inventory.findByIdAndUpdate(updatedItem._id, {
-              status: newStatus,
-              lastUpdated: new Date(),
-            });
-          }
-        }
+    if (updatedItem) {
+      let newStatus = "in-stock";
+      if (updatedItem.quantity <= 0) {
+        newStatus = "out-of-stock";
+      } else if (updatedItem.quantity <= updatedItem.minStock) {
+        newStatus = "low-stock";
       }
-      resolve();
-    } catch (err) {
-      console.error("Error updating inventory:", err);
-      reject({ status: 500, message: "Error updating inventory" });
-    }
-  });
-};
 
-const revertInventory = (orderItems) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      for (const item of orderItems) {
-        await Inventory.findByIdAndUpdate(item.itemId, {
-          $inc: { quantity: item.quantity },
+      if (updatedItem.status !== newStatus) {
+        await Inventory.findByIdAndUpdate(updatedItem._id, {
+          status: newStatus,
+          lastUpdated: new Date(),
         });
       }
-      resolve();
-    } catch (err) {
-      console.error("Error reverting inventory:", err);
-      reject({ status: 500, message: "Error reverting inventory" });
     }
-  });
+  }
+};
+
+const revertInventory = async (orderItems) => {
+  for (const item of orderItems) {
+    await Inventory.findByIdAndUpdate(item.itemId, {
+      $inc: { quantity: item.quantity },
+    });
+  }
 };
 
 module.exports = {

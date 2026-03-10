@@ -1,0 +1,494 @@
+/* ─────────────────────────────────────────────
+   Marketing Page Styles
+   ─────────────────────────────────────────────*/
+
+/* ── Page Header ── */
+.marketing-page {
+    padding: 0 8px 48px;
+}
+
+.marketing-header {
+    margin-bottom: 40px;
+}
+
+.marketing-title {
+    margin: 0 !important;
+    font-weight: 800 !important;
+    font-size: 40px !important;
+    background: linear-gradient(45deg, #0f172a 30%, #334155 90%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
+
+.marketing-subtitle {
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+/* ── Stat Cards ── */
+.stat-card {
+    border-radius: 20px !important;
+    border: 1px solid #f1f5f9 !important;
+}
+
+.stat-card-icon {
+    padding: 12px;
+    border-radius: 14px;
+    font-size: 22px;
+    display: inline-flex;
+    margin-bottom: 16px;
+}
+
+.stat-card-label {
+    color: #64748b;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.stat-card-value {
+    font-weight: 800 !important;
+    font-size: 28px !important;
+    color: #1e293b !important;
+}
+
+.stat-card-suffix {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* ── Common Card ── */
+.mkt-card {
+    border-radius: 24px !important;
+    border: 1px solid #f1f5f9 !important;
+}
+
+.mkt-card-title {
+    font-weight: 700;
+}
+
+/* ── Customer List ── */
+.customer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.customer-item {
+    padding: 12px 16px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.customer-item-selected {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+}
+
+.customer-item-unselected {
+    border: 1px solid #f1f5f9;
+    background: #fafafa;
+}
+
+.customer-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.customer-item-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 14px;
+}
+
+.customer-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.customer-name {
+    display: block;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.customer-phone {
+    font-size: 12px;
+}
+
+.customer-orders {
+    margin-left: 10px;
+    color: #64748b;
+}
+
+.customer-segment-tag {
+    margin-left: 8px;
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+.whatsapp-btn {
+    background: #dcfce7;
+    color: #166534;
+    border: none;
+}
+
+/* ── Bulk Send ── */
+.bulk-card {
+    border-radius: 24px !important;
+    border: 1px solid #f1f5f9 !important;
+    margin-bottom: 24px;
+}
+
+.bulk-textarea {
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 13.5px;
+    margin-bottom: 14px;
+}
+
+.bulk-send-btn {
+    border-radius: 14px;
+    height: 48px;
+    font-weight: 700;
+    background: #25D366;
+    border-color: #25D366;
+}
+
+.bulk-send-btn:hover {
+    background: #20bd5a !important;
+    border-color: #20bd5a !important;
+}
+
+.popup-warning {
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+/* ── Templates ── */
+.template-card {
+    border-radius: 20px !important;
+    border: 1px solid #f1f5f9 !important;
+}
+
+.template-content-preview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    white-space: pre-wrap;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.6;
+}
+
+.template-mini {
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-mini-active {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+}
+
+.template-mini-inactive {
+    border: 1px solid #e2e8f0;
+    background: #fafafa;
+}
+
+.template-mini:hover {
+    border-color: #93c5fd;
+}
+
+/* ── Campaign History ── */
+.campaign-item {
+    padding: 12px 0;
+    border: none;
+    border-bottom: 1px solid #f8fafc;
+}
+
+.campaign-item-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 14px;
+}
+
+.campaign-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.campaign-stat {
+    text-align: center;
+}
+
+.campaign-stat-value {
+    display: block;
+    color: #1e293b;
+}
+
+.campaign-stat-label {
+    font-size: 11px;
+}
+
+/* ── Social Ads ── */
+.ad-textarea {
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+.ad-location-input {
+    border-radius: 12px;
+    height: 42px;
+}
+
+.ad-objective-card {
+    border-radius: 14px;
+    padding: 12px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.ad-objective-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ad-objective-active {
+    border: 2px solid #3b82f6;
+    background: #eff6ff;
+}
+
+.ad-objective-inactive {
+    border: 2px solid #e2e8f0;
+    background: #fafafa;
+}
+
+.ad-launch-btn {
+    border-radius: 14px;
+    height: 52px;
+    font-weight: 700;
+    font-size: 15px;
+    background: linear-gradient(135deg, #1877F2, #9b2fc9);
+    border: none;
+}
+
+.ad-boost-facebook-btn {
+    border-radius: 14px;
+    height: 52px;
+    background: #1877F2;
+    color: white;
+    border: none;
+    font-weight: 700;
+}
+
+.ad-boost-instagram-btn {
+    border-radius: 14px;
+    height: 52px;
+    background: linear-gradient(135deg, #f09433, #dc2743, #bc1888);
+    color: white;
+    border: none;
+    font-weight: 700;
+}
+
+.ad-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.ad-reach-box {
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.ad-reach-value {
+    margin: 0 !important;
+    color: #3b82f6 !important;
+}
+
+.ad-reach-disclaimer {
+    font-size: 11px;
+    color: #94a3b8;
+    font-style: italic;
+    margin-top: 4px;
+    display: block;
+}
+
+/* ── Broadcast ── */
+.broadcast-textarea {
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
+.broadcast-btn {
+    border-radius: 14px;
+    height: 48px;
+    font-weight: 700;
+}
+
+/* ── Platform Links ── */
+.platform-link-btn {
+    border: none;
+    border-radius: 14px;
+    height: 50px;
+    font-weight: 700;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Tips Card ── */
+.tips-card {
+    border-radius: 24px !important;
+    border: 1px solid #f1f5f9 !important;
+    background: linear-gradient(135deg, #eff6ff, #f0fdf4) !important;
+}
+
+.tip-item {
+    display: flex;
+    gap: 8px;
+}
+
+.tip-icon {
+    color: #10b981;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.tip-text {
+    color: #475569;
+    font-size: 13px;
+}
+
+/* ── Segment Filters ── */
+.segment-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.segment-filter-btn {
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    height: 34px;
+    padding: 0 16px;
+    transition: all 0.2s ease;
+}
+
+/* ── Schedule Section ── */
+.schedule-section {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+    margin-top: 16px;
+}
+
+.schedule-label {
+    color: #475569;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ── Text helpers ── */
+.text-dark {
+    color: #1e293b;
+}
+
+.text-muted {
+    color: #64748b;
+}
+
+.text-light {
+    color: #94a3b8;
+}
+
+.text-green {
+    color: #10b981;
+}
+
+.text-blue {
+    color: #3b82f6;
+}
+
+.text-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.fw-700 {
+    font-weight: 700;
+}
+
+.fw-800 {
+    font-weight: 800;
+}
+
+.tag-rounded {
+    border-radius: 8px;
+}
+
+.tag-sm {
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+/* ── Analytics ── */
+.analytics-metric {
+    text-align: center;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
+}
+
+.analytics-metric:hover {
+    background: #f1f5f9;
+}
+
+.analytics-metric-value {
+    font-weight: 800 !important;
+    font-size: 24px !important;
+    margin: 0 !important;
+}
+
+.analytics-metric-label {
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ── Quick fill row ── */
+.quick-fill-btn {
+    margin-left: 6px;
+    margin-top: 4px;
+    border-radius: 6px;
+}

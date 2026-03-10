@@ -1,62 +1,52 @@
-// dashboard.routes.js
-
 const express = require("express");
 const router = express.Router();
-const {
-  getSummaryData,
-  getSalesData,
-  getExpensesData,
-  getPopularProducts,
-  getPendingOrders,
-} = require("../controllers/dashboard-controller");
+const dashboardController = require("../controllers/dashboard-controller");
 
-// GET /api/dashboard/summary
 router.get("/summary", async (req, res) => {
   try {
-    const summaryData = await getSummaryData();
-    res.json(summaryData);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching summary data" });
+    const { period } = req.query;
+    const data = await dashboardController.getSummaryData(period);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// GET /api/dashboard/sales
 router.get("/sales", async (req, res) => {
   try {
-    const salesData = await getSalesData();
-    res.json(salesData);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching sales data" });
+    const { period } = req.query;
+    const data = await dashboardController.getSalesData(period);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// GET /api/dashboard/expenses
+
 router.get("/expenses", async (req, res) => {
   try {
-    const expensesData = await getExpensesData();
-    res.json(expensesData);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching expense data" });
+    const data = await dashboardController.getExpensesData();
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// GET /api/dashboard/popular-products
 router.get("/popular-products", async (req, res) => {
   try {
-    const popularProducts = await getPopularProducts();
-    res.json(popularProducts);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching popular products" });
+    const data = await dashboardController.getPopularProducts();
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
-// GET /api/dashboard/pending-orders
 router.get("/pending-orders", async (req, res) => {
   try {
-    const pendingOrders = await getPendingOrders();
-    res.json(pendingOrders);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching pending orders" });
+    const data = await dashboardController.getPendingOrders();
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
