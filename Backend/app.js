@@ -26,7 +26,7 @@ app.use("/receipts", express.static(path.join(process.cwd(), "receipts")));
 // Routes
 app.use("/api", apiRoutes);
 
-// Catch-all route for status check
+// Status check
 app.get("/status", (req, res) => {
   res.json({ success: true, message: "Bharati Sweets Backend is operational" });
 });
@@ -36,7 +36,7 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: "API Route not found" });
 });
 
-// Final Error Handling
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -45,4 +45,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+// ⭐ START SERVER (IMPORTANT FOR RENDER)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Bharati Sweets backend running on port ${PORT}`);
+});
