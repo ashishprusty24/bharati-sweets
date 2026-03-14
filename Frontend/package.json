@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "mobile:sync": "npm run build && npx cap sync",
+    "mobile:open": "npx cap open android",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "antd": "^5.26.7",
     "dayjs": "^1.11.18",
     "echarts-for-react": "^3.0.2",
