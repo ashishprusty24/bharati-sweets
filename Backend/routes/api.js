@@ -29,5 +29,10 @@ router.use("/ledger", ledgerRoutes);
 router.use("/customers", customerRoutes);
 router.use("/marketing", marketingRoutes);
 
+// Status check for /api/status
+router.get("/status", (req, res) => {
+  res.json({ success: true, message: "Server is alive" });
+});
+
 module.exports = router;
 

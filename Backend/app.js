@@ -28,7 +28,7 @@ app.use("/api", apiRoutes);
 
 // Status check
 app.get("/status", (req, res) => {
-  res.json({ success: true, message: "Bharati Sweets Backend is operational" });
+  res.json({ success: true, message: "Server is alive" });
 });
 
 // 404 Handler
@@ -45,9 +45,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ⭐ START SERVER (IMPORTANT FOR RENDER)
-const PORT = process.env.PORT || 5000;
+// Export app for bin/www
+module.exports = app;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Bharati Sweets backend running on port ${PORT}`);
-});
+// ⭐ START SERVER (IMPORTANT FOR RENDER)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Bharati Sweets backend running on port ${PORT}`);
+  });
+}
