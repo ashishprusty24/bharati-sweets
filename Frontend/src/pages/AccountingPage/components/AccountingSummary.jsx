@@ -52,9 +52,8 @@ const AccountingSummary = ({ financialData }) => {
         <Col xs={24} md={8} key={idx}>
           <Card 
             bordered={false} 
-            className="glass-card"
+            className="glass-card accounting-stat-card"
             style={{ borderRadius: 20, overflow: "hidden" }}
-            bodyStyle={{ padding: "24px" }}
           >
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div style={{

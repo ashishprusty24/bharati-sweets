@@ -22,6 +22,7 @@ const PopularProducts = () => {
       title: "Category",
       dataIndex: "category",
       key: "category",
+      className: "mobile-hide",
       render: (category) => (
         <Tag color="blue-projection" style={{ 
           background: "#eff6ff", 
@@ -52,7 +53,7 @@ const PopularProducts = () => {
       align: "right",
       render: (text) => (
         <Text strong style={{ color: "#0f172a" }}>
-          ₹{(text || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          ₹{(text || 0).toLocaleString("en-IN")}
         </Text>
       ),
     },
@@ -65,15 +66,19 @@ const PopularProducts = () => {
       className="premium-shadow"
       style={{ borderRadius: 24 }}
       loading={loading}
+      bodyStyle={{ padding: "12px 16px" }}
     >
-      <Table
-        columns={columns}
-        dataSource={products || []}
-        rowKey="_id"
-        pagination={false}
-        size="middle"
-        style={{ marginTop: 8 }}
-      />
+      <div className="responsive-table-container">
+        <Table
+          columns={columns}
+          dataSource={products || []}
+          rowKey="_id"
+          pagination={false}
+          size="small"
+          style={{ marginTop: 8 }}
+          scroll={{ x: 400 }}
+        />
+      </div>
     </Card>
   );
 };

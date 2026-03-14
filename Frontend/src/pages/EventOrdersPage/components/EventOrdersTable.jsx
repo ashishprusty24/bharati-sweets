@@ -52,6 +52,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       title: "Event",
       dataIndex: "purpose",
       key: "purpose",
+      className: "mobile-hide",
       render: (p) => <Tag style={{ borderRadius: 4 }}>{p}</Tag>
     },
     {

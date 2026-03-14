@@ -82,11 +82,11 @@ const AccountingCharts = ({ financialData }) => {
 
   return (
     <>
-      <Row gutter={24} style={{ marginTop: 16 }}>
-        <Col span={12}>
+      <Row gutter={[24, 24]} style={{ marginTop: 16 }}>
+        <Col xs={24} lg={12}>
           <Card
             title="Expense Distribution"
-            extra={<Text strong>Total: ₹{financialData?.totalExpenses?.toLocaleString() || 0}</Text>}
+            extra={<Text strong className="mobile-hide">Total: ₹{financialData?.totalExpenses?.toLocaleString() || 0}</Text>}
           >
             <ReactECharts
               option={getPieOptions("Expenses", financialData?.expenseDistribution, expenseCategories)}
@@ -94,10 +94,10 @@ const AccountingCharts = ({ financialData }) => {
             />
           </Card>
         </Col>
-        <Col span={12}>
+        <Col xs={24} lg={12}>
           <Card
             title="Revenue Distribution"
-            extra={<Text strong>Total: ₹{financialData?.totalRevenue?.toLocaleString() || 0}</Text>}
+            extra={<Text strong className="mobile-hide">Total: ₹{financialData?.totalRevenue?.toLocaleString() || 0}</Text>}
           >
             <ReactECharts
               option={getPieOptions("Revenue", financialData?.revenueDistribution, revenueTypes)}

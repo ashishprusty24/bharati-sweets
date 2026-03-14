@@ -4,7 +4,7 @@ import { DollarOutlined } from "@ant-design/icons";
 
 const ExpenseStats = ({ stats }) => {
   return (
-    <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+    <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
       <Card bordered={false} style={{ flex: 1, background: "#f0f5ff" }}>
         <Statistic
           title="Total Expenses"
