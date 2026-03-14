@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
 
       - name: Install Frontend Dependencies
@@ -39,6 +39,10 @@ jobs:
       - name: Sync Capacitor
         working-directory: ./Frontend
         run: npx cap sync android
+
+      - name: Make Gradlew Executable
+        working-directory: ./Frontend/android
+        run: chmod +x gradlew
 
       - name: Build APK
         working-directory: ./Frontend/android
