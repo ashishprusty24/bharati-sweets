@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Modal, Button, Typography, Row, Col, Table, Divider, Tag } from "antd";
-import { PrinterOutlined, DownloadOutlined } from "@ant-design/icons";
+import { PrinterOutlined, DownloadOutlined, WhatsAppOutlined } from "@ant-design/icons";
 import html2pdf from "html2pdf.js";
 import dayjs from "dayjs";
 
@@ -10,6 +10,24 @@ const ChefSlipModal = ({ visible, order, onCancel }) => {
   const slipRef = useRef();
 
   if (!order) return null;
+
+  const handleShareWhatsApp = () => {
+    const itemsList = order.items
+      .map((item) => `• *${item.name}*: ${item.quantity}`)
+      .join("\n");
+
+    const message = `*KITCHEN ORDER TICKET (KOT)*\n` +
+      `*No:* KOT-${order._id.slice(-6).toUpperCase()}\n\n` +
+      `*Event:* ${order.purpose}\n` +
+      `*Date:* ${dayjs(order.deliveryDate).format("MMM D, YYYY")}\n` +
+      `*Delivery Time:* ${order.deliveryTime}\n\n` +
+      `*ITEMS:*\n${itemsList}\n\n` +
+      `*Total Packets:* x${order.packets || 1}\n` +
+      (order.notes ? `\n*SPECIAL INSTRUCTIONS:*\n${order.notes}` : "");
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
 
   const handleDownloadPDF = () => {
     const element = slipRef.current;
@@ -31,6 +49,14 @@ const ChefSlipModal = ({ visible, order, onCancel }) => {
       width={600}
       footer={[
         <Button key="close" onClick={onCancel}>Close</Button>,
+        <Button 
+          key="whatsapp" 
+          icon={<WhatsAppOutlined />} 
+          style={{ backgroundColor: "#25D366", color: "white", borderColor: "#25D366" }}
+          onClick={handleShareWhatsApp}
+        >
+          Share on WhatsApp
+        </Button>,
         <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={handleDownloadPDF}>Download PDF</Button>
       ]}
     >
