@@ -1,10 +1,13 @@
 import React, { useEffect, memo } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Grid } from "antd";
 
 const { Option } = Select;
+const { useBreakpoint } = Grid;
 
 const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   useEffect(() => {
     if (visible && order) {
@@ -28,15 +31,18 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
       onOk={handleSubmit}
       onCancel={onCancel}
       confirmLoading={loading}
+      width={isMobile ? "95vw" : 520}
+      centered
+      className="responsive-modal"
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <Form.Item name="amount" label="Payment Amount (₹)" rules={[{ required: true }]}>
               <InputNumber min={0.01} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <Form.Item name="method" label="Payment Method" rules={[{ required: true }]}>
               <Select placeholder="Select method">
                 {paymentMethods.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}

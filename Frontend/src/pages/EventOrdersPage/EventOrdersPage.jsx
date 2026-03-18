@@ -185,14 +185,15 @@ const EventOrdersPage = () => {
             <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Event Orders</Title>
             <Text type="secondary">Manage large bookings, delivery schedules, and payments.</Text>
           </Col>
-          <Col xs={24} lg={12} className="header-actions" style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Col xs={24} lg={12} className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <PreparationReportModal />
             <Button 
               type="primary" 
               size="large"
               icon={<PlusOutlined />} 
               onClick={() => handleAddEdit()}
-              style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
+              className="new-booking-btn"
+              style={{ borderRadius: 10, height: 45, padding: "0 24px", flex: "0 0 auto" }}
             >
               New Booking
             </Button>

@@ -13,6 +13,7 @@ import MarketingPage from "../pages/MarketingPage/MarketingPage";
 import DashboardPage from "../pages/DashboardPage/DashboardPage";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
 import AuthPage from "../pages/LoginPage/LoginPage";
+import WorkingOnItPage from "../pages/WorkingOnItPage/WorkingOnItPage";
 import { ConfigProvider } from "antd";
 import { themeConfig } from "../theme";
 
@@ -33,6 +34,7 @@ const AppRouter = () => (
         <Route path="marketing" element={<MarketingPage />} />
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="vendors" element={<VendorsPage />} />
+        <Route path="working-on-it" element={<WorkingOnItPage />} />
       </Route>
     </Routes>
   </BrowserRouter>

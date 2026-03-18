@@ -80,7 +80,89 @@ body {
 }
 
 .ant-menu-dark {
-    background: #1e2a38 !important;
+    background: transparent !important;
+}
+
+/* ─── Premium Sidebar Styles ─────────────────────────────────────── */
+.premium-sidebar .ant-menu-item {
+    border-radius: 10px !important;
+    margin: 2px 0 !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.premium-sidebar .ant-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.premium-sidebar .ant-menu-item-selected {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15)) !important;
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2) inset !important;
+}
+
+.premium-sidebar .ant-menu-item-selected::after {
+    display: none !important;
+}
+
+.premium-sidebar .ant-menu-item .ant-menu-item-icon {
+    font-size: 17px !important;
+}
+
+.premium-sidebar .ant-layout-sider-trigger {
+    display: none !important;
+}
+
+/* Sidebar custom scrollbar */
+.premium-sidebar ::-webkit-scrollbar {
+    width: 4px;
+}
+
+.premium-sidebar ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* ─── Mobile Drawer Styles ───────────────────────────────────────── */
+.mobile-sidebar-drawer .ant-drawer-body {
+    padding: 0 !important;
+    background: transparent !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-sidebar-drawer .ant-drawer-content {
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+}
+
+.mobile-sidebar-drawer .ant-menu-item {
+    border-radius: 10px !important;
+    margin: 2px 8px !important;
+    height: 46px !important;
+    line-height: 46px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mobile-sidebar-drawer .ant-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.mobile-sidebar-drawer .ant-menu-item-selected {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15)) !important;
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2) inset !important;
+}
+
+.mobile-sidebar-drawer .ant-menu-item-selected::after {
+    display: none !important;
+}
+
+.mobile-sidebar-drawer .ant-menu-item .ant-menu-item-icon {
+    font-size: 18px !important;
+}
+
+/* ─── Header Button Hover States ─────────────────────────────────── */
+.ant-layout-header .ant-btn-text:hover {
+    background: rgba(15, 23, 42, 0.08) !important;
 }
 
 /* Global Responsive Utilities */
@@ -106,9 +188,16 @@ body {
     display: inherit;
 }
 
+.mobile-show {
+    display: none !important;
+}
+
 @media (max-width: 576px) {
     .mobile-hide {
         display: none !important;
+    }
+    .mobile-show {
+        display: block !important;
     }
 }
 
@@ -124,14 +213,21 @@ body {
     }
 
     .page-header-container>div:last-child,
-    .page-header-container .header-actions {
-        width: 100% !important;
-        max-width: none !important;
+    /* Ensure actions wrap on small screens */
+    .header-actions {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px !important;
+        width: 100%;
+        margin-top: 12px;
     }
 
     .header-actions .ant-btn {
-        flex: 1;
-        min-width: 140px;
+        width: 100%;
+        height: auto !important;
+        min-height: 44px;
+        white-space: normal;
     }
 
     .ant-input-search,
@@ -170,5 +266,223 @@ body {
     
     .ant-typography-h2 {
         font-size: 22px !important;
+    }
+}
+
+/* ─── Event Orders Mobile Cards ──────────────────────────────────── */
+.event-orders-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+.event-order-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #f1f5f9;
+}
+
+.event-order-card:active {
+    transform: scale(0.99);
+}
+
+.event-order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.order-id-badge {
+    background: linear-gradient(135deg, #1e2a38, #334155);
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.event-order-card-body {
+    padding: 14px 16px;
+}
+
+.order-customer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.order-amount-highlight {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    letter-spacing: -0.5px;
+}
+
+.order-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.order-info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Payment Progress Bar */
+.payment-progress-container {
+    margin-top: 12px;
+}
+
+.payment-progress-bar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.payment-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.payment-progress-labels {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Card Action Buttons */
+.event-order-card-actions {
+    display: flex;
+    border-top: 1px solid #f1f5f9;
+    overflow: hidden;
+}
+
+.order-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s ease;
+    border-right: 1px solid #f1f5f9;
+}
+
+.order-action-btn:last-child {
+    border-right: none;
+}
+
+.order-action-btn:active {
+    transform: scale(0.95);
+}
+
+.order-action-edit {
+    color: #3b82f6;
+}
+
+.order-action-edit:active {
+    background: #eff6ff;
+}
+
+.order-action-pay {
+    color: #10b981;
+}
+
+.order-action-pay:active {
+    background: #ecfdf5;
+}
+
+.order-action-bill {
+    color: #8b5cf6;
+}
+
+.order-action-bill:active {
+    background: #f5f3ff;
+}
+
+.order-action-kot {
+    color: #f97316;
+}
+
+.order-action-kot:active {
+    background: #fff7ed;
+}
+
+.order-action-delete {
+    color: #ef4444;
+}
+
+.order-action-delete:active {
+    background: #fef2f2;
+}
+
+/* ─── Responsive Modal Overrides ─────────────────────────────────── */
+@media (max-width: 768px) {
+    .responsive-modal .ant-modal {
+        max-width: 95vw !important;
+        margin: 12px auto !important;
+    }
+
+    .responsive-modal .ant-modal-content {
+        border-radius: 16px !important;
+    }
+
+    .responsive-modal .ant-modal-header {
+        padding: 12px 16px !important;
+    }
+
+    .responsive-modal .ant-modal-footer {
+        padding: 8px 12px !important;
+    }
+
+    .responsive-modal .ant-modal-footer .ant-btn {
+        min-height: 40px;
+    }
+
+    /* Ensure tables inside modals don't overflow */
+    .responsive-modal .ant-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .ant-card:hover {
+        transform: none !important;
+    }
+
+    .event-order-card:hover {
+        transform: none;
+    }
+}
+
+/* ─── Header Actions Mobile Layout ─────────────────────────────── */
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+
+    .header-actions .ant-btn {
+        width: auto !important;
+        flex: 1;
     }
 }

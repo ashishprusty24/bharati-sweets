@@ -40,7 +40,7 @@ const AppLayout = () => {
       />
       <Layout
         style={{
-          marginLeft: isMobile ? 0 : collapsed ? 80 : 220,
+          marginLeft: isMobile ? 0 : collapsed ? 80 : 240,
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           background: "transparent",
         }}
