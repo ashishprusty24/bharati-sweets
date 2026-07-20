@@ -66,6 +66,7 @@ const HeaderBar = ({
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         padding: isMobile ? "0 12px" : "0 28px",
+        paddingTop: "env(safe-area-inset-top, 0px)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)",
         borderBottom: "1px solid rgba(0,0,0,0.04)",
         display: "flex",
@@ -74,7 +75,7 @@ const HeaderBar = ({
         position: "sticky",
         top: 0,
         zIndex: 10,
-        height: isMobile ? 56 : 64,
+        height: isMobile ? "calc(56px + env(safe-area-inset-top, 0px))" : "calc(64px + env(safe-area-inset-top, 0px))",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
