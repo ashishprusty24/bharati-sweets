@@ -199,8 +199,7 @@ const DailyLedgerPage = () => {
                 <InputNumber 
                   value={ledgerData.openingBalance} 
                   onChange={(v) => setLedgerData({...ledgerData, openingBalance: v})}
-                  style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
-                  bordered={false}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18, backgroundColor: "#f8fafc", borderRadius: 8 }}
                   prefix="₹"
                 />
               </Col>
@@ -213,8 +212,7 @@ const DailyLedgerPage = () => {
                 <InputNumber 
                   value={ledgerData.otherIncome} 
                   onChange={(v) => setLedgerData({...ledgerData, otherIncome: v})}
-                  style={{ width: "100%", fontWeight: 700, fontSize: 18, color: "#f59e0b" }}
-                  bordered={false}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18, color: "#f59e0b", backgroundColor: "#fffbeb", borderRadius: 8 }}
                   prefix="₹"
                 />
               </Col>
@@ -251,8 +249,7 @@ const DailyLedgerPage = () => {
                 <InputNumber 
                   value={ledgerData.openingBankBalance} 
                   onChange={(v) => setLedgerData({...ledgerData, openingBankBalance: v})}
-                  style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
-                  bordered={false}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18, backgroundColor: "#f8fafc", borderRadius: 8 }}
                   prefix="₹"
                 />
               </Col>
