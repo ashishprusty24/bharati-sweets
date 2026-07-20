@@ -1,12 +1,10 @@
-const env = "prod";
+const env = "qa";
 
-// export const API_BASE_URL =
-//   env === "dev"
-//     ? "https://bharati-sweets-backend.onrender.com/api"
-//     : "https://bharati-sweets-prod.onrender.com/api";
 export const API_BASE_URL =
   env === "dev"
-    ? "https://bharati-sweets-prod.onrender.com/api"
+    ? "http://localhost:5000/api"
+    : env === "qa"
+    ? "https://bharati-sweets-backend.onrender.com/api"
     : "https://bharati-sweets-prod.onrender.com/api";
 
 // https://bharati-sweets-backend.onrender.com/api
