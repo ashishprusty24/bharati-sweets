@@ -158,18 +158,18 @@ const DailyLedgerPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div className="page-header-container" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "24px" }}>
-        <div style={{ flex: "1 1 100%" }}>
+      <div className="page-header-container" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
+        <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700, fontSize: "1.5rem" }}>Daily Digital Ledger</Title>
           <Text type="secondary" style={{ fontSize: "12px" }}>Track cash flow and bank transactions separately.</Text>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: "100%" }} className="header-actions">
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }} className="header-actions">
           <DatePicker 
             value={date} 
             onChange={setDate} 
             allowClear={false}
             format="MMMM D, YYYY"
-            style={{ width: "100%", maxWidth: 220, height: 45, borderRadius: 10 }}
+            style={{ width: 220, height: 45, borderRadius: 10 }}
           />
           <Button 
             type="primary" 
@@ -177,7 +177,7 @@ const DailyLedgerPage = () => {
             icon={<SaveOutlined />} 
             onClick={handleSave} 
             loading={loading}
-            style={{ borderRadius: 10, height: 45, padding: "0 24px", flex: 1 }}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
           >
             Save Ledger
           </Button>

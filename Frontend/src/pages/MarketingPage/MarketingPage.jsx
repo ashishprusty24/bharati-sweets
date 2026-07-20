@@ -42,7 +42,7 @@ const MarketingPage = () => {
           const value = stats?.[s.key] ?? 0;
           return (
             <Col xs={24} sm={12} lg={6} key={s.key}>
-              <Card bordered={false} className="stat-card">
+              <Card bordered={false} className="stat-card" bodyStyle={{ padding: "24px" }}>
                 <div className="stat-card-icon" style={{ background: s.bg, color: s.color }}>
                   {s.icon}
                 </div>
@@ -50,9 +50,9 @@ const MarketingPage = () => {
                 {statsLoading ? (
                   <Spin size="small" />
                 ) : s.isPercent ? (
-                  <Title level={2} className="stat-card-value">{value}%</Title>
+                  <Title level={2} className="stat-card-value" style={{ margin: 0 }}>{value}%</Title>
                 ) : (
-                  <Statistic value={value} valueStyle={{ fontWeight: 800, fontSize: 28, color: "#1e293b" }} />
+                  <Statistic value={value} valueStyle={{ fontWeight: 800, fontSize: 28, color: "#1e293b", margin: 0 }} />
                 )}
                 <Text className="stat-card-suffix">{s.suffix}</Text>
               </Card>

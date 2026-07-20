@@ -214,7 +214,7 @@ const EventOrdersPage = () => {
             <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Event Orders</Title>
             <Text type="secondary">Manage large bookings, delivery schedules, and payments.</Text>
           </Col>
-          <Col xs={24} lg={12} className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Col xs={24} lg={12} className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <PreparationReportModal />
             <Button 
               type="primary" 
@@ -241,7 +241,7 @@ const EventOrdersPage = () => {
               onChange={e => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={24} sm={12} md={4}>
+          <Col xs={24} sm={12} md={5}>
             <Select 
               value={statusFilter} 
               onChange={setStatusFilter} 
@@ -252,7 +252,7 @@ const EventOrdersPage = () => {
               {ORDER_STATUS_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={4}>
+          <Col xs={24} sm={12} md={5}>
             <Select 
               value={occasionFilter} 
               onChange={setOccasionFilter} 
@@ -263,7 +263,7 @@ const EventOrdersPage = () => {
               {PURPOSE_OPTIONS.map(p => <Option key={p} value={p}>{p}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} md={6}>
             <RangePicker 
               onChange={setDateRange} 
               style={{ width: "100%", height: 45, borderRadius: 12 }} 
