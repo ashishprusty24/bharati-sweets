@@ -1,0 +1,21 @@
+name: Example Config
+version: 1.0.0
+schema: v1
+
+models:
+  - name: DeepSeek V4 Pro
+    provider: deepseek
+    model: deepseek-v4-pro
+    apiKey: sk-61ff163545d1418dba595f2fd3d15a03
+    roles:
+      - chat
+      - edit
+    capabilities:
+      - tool_use
+
+  - name: DeepSeek V4 Flash
+    provider: deepseek
+    model: deepseek-v4-flash
+    apiKey: sk-61ff163545d1418dba595f2fd3d15a03
+    roles:
+      - autocomplete

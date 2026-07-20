@@ -2,6 +2,17 @@ const fs = require("fs");
 const path = require("path");
 const pdf = require("html-pdf");
 
+let qrCodeBase64 = "";
+try {
+  const qrPath = path.join(process.cwd(), "public", "images", "qrcode.jpeg");
+  if (fs.existsSync(qrPath)) {
+    const bitmap = fs.readFileSync(qrPath);
+    qrCodeBase64 = `data:image/jpeg;base64,${bitmap.toString("base64")}`;
+  }
+} catch (e) {
+  console.log("Error loading QR code", e);
+}
+
 // The single, reusable HTML template for all documents
 const invoiceTemplate = (order, title, status) => {
   const packets = order.packets || 1;
@@ -48,8 +59,8 @@ const invoiceTemplate = (order, title, status) => {
 <head>
   <title>${title}</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 50px; color: #1f2937; background-color: white; }
-    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #1f2937; background-color: white; }
+    .container { max-width: 100%; margin: 0 auto; padding: 10px; }
     .header { display: table; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
     .header > div { display: table-cell; vertical-align: bottom; }
     .header-left { width: 50%; }
@@ -277,6 +288,16 @@ const invoiceTemplate = (order, title, status) => {
   <div class="divider"></div>
 
   <div class="footer">
+    ${
+      (status === "BOOKING RECEIPT" || status === "PARTIALLY PAID" || status === "BALANCE DUE") && qrCodeBase64
+        ? `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <p style="font-weight: bold; margin-bottom: 5px;">Scan to pay balance (₹${balance})</p>
+          <img src="${qrCodeBase64}" style="width: 120px; height: 120px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px;" />
+        </div>
+        `
+        : ""
+    }
     <p>Thank you for your business!</p>
     <p class="address">Bharati Sweets • Phone: +91 70080 84419 • Address: By-Pass, Dala, Byasanagar, Odisha 755019</p>
   </div>
@@ -288,12 +309,12 @@ const invoiceTemplate = (order, title, status) => {
 
 // Configuration for html-pdf
 const pdfOptions = {
-  format: "A4",
+  format: "A5",
   border: {
-    top: "20px",
-    right: "20px",
-    bottom: "20px",
-    left: "20px",
+    top: "10px",
+    right: "10px",
+    bottom: "10px",
+    left: "10px",
   },
 };
 

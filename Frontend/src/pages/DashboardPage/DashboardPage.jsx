@@ -5,6 +5,7 @@ import ExpenseChart from "./components/ExpenseChart";
 import PopularProducts from "./components/PopularProducts";
 import PendingOrders from "./components/PendingOrders";
 import OrderReminders from "./components/OrderReminders";
+import AnniversaryReminders from "./components/AnniversaryReminders";
 import LowStockDetails from "./components/LowStockDetails";
 
 import { Row, Col, Typography, Space, Switch, Segmented } from "antd";
@@ -82,6 +83,12 @@ const DashboardPage = () => {
             <LowStockDetails />
           </Col>
         )}
+      </Row>
+
+      <Row gutter={[32, 32]} style={{ marginTop: 32 }}>
+        <Col xs={24} lg={12}>
+          <AnniversaryReminders />
+        </Col>
       </Row>
 
       <Row gutter={[32, 32]} style={{ marginTop: 32 }}>

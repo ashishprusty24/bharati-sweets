@@ -54,6 +54,7 @@ const EventOrdersPage = () => {
   
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [occasionFilter, setOccasionFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
@@ -80,6 +81,10 @@ const EventOrdersPage = () => {
       result = result.filter(o => o.orderStatus === statusFilter);
     }
 
+    if (occasionFilter !== "all") {
+      result = result.filter(o => o.purpose === occasionFilter);
+    }
+
     if (dateRange && dateRange.length === 2) {
       const start = dateRange[0].startOf("day");
       const end = dateRange[1].endOf("day");
@@ -87,7 +92,7 @@ const EventOrdersPage = () => {
     }
 
     return result;
-  }, [orders, searchText, statusFilter, dateRange]);
+  }, [orders, searchText, statusFilter, occasionFilter, dateRange]);
 
   const handleAddEdit = (order = null) => {
     setEditingOrder(order);
@@ -129,7 +134,7 @@ const EventOrdersPage = () => {
         items,
         subtotal,
         totalAmount,
-        deliveryDate: values.deliveryDate.toISOString()
+        deliveryDate: values.deliveryDate.toISOString(),
       };
 
       if (editingOrder) {
@@ -149,6 +154,30 @@ const EventOrdersPage = () => {
         await api.post("/event-orders/create", orderData);
         message.success("Order created successfully");
       }
+
+      // Handle Smart CRM Reminder
+      console.log("Checking setReminder flag:", values.setReminder);
+      if (values.setReminder) {
+        try {
+          const reminderPayload = {
+            customerName: values.customerName,
+            secondaryName: values.reminderSecondaryName || "",
+            phone: values.phone,
+            eventType: values.reminderEventType,
+            eventDate: values.reminderEventDate,
+            notes: `Created from Event Order: ${values.purpose}`
+          };
+          console.log("Sending reminder payload:", reminderPayload);
+          await api.post("/reminders", reminderPayload);
+          message.success("Smart CRM Reminder saved successfully!");
+        } catch (remErr) {
+          console.error("Failed to save reminder:", remErr);
+          message.error("Order saved, but failed to save CRM reminder.");
+        }
+      } else {
+        console.log("setReminder was false or undefined. Value was:", values.setReminder);
+      }
+
       setIsOrderModalVisible(false);
       refetch();
     } catch (error) {
@@ -223,7 +252,18 @@ const EventOrdersPage = () => {
               {ORDER_STATUS_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={12}>
+          <Col xs={24} sm={12} md={4}>
+            <Select 
+              value={occasionFilter} 
+              onChange={setOccasionFilter} 
+              style={{ width: "100%", height: 45 }}
+              dropdownStyle={{ borderRadius: 12 }}
+            >
+              <Option value="all">All Occasions</Option>
+              {PURPOSE_OPTIONS.map(p => <Option key={p} value={p}>{p}</Option>)}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
             <RangePicker 
               onChange={setDateRange} 
               style={{ width: "100%", height: 45, borderRadius: 12 }} 

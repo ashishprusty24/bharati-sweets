@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, Row, Col, DatePicker, Table, Button, InputNumber, Input, Select, message, Typography, Space, Divider, Tag } from "antd";
-import { SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined, ShoppingCartOutlined, LogoutOutlined } from "@ant-design/icons";
+import { SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined, BankOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
 
@@ -12,6 +12,7 @@ const DailyLedgerPage = () => {
   const [loading, setLoading] = useState(false);
   const [ledgerData, setLedgerData] = useState({
     openingBalance: 0,
+    openingBankBalance: 0,
     cashSales: 0,
     digitalSales: 0,
     otherIncome: 0,
@@ -22,8 +23,13 @@ const DailyLedgerPage = () => {
     setLoading(true);
     try {
       const data = await api.get(`/ledger/${targetDate.format("YYYY-MM-DD")}`);
-      setLedgerData(data);
+      setLedgerData({
+        ...data,
+        openingBankBalance: data.openingBankBalance || 0,
+        items: data.items || []
+      });
     } catch (error) {
+      console.error(error);
       message.error("Failed to fetch ledger data");
     } finally {
       setLoading(false);
@@ -41,6 +47,7 @@ const DailyLedgerPage = () => {
       message.success("Ledger saved successfully");
       fetchLedger(date);
     } catch (error) {
+      console.error(error);
       message.error("Failed to save ledger");
     } finally {
       setLoading(false);
@@ -50,7 +57,7 @@ const DailyLedgerPage = () => {
   const addItem = () => {
     setLedgerData({
       ...ledgerData,
-      items: [...ledgerData.items, { description: "", amount: 0, type: "expense" }],
+      items: [...ledgerData.items, { description: "", amount: 0, type: "expense", paymentMode: "cash" }],
     });
   };
 
@@ -67,21 +74,30 @@ const DailyLedgerPage = () => {
   };
 
   const totals = useMemo(() => {
-    const totalExpenses = ledgerData.items
-      .filter((i) => i.type === "expense")
-      .reduce((s, i) => s + (i.amount || 0), 0);
-    const totalIncome = ledgerData.items
-      .filter((i) => i.type === "income")
-      .reduce((s, i) => s + (i.amount || 0), 0);
+    const items = ledgerData.items || [];
     
-    const closingBalance = 
-      Number(ledgerData.openingBalance || 0) + 
-      Number(ledgerData.cashSales || 0) + 
-      Number(ledgerData.otherIncome || 0) + 
-      totalIncome - 
-      totalExpenses;
+    // Cash totals
+    const cashExpenses = items.filter(i => i.type === "expense" && i.paymentMode !== "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const cashIncome = items.filter(i => i.type === "income" && i.paymentMode !== "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    
+    // Bank totals
+    const bankExpenses = items.filter(i => i.type === "expense" && i.paymentMode === "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const bankIncome = items.filter(i => i.type === "income" && i.paymentMode === "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    
+    // Balances
+    const closingCash = Number(ledgerData.openingBalance || 0) + Number(ledgerData.cashSales || 0) + Number(ledgerData.otherIncome || 0) + cashIncome - cashExpenses;
+    const closingBank = Number(ledgerData.openingBankBalance || 0) + Number(ledgerData.digitalSales || 0) + bankIncome - bankExpenses;
 
-    return { totalExpenses, totalIncome, closingBalance };
+    const cashSavings = closingCash - Number(ledgerData.openingBalance || 0);
+    const bankSavings = closingBank - Number(ledgerData.openingBankBalance || 0);
+    
+    const totalSavings = cashSavings + bankSavings;
+
+    return { 
+      cashExpenses, bankExpenses, 
+      closingCash, closingBank, 
+      cashSavings, bankSavings, totalSavings 
+    };
   }, [ledgerData]);
 
   const columns = [
@@ -92,7 +108,7 @@ const DailyLedgerPage = () => {
         <Input 
           value={text} 
           onChange={(e) => updateItem(index, "description", e.target.value)} 
-          placeholder="e.g., Milk, Gas, Repairs"
+          placeholder="e.g., Milk, Gas, Rent"
         />
       ),
     },
@@ -104,6 +120,17 @@ const DailyLedgerPage = () => {
         <Select value={type} onChange={(value) => updateItem(index, "type", value)} style={{ width: "100%" }}>
           <Option value="expense">Expense</Option>
           <Option value="income">Income</Option>
+        </Select>
+      ),
+    },
+    {
+      title: "Payment Mode",
+      dataIndex: "paymentMode",
+      width: 120,
+      render: (mode, _, index) => (
+        <Select value={mode || "cash"} onChange={(value) => updateItem(index, "paymentMode", value)} style={{ width: "100%" }}>
+          <Option value="cash">💵 Cash</Option>
+          <Option value="bank">🏦 Bank</Option>
         </Select>
       ),
     },
@@ -131,12 +158,12 @@ const DailyLedgerPage = () => {
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div className="page-header-container">
-        <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Daily Digital Ledger</Title>
-          <Text type="secondary">Digital register for tracking daily cash flow and inventory petty cash.</Text>
+      <div className="page-header-container" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ flex: "1 1 100%" }}>
+          <Title level={2} style={{ margin: 0, fontWeight: 700, fontSize: "1.5rem" }}>Daily Digital Ledger</Title>
+          <Text type="secondary" style={{ fontSize: "12px" }}>Track cash flow and bank transactions separately.</Text>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: "auto" }} className="header-actions">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, width: "100%" }} className="header-actions">
           <DatePicker 
             value={date} 
             onChange={setDate} 
@@ -157,74 +184,113 @@ const DailyLedgerPage = () => {
         </div>
       </div>
 
-      <Row gutter={[12, 12]} style={{ marginBottom: 32 }}>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Opening</Text>
-            <div style={{ marginTop: 4 }}>
-              <InputNumber 
-                value={ledgerData.openingBalance} 
-                onChange={(v) => setLedgerData({...ledgerData, openingBalance: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
-                bordered={false}
-                prefix="₹"
-              />
+      <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+        {/* CASH LEDGER SUMMARY */}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={<Space><WalletOutlined style={{ color: "#3b82f6" }}/> <span style={{ fontWeight: 700 }}>Cash Ledger (Shop Drawer)</span></Space>}
+            bordered={false} 
+            className="glass-card" 
+            style={{ borderRadius: 16, height: "100%" }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Opening Cash</Text>
+                <InputNumber 
+                  value={ledgerData.openingBalance} 
+                  onChange={(v) => setLedgerData({...ledgerData, openingBalance: v})}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                  bordered={false}
+                  prefix="₹"
+                />
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#10b981" }}>+ Cash Sales</Text>
+                <div style={{ padding: "4px 11px", fontWeight: 700, fontSize: 18, color: "#10b981" }}>₹{ledgerData.cashSales}</div>
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#f59e0b" }}>+ Other Income (Cash)</Text>
+                <InputNumber 
+                  value={ledgerData.otherIncome} 
+                  onChange={(v) => setLedgerData({...ledgerData, otherIncome: v})}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18, color: "#f59e0b" }}
+                  bordered={false}
+                  prefix="₹"
+                />
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#ef4444" }}>- Cash Expenses</Text>
+                <div style={{ padding: "4px 11px", fontWeight: 700, fontSize: 18, color: "#ef4444" }}>₹{totals.cashExpenses}</div>
+              </Col>
+            </Row>
+            <Divider style={{ margin: "16px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Closing Cash Balance</Text>
+                <Title level={3} style={{ margin: 0, color: "var(--primary-color)" }}>₹{totals.closingCash}</Title>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Cash Profit</Text>
+                <Title level={4} style={{ margin: 0, color: totals.cashSavings >= 0 ? "#10b981" : "#ef4444" }}>₹{totals.cashSavings}</Title>
+              </div>
             </div>
           </Card>
         </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #3b82f6", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#3b82f6" }}>Cash Sales</Text>
-            <div style={{ marginTop: 4 }}>
-              <InputNumber 
-                value={ledgerData.cashSales} 
-                onChange={(v) => setLedgerData({...ledgerData, cashSales: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
-                bordered={false}
-                prefix="₹"
-              />
+
+        {/* BANK LEDGER SUMMARY */}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={<Space><BankOutlined style={{ color: "#722ed1" }}/> <span style={{ fontWeight: 700 }}>Bank Ledger (Digital)</span></Space>}
+            bordered={false} 
+            className="glass-card" 
+            style={{ borderRadius: 16, height: "100%" }}
+          >
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Opening Bank</Text>
+                <InputNumber 
+                  value={ledgerData.openingBankBalance} 
+                  onChange={(v) => setLedgerData({...ledgerData, openingBankBalance: v})}
+                  style={{ width: "100%", fontWeight: 700, fontSize: 18 }}
+                  bordered={false}
+                  prefix="₹"
+                />
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#10b981" }}>+ Digital Sales</Text>
+                <div style={{ padding: "4px 11px", fontWeight: 700, fontSize: 18, color: "#10b981" }}>₹{ledgerData.digitalSales}</div>
+              </Col>
+              <Col span={12}>
+                {/* Placeholder for future if they want Bank Other Income distinct */}
+              </Col>
+              <Col span={12}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", color: "#ef4444" }}>- Bank Expenses</Text>
+                <div style={{ padding: "4px 11px", fontWeight: 700, fontSize: 18, color: "#ef4444" }}>₹{totals.bankExpenses}</div>
+              </Col>
+            </Row>
+            <Divider style={{ margin: "16px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Closing Bank Balance</Text>
+                <Title level={3} style={{ margin: 0, color: "#722ed1" }}>₹{totals.closingBank}</Title>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>Bank Profit</Text>
+                <Title level={4} style={{ margin: 0, color: totals.bankSavings >= 0 ? "#10b981" : "#ef4444" }}>₹{totals.bankSavings}</Title>
+              </div>
             </div>
           </Card>
         </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #10b981", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#10b981" }}>Digital (P/P)</Text>
-            <div style={{ marginTop: 4 }}>
-              <InputNumber 
-                value={ledgerData.digitalSales} 
-                onChange={(v) => setLedgerData({...ledgerData, digitalSales: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
-                bordered={false}
-                prefix="₹"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #f59e0b", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#f59e0b" }}>Other Income</Text>
-            <div style={{ marginTop: 4 }}>
-              <InputNumber 
-                value={ledgerData.otherIncome} 
-                onChange={(v) => setLedgerData({...ledgerData, otherIncome: v})}
-                style={{ width: "100%", fontWeight: 700, fontSize: 16 }}
-                bordered={false}
-                prefix="₹"
-              />
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #ef4444", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "#ef4444" }}>Expenses</Text>
-            <Title level={4} style={{ margin: "4px 0 0 0", color: "#ef4444", fontWeight: 700, fontSize: 18 }}>₹{totals.totalExpenses}</Title>
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} lg={4}>
-          <Card bordered={false} style={{ borderRadius: 16, background: "var(--primary-color)", color: "white", height: "100%" }} bodyStyle={{ padding: "16px 12px" }}>
-            <Text style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>Closing Balance</Text>
-            <Title level={4} style={{ margin: "4px 0 0 0", color: "white", fontWeight: 700, fontSize: 18 }}>₹{totals.closingBalance}</Title>
-          </Card>
+      </Row>
+
+      <Row style={{ marginBottom: 24 }}>
+        <Col span={24}>
+           <Card bordered={false} style={{ borderRadius: 16, background: "var(--primary-color)", color: "white" }}>
+              <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                <Title level={3} style={{ margin: 0, color: "white", fontSize: "1.2rem" }}>Total Daily Profit</Title>
+                <Title level={2} style={{ margin: 0, color: "white", fontSize: "1.5rem", whiteSpace: "nowrap" }}>₹{totals.totalSavings}</Title>
+              </div>
+           </Card>
         </Col>
       </Row>
 
@@ -233,7 +299,7 @@ const DailyLedgerPage = () => {
         className="glass-card ledger-details-card"
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-            <Title level={4} style={{ margin: 0 }}>Entry Details</Title>
+            <Title level={4} style={{ margin: 0 }}>Entry Details (Expenses & Extra Income)</Title>
             <Button 
               type="primary" 
               onClick={addItem} 

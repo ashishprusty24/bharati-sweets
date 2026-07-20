@@ -1,11 +1,11 @@
 import React from "react";
 import { Table, Tag, Typography, Space, Tooltip, Popconfirm, Button } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
 
-const RegularOrdersTable = ({ data, loading, onEdit, onDelete, getPaymentMethodTag }) => {
+const RegularOrdersTable = ({ data, loading, onEdit, onDelete, onKOT, getPaymentMethodTag }) => {
   const columns = [
     {
       title: "Order ID",
@@ -61,6 +61,14 @@ const RegularOrdersTable = ({ data, loading, onEdit, onDelete, getPaymentMethodT
       width: 120,
       render: (_, record) => (
         <Space size="middle">
+          <Tooltip title="Print KOT">
+            <Button
+              type="text"
+              icon={<PrinterOutlined style={{ color: "#d946ef" }} />}
+              onClick={() => onKOT(record)}
+              style={{ background: "#fdf4ff", borderRadius: 8 }}
+            />
+          </Tooltip>
           <Tooltip title="Edit Order">
             <Button
               type="text"

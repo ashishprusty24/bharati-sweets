@@ -26,7 +26,9 @@ const paymentSchema = new mongoose.Schema({
 const eventOrderSchema = new mongoose.Schema(
   {
     customerName: { type: String, required: true },
+    spouseName: { type: String }, // For anniversary reminders
     phone: { type: String, required: true },
+    anniversaryDate: { type: Date }, // Optional: track anniversary
     purpose: { type: String, required: true },
     address: { type: String, required: true },
     deliveryDate: { type: Date, required: true },
@@ -61,7 +63,7 @@ const eventOrderSchema = new mongoose.Schema(
 
 // Pre-save hook to calculate paid amount
 eventOrderSchema.pre("save", function (next) {
-  this.paidAmount = this.payments.reduce(
+  this.paidAmount = (this.payments || []).reduce(
     (sum, payment) => sum + payment.amount,
     0
   );

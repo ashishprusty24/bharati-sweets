@@ -4,7 +4,7 @@ const inventoryController = require("./inventoryController");
 const createRegularOrder = (payload) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const { customerName, phone, items, payment } = payload;
+      const { customerName, phone, items = [], payment } = payload;
       const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
 
       await inventoryController.updateInventoryFromOrder(items);

@@ -5,6 +5,7 @@ import useFetch from "../../hooks/useFetch";
 import api from "../../services/api";
 import RegularOrdersTable from "./components/RegularOrdersTable";
 import RegularOrderModal from "./components/RegularOrderModal";
+import RegularKOTModal from "./components/RegularKOTModal";
 
 const { Title, Text } = Typography;
 
@@ -13,7 +14,9 @@ const RegularOrdersPage = () => {
   const { data: inventoryItems } = useFetch("/inventory/list");
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isKOTVisible, setIsKOTVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const [currentOrder, setCurrentOrder] = useState(null);
 
   const paymentMethods = [
     { value: "cash", label: "Cash" },
@@ -36,6 +39,11 @@ const RegularOrdersPage = () => {
   const handleAddEdit = (order = null) => {
     setEditingOrder(order);
     setIsModalVisible(true);
+  };
+
+  const handleKOT = (order) => {
+    setCurrentOrder(order);
+    setIsKOTVisible(true);
   };
 
   const handleSave = async (values) => {
@@ -67,6 +75,25 @@ const RegularOrdersPage = () => {
         await api.post("/regular-orders/create", orderData);
         message.success("Order created successfully");
       }
+
+      // Handle Smart CRM Reminder
+      if (values.setReminder) {
+        try {
+          await api.post("/reminders", {
+            customerName: values.customerName,
+            secondaryName: values.secondaryName || "",
+            phone: values.phone,
+            eventType: values.eventType,
+            eventDate: values.eventDate,
+            notes: "Created from Regular Order checkout"
+          });
+          message.success("Smart CRM Reminder saved successfully!");
+        } catch (remErr) {
+          console.error("Failed to save reminder:", remErr);
+          message.error("Order saved, but failed to save CRM reminder.");
+        }
+      }
+
       setIsModalVisible(false);
       refetch();
     } catch (error) {
@@ -95,8 +122,8 @@ const RegularOrdersPage = () => {
     return (
       <Tag style={{ 
         color: colors[method] || "#64748b", 
-        background: `${colors[method]}1a` || "#f1f5f9",
-        border: `1px solid ${colors[method]}33` || "#e2e8f0",
+        background: colors[method] ? `${colors[method]}1a` : "#f1f5f9",
+        border: colors[method] ? `1px solid ${colors[method]}33` : "1px solid #e2e8f0",
         borderRadius: 6,
         fontWeight: 600
       }}>
@@ -147,6 +174,7 @@ const RegularOrdersPage = () => {
             loading={loading}
             onEdit={handleAddEdit}
             onDelete={handleDelete}
+            onKOT={handleKOT}
             getPaymentMethodTag={getPaymentMethodTag}
           />
         </div>
@@ -160,6 +188,12 @@ const RegularOrdersPage = () => {
         loading={loading}
         onCancel={() => setIsModalVisible(false)}
         onOk={handleSave}
+      />
+
+      <RegularKOTModal
+        visible={isKOTVisible}
+        order={currentOrder}
+        onCancel={() => setIsKOTVisible(false)}
       />
     </div>
   );

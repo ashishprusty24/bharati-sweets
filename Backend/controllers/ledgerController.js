@@ -34,19 +34,26 @@ const getLedgerByDate = (date) => {
         const prevDay = dayjs(date).subtract(1, "day").startOf("day").toDate();
         const prevLedger = await DailyLedger.findOne({ date: prevDay });
         const openingBalance = prevLedger ? prevLedger.closingBalance : 0;
+        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+
+        const cashExpenses = expenses.filter(e => e.paymentMode !== "bank").reduce((s, e) => s + e.amount, 0);
+        const bankExpenses = expenses.filter(e => e.paymentMode === "bank").reduce((s, e) => s + e.amount, 0);
 
         ledger = new DailyLedger({
           date: targetDate,
           openingBalance,
+          openingBankBalance,
           cashSales,
           digitalSales,
           totalExpenses,
-          closingBalance: Number(openingBalance) + Number(cashSales) - totalExpenses,
+          closingBalance: Number(openingBalance) + Number(cashSales) - cashExpenses,
+          closingBankBalance: Number(openingBankBalance) + Number(digitalSales) - bankExpenses,
           items: expenses.map(e => ({
             description: e.description,
             amount: e.amount,
             type: "expense",
-            category: e.category
+            category: e.category,
+            paymentMode: e.paymentMode || "cash"
           }))
         });
       }
@@ -62,12 +69,18 @@ const saveLedger = (date, payload) => {
   return new Promise(async (resolve, reject) => {
     try {
       const targetDate = dayjs(date).startOf("day").toDate();
-      const { items = [], openingBalance = 0, cashSales = 0, otherIncome = 0 } = payload;
+      const { items = [], openingBalance = 0, openingBankBalance = 0, cashSales = 0, digitalSales = 0, otherIncome = 0 } = payload;
       
-      const totalExpenses = items.filter(i => i.type === "expense").reduce((s, i) => s + i.amount, 0);
-      const totalIncome = items.filter(i => i.type === "income").reduce((s, i) => s + i.amount, 0);
+      const totalExpenses = items.filter(i => i.type === "expense").reduce((s, i) => s + (Number(i.amount) || 0), 0);
       
-      const closingBalance = Number(openingBalance) + Number(cashSales) + Number(otherIncome) + totalIncome - totalExpenses;
+      const cashIncome = items.filter(i => i.type === "income" && i.paymentMode !== "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const bankIncome = items.filter(i => i.type === "income" && i.paymentMode === "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      
+      const cashExpenseTotal = items.filter(i => i.type === "expense" && i.paymentMode !== "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const bankExpenseTotal = items.filter(i => i.type === "expense" && i.paymentMode === "bank").reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+      const closingBalance = Number(openingBalance) + Number(cashSales) + Number(otherIncome) + cashIncome - cashExpenseTotal;
+      const closingBankBalance = Number(openingBankBalance) + Number(digitalSales) + bankIncome - bankExpenseTotal;
 
       const ledger = await DailyLedger.findOneAndUpdate(
         { date: targetDate },
@@ -75,6 +88,7 @@ const saveLedger = (date, payload) => {
           ...payload, 
           totalExpenses, 
           closingBalance,
+          closingBankBalance,
           date: targetDate 
         },
         { upsert: true, new: true }

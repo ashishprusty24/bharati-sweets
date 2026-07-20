@@ -14,6 +14,7 @@ const authRoutes = require("./authRoutes");
 const ledgerRoutes = require("./ledgerRoutes");
 const customerRoutes = require("./customerRoutes");
 const marketingRoutes = require("./marketingRoutes");
+const reminderRoutes = require("./reminderRouter");
 
 router.use("/inventory", inventoryRoutes);
 router.use("/regular-orders", regularOrderRoutes);
@@ -28,6 +29,7 @@ router.use("/auth", authRoutes);
 router.use("/ledger", ledgerRoutes);
 router.use("/customers", customerRoutes);
 router.use("/marketing", marketingRoutes);
+router.use("/reminders", reminderRoutes);
 
 // Status check for /api/status
 router.get("/status", (req, res) => {

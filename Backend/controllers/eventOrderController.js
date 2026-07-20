@@ -17,8 +17,8 @@ const createEventOrder = (payload) => {
   return new Promise(async (resolve, reject) => {
     try {
       const {
-        customerName, phone, purpose, address, deliveryDate,
-        deliveryTime, items, payments, discount = 0, packets = 1, totalAmount,
+        customerName, phone, spouseName, anniversaryDate, purpose, address, deliveryDate,
+        deliveryTime, items = [], payments, discount = 0, packets = 1, totalAmount,
       } = payload;
 
       const itemsWithPackets = items.map((item) => ({
@@ -27,22 +27,22 @@ const createEventOrder = (payload) => {
         finalTotal: (item.total - discount) * packets,
       }));
 
-      const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+      const paidAmount = (payments || []).reduce((sum, p) => sum + p.amount, 0);
 
       const newOrder = new EventOrder({
         customerName, phone, purpose, address,
         deliveryDate: new Date(deliveryDate), deliveryTime,
-        items: itemsWithPackets, payments, discount, packets,
+        items: itemsWithPackets, payments: payments || [], discount, packets,
         totalAmount, paidAmount,
       });
 
       const savedOrder = await newOrder.save();
 
       await inventoryController.updateInventoryFromOrder(itemsWithPackets);
-      
+
       // Seed initial receipt
       await generateBookingReceipt(savedOrder);
-      
+
       resolve({
         ...savedOrder.toObject(),
         bookingReceiptUrl: `${API_BASE_URL}/receipts/booking_${savedOrder._id}.pdf`,

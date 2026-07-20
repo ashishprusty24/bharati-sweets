@@ -1,10 +1,11 @@
 import React, { useEffect, memo, useMemo } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, DatePicker, Space, Button, Divider, Grid } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, DatePicker, Space, Button, Divider, Grid, Switch, Typography } from "antd";
+import { PlusOutlined, DeleteOutlined, BellOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
+const { Text } = Typography;
 
 const EventOrderModal = memo(({ visible, item, inventoryItems, purposeOptions, deliveryTimeOptions, orderStatusOptions, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
@@ -92,6 +93,41 @@ const EventOrderModal = memo(({ visible, item, inventoryItems, purposeOptions, d
         <Form.Item name="address" label="Delivery Address" rules={[{ required: true }]}>
           <Input.TextArea rows={2} />
         </Form.Item>
+
+        <Divider><BellOutlined /> Smart CRM Reminder</Divider>
+        <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, marginBottom: 24, border: "1px solid #e2e8f0" }}>
+          <Form.Item name="setReminder" valuePropName="checked" style={{ marginBottom: 8 }}>
+            <Switch checkedChildren="Reminder ON" unCheckedChildren="Reminder OFF" />
+            <Text style={{ marginLeft: 12 }}>Set a yearly reminder for this customer to get repeat business</Text>
+          </Form.Item>
+          
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.setReminder !== curr.setReminder}>
+            {({ getFieldValue }) => getFieldValue("setReminder") && (
+              <Row gutter={16} style={{ marginTop: 16 }}>
+                <Col span={8}>
+                  <Form.Item name="reminderEventType" label="Event Type" rules={[{ required: true, message: "Required" }]}>
+                    <Select placeholder="Type">
+                      <Option value="Birthday">Birthday</Option>
+                      <Option value="Anniversary">Anniversary</Option>
+                      <Option value="Corporate">Corporate</Option>
+                      <Option value="Other">Other</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="reminderEventDate" label="Event Date" rules={[{ required: true, message: "Required" }]}>
+                    <DatePicker style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="reminderSecondaryName" label="Secondary Name (Opt)">
+                    <Input placeholder="e.g. Spouse/Child" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            )}
+          </Form.Item>
+        </div>
 
         <Divider>Items Details</Divider>
         <Row gutter={16} align="middle">

@@ -2,12 +2,13 @@ import React from "react";
 import { Card, Row, Col, Typography, Space, Tabs, Statistic, Spin } from "antd";
 import {
   SendOutlined, TeamOutlined, BarChartOutlined,
-  RiseOutlined, MessageOutlined, AimOutlined
+  RiseOutlined, MessageOutlined, AimOutlined, BellOutlined
 } from "@ant-design/icons";
 import useFetch from "../../hooks/useFetch";
 import CustomerListTab from "./components/CustomerListTab";
 import SocialAdsTab from "./components/SocialAdsTab";
 import TemplatesTab from "./components/TemplatesTab";
+import RemindersTab from "./components/RemindersTab";
 import "./MarketingPage.css";
 
 const { Title, Text } = Typography;
@@ -70,6 +71,11 @@ const MarketingPage = () => {
             key: "customers",
             label: <Space><TeamOutlined />Customer WhatsApp</Space>,
             children: <CustomerListTab />,
+          },
+          {
+            key: "reminders",
+            label: <Space><BellOutlined />Smart Reminders</Space>,
+            children: <RemindersTab />,
           },
           {
             key: "social-ads",

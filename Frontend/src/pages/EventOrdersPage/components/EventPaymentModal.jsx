@@ -1,5 +1,7 @@
 import React, { useEffect, memo } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Grid } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Grid, Typography, Divider } from "antd";
+
+const { Text } = Typography;
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -50,6 +52,28 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
             </Form.Item>
           </Col>
         </Row>
+        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.method !== curr.method}>
+          {({ getFieldValue }) => {
+            const method = getFieldValue("method");
+            if (method === "phonepay" || method === "gpay") {
+              return (
+                <div style={{ textAlign: "center", margin: "20px 0" }}>
+                  <Text strong>Scan to Pay ₹{form.getFieldValue("amount") || order?.totalAmount - (order?.paidAmount || 0)}</Text>
+                  <Divider style={{ margin: "10px 0" }} />
+                  <img 
+                    src="/assets/qrcode.jpeg" 
+                    alt="Payment QR Code" 
+                    style={{ width: "200px", height: "200px", objectFit: "contain", borderRadius: 8, border: "1px solid #e2e8f0" }} 
+                  />
+                  <div style={{ marginTop: 8 }}>
+                    <Text type="secondary">Customer must enter the amount manually after scanning.</Text>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          }}
+        </Form.Item>
         <Form.Item noStyle shouldUpdate={(prev, curr) => prev.method !== curr.method}>
           {({ getFieldValue }) => getFieldValue("method") === "card" && (
             <Form.Item name="cardId" label="Card ID" rules={[{ required: true }]}>

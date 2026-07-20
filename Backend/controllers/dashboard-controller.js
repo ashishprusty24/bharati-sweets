@@ -2,6 +2,7 @@ const EventOrder = require("../models/EventOrder");
 const RegularOrder = require("../models/RegularOrder");
 const Expense = require("../models/Expense");
 const Inventory = require("../models/Inventory");
+const Reminder = require("../models/Reminder");
 
 const getSummaryData = async (period = "30d") => {
   try {
@@ -223,10 +224,50 @@ const getPendingOrders = async () => {
   }
 };
 
+const getUpcomingReminders = async () => {
+  try {
+    const today = new Date();
+    const nextMonth = new Date();
+    nextMonth.setDate(today.getDate() + 30);
+    const upcoming = [];
+    
+    // Fetch from Reminder collection (The single source of truth for explicit reminders)
+    const reminders = await Reminder.find();
+    reminders.forEach(reminder => {
+      const anniv = new Date(reminder.eventDate);
+      const thisYearAnniv = new Date(today.getFullYear(), anniv.getMonth(), anniv.getDate());
+      
+      if (thisYearAnniv < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        thisYearAnniv.setFullYear(today.getFullYear() + 1);
+      }
+
+      if (thisYearAnniv >= today && thisYearAnniv <= nextMonth) {
+        upcoming.push({
+          id: reminder._id,
+          customerName: reminder.customerName,
+          spouseName: reminder.secondaryName,
+          phone: reminder.phone,
+          date: thisYearAnniv,
+          originalDate: reminder.eventDate,
+          eventType: reminder.eventType || "Event"
+        });
+      }
+    });
+
+    // Sort by nearest date
+    upcoming.sort((a, b) => a.date - b.date);
+
+    return upcoming.slice(0, 10); // Return top 10
+  } catch (err) {
+    throw { status: 500, message: err.message };
+  }
+};
+
 module.exports = {
   getSummaryData,
   getSalesData,
   getExpensesData,
   getPopularProducts,
   getPendingOrders,
+  getUpcomingReminders,
 };

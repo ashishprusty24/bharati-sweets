@@ -16,8 +16,8 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       <Tag 
         style={{ 
           color: statusInfo?.color || "#64748b", 
-          background: `${statusInfo?.color}1a` || "#f1f5f9",
-          border: `1px solid ${statusInfo?.color}33` || "#e2e8f0",
+          background: statusInfo?.color ? `${statusInfo.color}1a` : "#f1f5f9",
+          border: statusInfo?.color ? `1px solid ${statusInfo.color}33` : "1px solid #e2e8f0",
           borderRadius: 6,
           fontWeight: 600,
           margin: 0,

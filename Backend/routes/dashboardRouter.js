@@ -50,4 +50,13 @@ router.get("/pending-orders", async (req, res) => {
   }
 });
 
+router.get("/upcoming-reminders", async (req, res) => {
+  try {
+    const data = await dashboardController.getUpcomingReminders();
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
