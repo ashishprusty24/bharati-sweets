@@ -137,6 +137,14 @@ const EventOrdersPage = () => {
         deliveryDate: values.deliveryDate.toISOString(),
       };
 
+      if (!editingOrder && values.advancePayment > 0 && values.advancePaymentMethod) {
+        orderData.payments = [{
+          amount: values.advancePayment,
+          method: values.advancePaymentMethod,
+          timestamp: new Date()
+        }];
+      }
+
       if (editingOrder) {
         await api.put(`/event-orders/${editingOrder._id}/update`, orderData);
         message.success("Order updated successfully");

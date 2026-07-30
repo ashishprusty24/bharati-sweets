@@ -13,6 +13,7 @@ import {
   ShareAltOutlined,
   CalendarOutlined,
   InboxOutlined,
+  CreditCardOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -45,6 +46,7 @@ const Sidebar = ({
     { key: "/expenses", icon: <ShopOutlined />, name: "Expenses" },
     { key: "/accounting", icon: <DollarOutlined />, name: "Accounting" },
     { key: "/ledger", icon: <WalletOutlined />, name: "Daily Ledger" },
+    { key: "/credit-cards", icon: <CreditCardOutlined />, name: "Credit Cards" },
     { key: "/marketing", icon: <ShareAltOutlined />, name: "Marketing" },
     { key: "/vendors", icon: <UserOutlined />, name: "Vendors" },
     { key: "/staff", icon: <TeamOutlined />, name: "Staff" },

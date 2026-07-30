@@ -18,6 +18,8 @@ const dailyLedgerSchema = new mongoose.Schema(
     digitalSales: { type: Number, default: 0 }, // PhonePe, GPay
     totalExpenses: { type: Number, default: 0 },
     otherIncome: { type: Number, default: 0 },
+    cashToHome: { type: Number, default: 0 },         // Cash taken home at end of day
+    digitalToHome: { type: Number, default: 0 },       // Digital funds transferred to personal
     items: [ledgerItemSchema],
     closingBalance: { type: Number, default: 0 }, // Represents closingCashBalance
     closingBankBalance: { type: Number, default: 0 },

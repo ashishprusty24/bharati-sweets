@@ -42,10 +42,81 @@ const createEventOrder = (payload) => {
 
       // Seed initial receipt
       await generateBookingReceipt(savedOrder);
+      const bookingReceiptUrl = `${API_BASE_URL}/receipts/booking_${savedOrder._id}.pdf`;
+
+      try {
+        const response = await fetch(
+          `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378"}/messages`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "template",
+              template: {
+                name: "booking_receipt",
+                language: { code: "en_US" },
+                components: [
+                  {
+                    type: "header",
+                    parameters: [
+                      {
+                        type: "document",
+                        document: {
+                          link: bookingReceiptUrl,
+                          filename: `booking_${savedOrder._id}.pdf`,
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    type: "body",
+                    parameters: [
+                      { type: "text", text: savedOrder.customerName },
+                      { type: "text", text: `${savedOrder._id}` },
+                      { type: "text", text: savedOrder.purpose },
+                      { type: "text", text: `${savedOrder.paidAmount}` },
+                      { type: "text", text: `${savedOrder.totalAmount}` },
+                      {
+                        type: "text",
+                        text: `₹${savedOrder.totalAmount - savedOrder.paidAmount}`,
+                      },
+                    ],
+                  },
+                  {
+                    type: "button",
+                    sub_type: "url",
+                    index: "0",
+                    parameters: [
+                      {
+                        type: "text",
+                        text: bookingReceiptUrl,
+                      },
+                    ],
+                  },
+                ],
+              },
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`WhatsApp API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ WhatsApp message sent successfully:", data);
+      } catch (whatsappError) {
+        console.error("❌ Failed to send WhatsApp message:", whatsappError);
+      }
 
       resolve({
         ...savedOrder.toObject(),
-        bookingReceiptUrl: `${API_BASE_URL}/receipts/booking_${savedOrder._id}.pdf`,
+        bookingReceiptUrl,
       });
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -65,8 +136,133 @@ const addPayment = (orderId, paymentData) => {
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
         await generateFinalInvoice(updatedOrder);
+        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf`;
+
+        try {
+          const response = await fetch(
+            `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378"}/messages`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: updatedOrder.phone,
+                type: "template",
+                template: {
+                  name: "final_invoice",
+                  language: { code: "en_US" },
+                  components: [
+                    {
+                      type: "header",
+                      parameters: [
+                        {
+                          type: "document",
+                          document: {
+                            link: invoiceUrl,
+                            filename: `final_${updatedOrder._id}.pdf`,
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "body",
+                      parameters: [
+                        { type: "text", text: updatedOrder.customerName },
+                        { type: "text", text: `${updatedOrder._id}` },
+                        { type: "text", text: updatedOrder.purpose },
+                        { type: "text", text: `${updatedOrder.totalAmount}` },
+                        { type: "text", text: `${updatedOrder.paidAmount}` },
+                      ],
+                    },
+                    {
+                      type: "button",
+                      sub_type: "url",
+                      index: "0",
+                      parameters: [
+                        {
+                          type: "text",
+                          text: invoiceUrl,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`WhatsApp API error: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("✅ Final Invoice WhatsApp message sent:", data);
+        } catch (whatsappError) {
+          console.error("❌ Failed to send WhatsApp message:", whatsappError);
+        }
       } else {
         await generatePartialInvoice(updatedOrder);
+        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf`;
+        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
+
+        try {
+          const response = await fetch(
+            `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378"}/messages`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: updatedOrder.phone,
+                type: "template",
+                template: {
+                  name: "partial_payment_invoice",
+                  language: { code: "en_US" },
+                  components: [
+                    {
+                      type: "header",
+                      parameters: [
+                        {
+                          type: "document",
+                          document: {
+                            link: partialInvoiceUrl,
+                            filename: `partial_${updatedOrder._id}.pdf`,
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "body",
+                      parameters: [
+                        { type: "text", text: updatedOrder.customerName },
+                        { type: "text", text: `${updatedOrder._id}` },
+                        { type: "text", text: updatedOrder.purpose },
+                        { type: "text", text: `${updatedOrder.totalAmount}` },
+                        { type: "text", text: `${updatedOrder.paidAmount}` },
+                        { type: "text", text: `${balance}` },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`WhatsApp API error: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("✅ Partial Payment WhatsApp message sent:", data);
+        } catch (whatsappError) {
+          console.error("❌ Failed to send WhatsApp partial payment:", whatsappError);
+        }
       }
       // Also regenerate the booking receipt to reflect current balance
       await generateBookingReceipt(updatedOrder);

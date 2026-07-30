@@ -17,6 +17,7 @@ const regularOrderSchema = new mongoose.Schema(
     customerName: { type: String, required: true },
     phone: { type: String, required: true },
     items: [regularOrderItemSchema],
+    totalAmount: { type: Number, required: true },
     payment: {
       amount: { type: Number, required: true },
       method: {

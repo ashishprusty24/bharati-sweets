@@ -7,6 +7,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 const signUp = ({ username, email, password }) => {
   return new Promise(async (resolve, reject) => {
     try {
+      console.log(99);
+
       const existingUser = await User.findOne({ email });
       if (existingUser) return reject({ status: 400, message: "Email already exists" });
 
