@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 
 import Inventory from "../pages/InventoryPage/InventoryPage";
-import RegularOrders from "../pages/RegularOrdersPage/RegularOrdersPage";
 import VendorsPage from "../pages/VendorsPage/VendorsPage";
 import EventOrdersPage from "../pages/EventOrdersPage/EventOrdersPage";
 import ExpensesPage from "../pages/ExpensesPage/ExpensesPage";
@@ -28,7 +27,6 @@ const AppRouter = () => (
       
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
-        <Route path="regular-orders" element={<RegularOrders />} />
         <Route path="event-orders" element={<EventOrdersPage />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="accounting" element={<AccountingPage />} />

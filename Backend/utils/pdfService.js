@@ -59,48 +59,49 @@ const invoiceTemplate = (order, title, status) => {
 <head>
   <title>${title}</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #1f2937; background-color: white; }
-    .container { max-width: 100%; margin: 0 auto; padding: 10px; }
-    .header { display: table; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 20px; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #1f2937; background-color: white; font-size: 11px; line-height: 1.3; }
+    .container { max-width: 100%; margin: 0 auto; padding: 5px; page-break-inside: avoid; }
+    .header { display: table; width: 100%; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 10px; }
     .header > div { display: table-cell; vertical-align: bottom; }
     .header-left { width: 50%; }
     .header-right { width: 50%; text-align: right; }
-    h2 { margin: 0; color: #333; font-size: 24px; }
-    p { font-size: 13px; color: #555; margin: 0; }
-    .divider { border-top: 1px solid #eee; margin: 20px 0; }
-    .details-table { width: 100%; margin-bottom: 20px; }
+    h2 { margin: 0; color: #333; font-size: 20px; }
+    p { font-size: 11px; color: #555; margin: 0; }
+    h4 { margin: 8px 0 4px 0; font-size: 13px; }
+    .divider { border-top: 1px solid #eee; margin: 10px 0; }
+    .details-table { width: 100%; margin-bottom: 10px; }
     .details-table td { vertical-align: top; }
     .details-table td:first-child { width: 50%; }
     .details-table td:last-child { width: 50%; text-align: right; }
 
-    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .items-table th, .items-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-align: center; }
+    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .items-table th, .items-table td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-align: center; }
     .items-table th:first-child, .items-table td:first-child { text-align: left; }
 
     /* ✅ Two-column layout fixes */
     .two-column-items-table {
       width: 100%;
       border-collapse: separate !important;
-      border-spacing: 20px 0; /* spacing between the two columns */
+      border-spacing: 10px 0;
     }
     .two-column-items-table td {
       width: 50%;
       vertical-align: top;
-      padding: 10px; /* padding inside each column */
+      padding: 4px;
     }
 
-    .summary-cards-table { width: 100%; margin-top: 24px; }
-    .summary-cards-table td { padding: 0 8px; vertical-align: top; }
-    .delivery-card, .total-card { padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .summary-cards-table { width: 100%; margin-top: 10px; }
+    .summary-cards-table td { padding: 0 4px; vertical-align: top; }
+    .delivery-card, .total-card { padding: 10px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .delivery-card { background: linear-gradient(135deg, #e6f7ff, #f0f5ff); text-align: center; }
     .total-card { background: #fffbe6; text-align: right; }
-    .card-title { font-weight: bold; font-size: 18px; display: block; margin-bottom: 6px; }
-    .card-text { font-size: 16px; color: #555; }
-    .total-card h3 { margin: 10px 0 5px 0; color: #141414; }
-    .paid-text { display: block; margin-bottom: 4px; }
+    .card-title { font-weight: bold; font-size: 14px; display: block; margin-bottom: 4px; }
+    .card-text { font-size: 13px; color: #555; }
+    .total-card h3 { margin: 6px 0 4px 0; color: #141414; font-size: 16px; }
+    .paid-text { display: block; margin-bottom: 2px; }
     .balance-text { font-weight: bold; color: #d9363e; }
-    .footer { text-align: center; margin-top: 30px; font-size: 14px; color: #555; }
-    .footer .address { font-size: 12px; color: #777; margin-top: 10px; }
+    .footer { text-align: center; margin-top: 15px; font-size: 11px; color: #555; page-break-inside: avoid; }
+    .footer .address { font-size: 10px; color: #777; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -273,7 +274,7 @@ const invoiceTemplate = (order, title, status) => {
                <p>Discount: <b style="color: #d9363e;">-₹${discountPerPacket.toFixed(2)}</b></p>
                <p>Net per Packet: <b>₹${finalPacketPrice}</b></p>
                <p>Packets: <b>${packets}</b></p>
-               <div style="border-top: 2px solid #ddd; margin: 8px 0; padding-top: 8px;">
+               <div style="border-top: 2px solid #ddd; margin: 4px 0; padding-top: 4px;">
                  <h3>Total: ₹${calculatedTotal}</h3>
                </div>
                <p class="paid-text">Paid: ₹${totalPaid}</p>
@@ -291,9 +292,9 @@ const invoiceTemplate = (order, title, status) => {
     ${
       (status === "BOOKING RECEIPT" || status === "PARTIALLY PAID" || status === "BALANCE DUE") && qrCodeBase64
         ? `
-        <div style="text-align: center; margin-bottom: 20px;">
-          <p style="font-weight: bold; margin-bottom: 5px;">Scan to pay balance (₹${balance})</p>
-          <img src="${qrCodeBase64}" style="width: 120px; height: 120px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px;" />
+        <div style="text-align: center; margin-bottom: 10px;">
+          <p style="font-weight: bold; margin-bottom: 4px; font-size: 12px;">Scan to pay balance (₹${balance})</p>
+          <img src="${qrCodeBase64}" style="width: 150px; height: 150px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; display: inline-block;" />
         </div>
         `
         : ""

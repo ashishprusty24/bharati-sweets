@@ -207,10 +207,30 @@ Thank you for choosing Bharati Sweets! 🍬`;
 
   const handlePaymentSave = async (paymentData) => {
     try {
-      message.success("Payment recorded");
+      if (!currentOrder?._id) return;
+      const res = await fetch(`/api/event-orders/${currentOrder._id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!res.ok) throw new Error("Failed to record payment");
+      
+      const updated = await res.json();
+      message.success("Payment recorded successfully");
       setIsPaymentModalVisible(false);
+
+      const total = updated.totalAmount || currentOrder.totalAmount || 0;
+      const paid = updated.paidAmount || updated.advancePaid || ((currentOrder.paidAmount || 0) + Number(paymentData.amount));
+      const balance = total - paid;
+      const text = `Namaste ${currentOrder.customerName}! Payment of ₹${paymentData.amount} received for order #${(currentOrder._id || "").slice(-6).toUpperCase()}.\nTotal Paid: ₹${paid}\nRemaining Balance: ₹${balance > 0 ? balance : 0}\nThank you! - Bharati Sweets`;
+      const phone = (currentOrder.phone || currentOrder.customerPhone || "").replace(/\D/g, "");
+      const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, "_blank");
+
       fetchData();
     } catch (error) {
+      console.error(error);
       message.error("Failed to record payment");
     }
   };

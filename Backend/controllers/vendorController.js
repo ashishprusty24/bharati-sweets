@@ -56,6 +56,9 @@ const deleteVendor = (vendorId) => {
   });
 };
 
+const DailyLedger = require("../models/DailyLedger");
+const HomeExpense = require("../models/HomeExpense");
+
 const makePayment = (vendorId, paymentData) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -64,11 +67,75 @@ const makePayment = (vendorId, paymentData) => {
         return reject({ status: 404, message: "Vendor not found" });
       }
 
-      vendor.transactions.push(paymentData);
+      const txDate = paymentData.date ? new Date(paymentData.date) : new Date();
+      const newTx = {
+        ...paymentData,
+        date: txDate,
+      };
+
+      vendor.transactions.push(newTx);
       vendor.paymentDue -= paymentData.amount;
-      vendor.lastPaymentDate = paymentData.date;
+      vendor.lastPaymentDate = txDate;
 
       const updatedVendor = await vendor.save();
+
+      const isBank = ["phonepe", "gpay", "paytm", "card", "bank"].includes(
+        (paymentData.paymentMethod || "").toLowerCase()
+      );
+
+      // 1. Sync to HomeExpense
+      try {
+        const homeExp = new HomeExpense({
+          date: txDate,
+          description: `Vendor Payment: ${vendor.name}`,
+          amount: Number(paymentData.amount) || 0,
+          category: "supplier_payment",
+          paymentSource: isBank ? "bank_account" : "home_cash",
+          vendorId: vendor._id,
+        });
+        await homeExp.save();
+      } catch (hErr) {
+        console.error("Vendor payment home expense sync failed:", hErr);
+      }
+
+      // 2. Sync payment to Daily Ledger for that date
+      try {
+        const dayjs = require("dayjs");
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+
+        if (!ledger) {
+          const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+          const prevLedger = await DailyLedger.findOne({ date: prevDay });
+          const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+          const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+
+          ledger = new DailyLedger({
+            date: targetDate,
+            openingBalance,
+            openingBankBalance,
+            items: [],
+          });
+        }
+
+        ledger.items.push({
+          description: `Vendor Payment: ${vendor.name}`,
+          amount: Number(paymentData.amount) || 0,
+          type: "expense",
+          category: "supplier_payment",
+          vendorId: vendor._id,
+          paymentMode: isBank ? "bank" : "cash",
+        });
+
+        ledger.totalExpenses = ledger.items
+          .filter((i) => i.type === "expense")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+        await ledger.save();
+      } catch (syncErr) {
+        console.error("Vendor payment ledger sync failed:", syncErr);
+      }
+
       resolve(updatedVendor);
     } catch (err) {
       reject({ status: 400, message: err.message });

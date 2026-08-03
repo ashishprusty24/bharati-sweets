@@ -1,9 +1,5 @@
-import RegularOrdersView from "../../features/orders/components/RegularOrdersView";
-
-export const metadata = {
-  title: "Regular Orders - Bharati Sweets",
-};
+import { redirect } from "next/navigation";
 
 export default function RegularOrdersPage() {
-  return <RegularOrdersView />;
+  redirect("/event-orders");
 }

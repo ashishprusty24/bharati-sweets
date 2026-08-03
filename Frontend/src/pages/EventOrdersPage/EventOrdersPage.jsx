@@ -195,12 +195,32 @@ const EventOrdersPage = () => {
 
   const handlePaymentSave = async (paymentData) => {
     try {
-      await api.post(`/event-orders/${currentOrder._id}/payments`, paymentData);
+      const res = await api.post(`/event-orders/${currentOrder._id}/payments`, paymentData);
       message.success("Payment recorded successfully");
       setIsPaymentModalVisible(false);
+      
+      const updated = res.data || res;
+      const total = updated.totalAmount || currentOrder.totalAmount;
+      const paid = updated.paidAmount || ((currentOrder.paidAmount || 0) + Number(paymentData.amount));
+      const balance = total - paid;
+      
+      Modal.confirm({
+        title: "Send WhatsApp Payment Update?",
+        content: `Payment of ₹${paymentData.amount} recorded.\nTotal Paid: ₹${paid}\nBalance Due: ₹${balance > 0 ? balance : 0}`,
+        okText: "Open WhatsApp",
+        cancelText: "Close",
+        onOk: () => {
+          const text = `Namaste ${currentOrder.customerName}! Payment of ₹${paymentData.amount} received for order #${currentOrder._id.slice(-6).toUpperCase()}.\nTotal Paid So Far: ₹${paid}\nRemaining Balance: ₹${balance > 0 ? balance : 0}\nThank you! - Bharati Sweets`;
+          const phone = (currentOrder.phone || "").replace(/\D/g, "");
+          const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+          window.open(url, "_blank");
+        }
+      });
+      
       refetch();
     } catch (error) {
       console.error(error);
+      message.error("Failed to record payment");
     }
   };
 

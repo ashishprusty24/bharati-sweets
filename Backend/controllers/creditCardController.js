@@ -65,11 +65,98 @@ const deleteCard = (id) => {
 
 // --- Transaction operations ---
 
+const DailyLedger = require("../models/DailyLedger");
+const HomeExpense = require("../models/HomeExpense");
+
 const addTransaction = (cardId, txnData) => {
   return new Promise(async (resolve, reject) => {
     try {
       const card = await CreditCard.findById(cardId);
       if (!card) return reject({ status: 404, message: "Card not found" });
+
+      const merchantName = (txnData.merchant || txnData.description || "").trim();
+      const txDate = txnData.date ? new Date(txnData.date) : new Date();
+
+      if (merchantName) {
+        try {
+          let vendor = await Vendor.findOne({ name: new RegExp("^" + merchantName + "$", "i") });
+          if (!vendor) {
+            vendor = new Vendor({
+              name: merchantName,
+              type: "other",
+              contact: "Auto-created from Credit Card",
+              address: "N/A",
+              rate: 0,
+            });
+            await vendor.save();
+          }
+
+          if (vendor) {
+            vendor.transactions.push({
+              date: txDate,
+              quantity: 1,
+              amount: Number(txnData.amount) || 0,
+              paymentMethod: "card",
+              card: card._id,
+            });
+            vendor.lastPaymentDate = txDate;
+            await vendor.save();
+          }
+        } catch (vErr) {
+          console.error("Auto-vendor creation error in credit card transaction:", vErr);
+        }
+      }
+
+      // Sync to HomeExpense
+      try {
+        const homeExp = new HomeExpense({
+          date: txDate,
+          description: merchantName ? `CC Payment: ${merchantName}` : "Credit Card Transaction",
+          amount: Number(txnData.amount) || 0,
+          category: "credit_card_bill",
+          paymentSource: "bank_account",
+          creditCardId: card._id,
+        });
+        await homeExp.save();
+      } catch (hErr) {
+        console.error("CC txn home expense sync error:", hErr);
+      }
+
+      // Sync to Daily Ledger
+      try {
+        const dayjs = require("dayjs");
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+        if (!ledger) {
+          const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+          const prevLedger = await DailyLedger.findOne({ date: prevDay });
+          const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+          const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+
+          ledger = new DailyLedger({
+            date: targetDate,
+            openingBalance,
+            openingBankBalance,
+            items: [],
+          });
+        }
+
+        ledger.items.push({
+          description: merchantName ? `CC Payment: ${merchantName}` : "Credit Card Transaction",
+          amount: Number(txnData.amount) || 0,
+          type: "expense",
+          category: "credit_card_bill",
+          paymentMode: "bank",
+        });
+
+        ledger.totalExpenses = ledger.items
+          .filter((i) => i.type === "expense")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+        await ledger.save();
+      } catch (lErr) {
+        console.error("CC txn daily ledger sync error:", lErr);
+      }
 
       card.transactions.push(txnData);
       await card.save();

@@ -29,7 +29,6 @@ const Sidebar = ({ collapsed, setCollapsed, drawerVisible, setDrawerVisible }) =
 
   const menuItems = [
     { key: "/", icon: <DashboardOutlined />, name: "Dashboard" },
-    { key: "/regular-orders", icon: <ShoppingCartOutlined />, name: "Regular Orders" },
     { key: "/event-orders", icon: <CalendarOutlined />, name: "Event Orders" },
     { key: "/inventory", icon: <InboxOutlined />, name: "Inventory" },
     { key: "/accounting", icon: <DollarOutlined />, name: "Accounting" },

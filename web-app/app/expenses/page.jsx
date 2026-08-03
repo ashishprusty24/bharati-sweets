@@ -1,9 +1,9 @@
-import ExpensesView from "../../features/expenses/components/ExpensesView";
+import HomeExpensesView from "../../features/expenses/components/HomeExpensesView";
 
 export const metadata = {
   title: "Expenses - Bharati Sweets",
 };
 
 export default function ExpensesPage() {
-  return <ExpensesView />;
+  return <HomeExpensesView />;
 }

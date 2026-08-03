@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const inventoryRoutes = require("./inventoryRoutes");
-const regularOrderRoutes = require("./regularOrderRoutes");
 const eventOrderRoutes = require("./eventOrderRoutes");
 const vendorRoutes = require("./vendorRoutes");
 const creditCardRoutes = require("./creditCardRoutes");
@@ -18,7 +17,6 @@ const reminderRoutes = require("./reminderRouter");
 const homeExpenseRoutes = require("./homeExpenseRoutes");
 
 router.use("/inventory", inventoryRoutes);
-router.use("/regular-orders", regularOrderRoutes);
 router.use("/event-orders", eventOrderRoutes);
 router.use("/vendors", vendorRoutes);
 router.use("/credit-cards", creditCardRoutes);

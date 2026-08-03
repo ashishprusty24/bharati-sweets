@@ -8,6 +8,7 @@ const homeExpenseSchema = new mongoose.Schema(
     category: {
       type: String,
       enum: [
+        "home_intake",
         "staff_salary",
         "supplier_payment",
         "personal",

@@ -62,7 +62,7 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods = [], onCancel,
                   <img 
                     src="/assets/qrcode.jpeg" 
                     alt="Payment QR Code" 
-                    style={{ width: "200px", height: "200px", objectFit: "contain", borderRadius: 8, border: "1px solid #e2e8f0" }} 
+                    style={{ width: "220px", height: "220px", objectFit: "contain", borderRadius: 8, border: "1px solid #e2e8f0", padding: "4px" }} 
                   />
                   <div style={{ marginTop: 8 }}>
                     <Text type="secondary">Customer must enter the amount manually after scanning.</Text>

@@ -130,13 +130,18 @@ const addPayment = (orderId, paymentData) => {
       const order = await EventOrder.findById(orderId);
       if (!order) return reject({ status: 404, message: "Order not found" });
 
-      order.payments.push(paymentData);
-      order.paidAmount += paymentData.amount;
+      order.payments.push({
+        ...paymentData,
+        date: paymentData.date || new Date(),
+      });
+      order.paidAmount = order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
       const updatedOrder = await order.save();
+
+      const timestamp = Date.now();
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
         await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf`;
+        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
 
         try {
           const response = await fetch(
@@ -195,17 +200,18 @@ const addPayment = (orderId, paymentData) => {
           );
 
           if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.statusText}`);
+            const errData = await response.json().catch(() => ({}));
+            console.error("WhatsApp API error for final invoice:", response.status, errData);
+          } else {
+            const data = await response.json();
+            console.log("✅ Final Invoice WhatsApp message sent:", data);
           }
-
-          const data = await response.json();
-          console.log("✅ Final Invoice WhatsApp message sent:", data);
         } catch (whatsappError) {
           console.error("❌ Failed to send WhatsApp message:", whatsappError);
         }
       } else {
         await generatePartialInvoice(updatedOrder);
-        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf`;
+        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
         try {
@@ -255,11 +261,12 @@ const addPayment = (orderId, paymentData) => {
           );
 
           if (!response.ok) {
-            throw new Error(`WhatsApp API error: ${response.statusText}`);
+            const errData = await response.json().catch(() => ({}));
+            console.error("WhatsApp API error for partial invoice:", response.status, errData);
+          } else {
+            const data = await response.json();
+            console.log("✅ Partial Payment WhatsApp message sent for installment:", data);
           }
-
-          const data = await response.json();
-          console.log("✅ Partial Payment WhatsApp message sent:", data);
         } catch (whatsappError) {
           console.error("❌ Failed to send WhatsApp partial payment:", whatsappError);
         }
