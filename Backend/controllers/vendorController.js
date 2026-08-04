@@ -136,6 +136,26 @@ const makePayment = (vendorId, paymentData) => {
         console.error("Vendor payment ledger sync failed:", syncErr);
       }
 
+      // 3. Sync to CreditCard model if paid via Card
+      if (paymentData.paymentMethod === "card" && paymentData.card) {
+        try {
+          const CreditCard = require("../models/CreditCard");
+          const card = await CreditCard.findById(paymentData.card);
+          if (card) {
+            card.transactions.push({
+              date: txDate,
+              description: `Payment to Vendor: ${vendor.name}`,
+              amount: Number(paymentData.amount) || 0,
+              category: "supplier_payment",
+              isSettled: false,
+            });
+            await card.save();
+          }
+        } catch (cErr) {
+          console.error("Vendor payment credit card sync failed:", cErr);
+        }
+      }
+
       resolve(updatedVendor);
     } catch (err) {
       reject({ status: 400, message: err.message });

@@ -78,7 +78,7 @@ const PaymentModal = ({ visible, vendor, creditCards, paymentMethods, onCancel, 
               {({ getFieldValue }) => getFieldValue("paymentMethod") === "card" && (
                 <Form.Item name="card" label="Credit Card" rules={[{ required: true }]}>
                   <Select placeholder="Select card">
-                    {creditCards.map(c => <Option key={c._id} value={c._id}>{c.name} (****{c.last4})</Option>)}
+                    {creditCards.map(c => <Option key={c._id} value={c._id}>{c.cardName || c.name} (****{c.last4Digits || c.last4})</Option>)}
                   </Select>
                 </Form.Item>
               )}

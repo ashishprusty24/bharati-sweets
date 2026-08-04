@@ -35,8 +35,8 @@ const Vendor = require("../models/Vendor");
 const createHomeExpense = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Auto-vendor creation and transaction logging
-      if (data.description && data.category !== "personal") {
+      // Auto-vendor creation and transaction logging for any named expense item (e.g., Electricity Bill, Pradip Alu wala)
+      if (data.description && data.category !== "home_intake") {
         try {
           const vendorName = data.description.trim();
           let vendor = null;
@@ -188,11 +188,35 @@ const getHomeExpenseSummary = (query = {}) => {
         return acc;
       }, {});
 
+      const bySourceTag = expenses.reduce((acc, e) => {
+        const tag = e.sourceTag || "direct";
+        acc[tag] = (acc[tag] || 0) + (e.amount || 0);
+        return acc;
+      }, {});
+
+      // Home intake breakdown (cash vs bank)
+      const homeIntakeExpenses = expenses.filter(
+        (e) => e.category === "home_intake" || e.category === "personal"
+      );
+      const homeIntakeCash = homeIntakeExpenses
+        .filter((e) => e.paymentSource === "home_cash")
+        .reduce((s, e) => s + (e.amount || 0), 0);
+      const homeIntakeBank = homeIntakeExpenses
+        .filter((e) => e.paymentSource === "bank_account")
+        .reduce((s, e) => s + (e.amount || 0), 0);
+      const homeIntakeTotal = homeIntakeCash + homeIntakeBank;
+
       resolve({
         total,
         count: expenses.length,
         byCategory,
         bySource,
+        bySourceTag,
+        homeIntakeSummary: {
+          total: homeIntakeTotal,
+          cash: homeIntakeCash,
+          bank: homeIntakeBank,
+        },
         period: { startDate, endDate },
       });
     } catch (err) {

@@ -175,10 +175,10 @@ const saveLedger = (date, payload) => {
 
             const descName = item.description.trim();
             let vendor = await Vendor.findOne({ name: new RegExp("^" + descName + "$", "i") });
-            if (!vendor && item.category === "supplier_payment") {
+            if (!vendor && item.description) {
               vendor = new Vendor({
                 name: descName,
-                type: "other",
+                type: item.category === "supplier_payment" ? "flour" : "other",
                 contact: "Auto-created from Ledger",
                 address: "N/A",
                 rate: 0,
@@ -210,6 +210,7 @@ const saveLedger = (date, payload) => {
                 amount: Number(item.amount) || 0,
                 category: item.category || "other",
                 paymentSource: item.paymentMode === "bank" ? "bank_account" : "home_cash",
+                sourceTag: "daily_ledger",
                 vendorId: vendor ? vendor._id : item.vendorId || null,
               });
               await newExp.save();

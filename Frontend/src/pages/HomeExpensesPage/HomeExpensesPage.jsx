@@ -32,6 +32,13 @@ const SOURCE_CONFIG = {
   bank_account: { label: "Bank Account", color: "#6366f1", bg: "#e0e7ff", icon: <BankOutlined /> },
 };
 
+const TAG_CONFIG = {
+  daily_ledger: { label: "Daily Ledger", color: "#2563eb", bg: "#dbeafe" },
+  expenses: { label: "Expenses", color: "#9333ea", bg: "#f3e8ff" },
+  event_order: { label: "Event Order", color: "#ea580c", bg: "#ffedd5" },
+  direct: { label: "Direct Home", color: "#16a34a", bg: "#dcfce7" },
+};
+
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
 const HomeExpensesPage = () => {
@@ -163,7 +170,7 @@ const HomeExpensesPage = () => {
   const openAddModal = () => {
     setEditingExpense(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash", category: "other" });
+    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash", category: "other", sourceTag: "direct" });
     setModalVisible(true);
   };
 
@@ -228,7 +235,7 @@ const HomeExpensesPage = () => {
     {
       title: "Paid From",
       dataIndex: "paymentSource",
-      width: 150,
+      width: 140,
       render: (src) => {
         const cfg = SOURCE_CONFIG[src] || SOURCE_CONFIG.home_cash;
         return (
@@ -242,6 +249,29 @@ const HomeExpensesPage = () => {
               padding: "4px 10px",
               fontWeight: 600,
               fontSize: 12,
+            }}
+          >
+            {cfg.label}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Origin Tag",
+      dataIndex: "sourceTag",
+      width: 130,
+      render: (tag) => {
+        const cfg = TAG_CONFIG[tag] || TAG_CONFIG.direct;
+        return (
+          <Tag
+            style={{
+              color: cfg.color,
+              background: cfg.bg,
+              border: `1px solid ${cfg.color}33`,
+              borderRadius: 8,
+              padding: "4px 10px",
+              fontWeight: 600,
+              fontSize: 11,
             }}
           >
             {cfg.label}
@@ -367,7 +397,35 @@ const HomeExpensesPage = () => {
           </Card>
         </Col>
 
-        {Object.entries(CATEGORY_CONFIG).slice(0, 3).map(([key, cfg]) => {
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 20,
+              background: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+              border: "1px solid #fbcfe8",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#be185d" }}>
+                Home Intake Tracking
+              </Text>
+              <HomeOutlined style={{ color: "#ec4899", fontSize: 16 }} />
+            </div>
+            <div style={{ marginTop: 6 }}>
+              <Text strong style={{ color: "#be185d", fontSize: 22, fontWeight: 800 }}>
+                ₹{(summary?.homeIntakeSummary?.total || 0).toLocaleString("en-IN")}
+              </Text>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 11 }}>
+              <span style={{ color: "#047857", fontWeight: 700 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.cash || 0).toLocaleString("en-IN")}</span>
+              <span style={{ color: "#4338ca", fontWeight: 700 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.bank || 0).toLocaleString("en-IN")}</span>
+            </div>
+          </Card>
+        </Col>
+
+        {Object.entries(CATEGORY_CONFIG).slice(1, 3).map(([key, cfg]) => {
           const categorySum = summary?.byCategory?.[key] || 0;
           const pct = totalAmount > 0 ? Math.round((categorySum / totalAmount) * 100) : 0;
           return (
@@ -411,6 +469,56 @@ const HomeExpensesPage = () => {
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Active Date Range Banner with Back Button */}
+          {(searchText || filterCategory !== "all" || datePreset !== "this_month") && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                border: "1px solid #93c5fd",
+                borderRadius: 14,
+                padding: "10px 18px",
+                display: "flex",
+                justify: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <Space size="middle">
+                <CalendarOutlined style={{ color: "#2563eb", fontSize: 18 }} />
+                <div>
+                  <Text strong style={{ color: "#1e3a8a", fontSize: 14, display: "block" }}>
+                    Filtered Search View Active
+                  </Text>
+                  <Text style={{ color: "#3b82f6", fontSize: 12 }}>
+                    {dateRange && dateRange[0] && dateRange[1]
+                      ? `Range: ${dateRange[0].format("DD MMM YYYY")} - ${dateRange[1].format("DD MMM YYYY")}`
+                      : `Preset: ${datePreset}`}
+                    {searchText ? ` | Search: "${searchText}"` : ""}
+                    {filterCategory !== "all" ? ` | Category: ${filterCategory}` : ""}
+                  </Text>
+                </div>
+              </Space>
+
+              <Button
+                type="primary"
+                danger
+                icon={<RollbackOutlined />}
+                onClick={resetFilters}
+                style={{
+                  borderRadius: 10,
+                  height: 38,
+                  fontWeight: 700,
+                  background: "#ef4444",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)",
+                }}
+              >
+                ← Back to All Expenses
+              </Button>
+            </div>
+          )}
+
           {/* Top Row: Search + Quick Presets + Date Range */}
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <Input
@@ -460,16 +568,6 @@ const HomeExpensesPage = () => {
                 format="DD MMM YYYY"
                 style={{ borderRadius: 10, height: 38, width: isMobile ? "100%" : 240 }}
               />
-
-              {(searchText || filterCategory !== "all" || datePreset !== "this_month") && (
-                <Button
-                  icon={<RollbackOutlined />}
-                  onClick={resetFilters}
-                  style={{ borderRadius: 10, height: 38 }}
-                >
-                  Reset
-                </Button>
-              )}
             </div>
           </div>
 
@@ -702,6 +800,16 @@ const HomeExpensesPage = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item name="sourceTag" label="Origin Tag (Daily Ledger, Expenses, Event Order, Direct)" initialValue="direct">
+            <Select placeholder="Select origin tag" style={{ height: 42 }}>
+              {Object.entries(TAG_CONFIG).map(([key, cfg]) => (
+                <Option key={key} value={key}>
+                  <Tag color={cfg.color} style={{ borderRadius: 6 }}>{cfg.label}</Tag>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="Any additional payment details..." style={{ borderRadius: 10 }} />
