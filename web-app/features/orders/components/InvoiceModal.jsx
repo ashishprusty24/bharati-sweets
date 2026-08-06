@@ -251,7 +251,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 9, color: "#78350f", padding: "0 4px" }}>
             <span style={{ textAlign: "left" }}>📍 Bharati Sweets, By Pass, Dala,<br/>&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</span>
-            <span style={{ textAlign: "center" }}>📞 +91 70089 14416</span>
+            <span style={{ textAlign: "center" }}>📞 +91 70089 14416 / +91 70080 84419</span>
             <span style={{ textAlign: "right" }}>✉️ bharatisweets@gmail.com</span>
           </div>
           <div style={{ height: 6, background: "repeating-linear-gradient(45deg, #4a151b, #4a151b 8px, #d97706 8px, #d97706 16px)", borderRadius: "0 0 10px 10px", marginTop: 10 }}></div>

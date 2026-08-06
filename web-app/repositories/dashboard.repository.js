@@ -1,9 +1,50 @@
 import connectDB from "../database/mongodb";
 import EventOrder from "../models/EventOrder";
-import RegularOrder from "../models/RegularOrder";
+import DailyLedger from "../models/DailyLedger";
 import Expense from "../models/Expense";
 import Inventory from "../models/Inventory";
 import Reminder from "../models/Reminder";
+
+const calculateLedgerSales = (ledger) => {
+  const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
+  const items = ledgerObj.items || [];
+  const cashExpenseTotal = items
+    .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const bankExpenseTotal = items
+    .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const cashIncomeTotal = items
+    .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const bankIncomeTotal = items
+    .filter((i) => i.type === "income" && i.paymentMode === "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+  const derivedCash = Math.max(
+    0,
+    Number(ledgerObj.closingBalance || 0) +
+      cashExpenseTotal +
+      Number(ledgerObj.cashToHome || 0) -
+      Number(ledgerObj.openingBalance || 0) -
+      Number(ledgerObj.otherIncome || 0) -
+      cashIncomeTotal
+  );
+
+  const derivedDigital = Math.max(
+    0,
+    Number(ledgerObj.closingBankBalance || 0) +
+      bankExpenseTotal +
+      Number(ledgerObj.digitalToHome || 0) -
+      Number(ledgerObj.openingBankBalance || 0) -
+      bankIncomeTotal
+  );
+
+  const cashSales = ledgerObj.cashSales || derivedCash;
+  const digitalSales = ledgerObj.digitalSales || derivedDigital;
+
+  return cashSales + digitalSales;
+};
 
 export class DashboardRepository {
   static async getMetrics(startDate) {
@@ -13,12 +54,10 @@ export class DashboardRepository {
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]);
 
-    const [regularSalesData] = await RegularOrder.aggregate([
-      { $match: { orderDate: { $gte: startDate } } },
-      { $group: { _id: null, total: { $sum: "$payment.amount" } } },
-    ]);
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate } }).lean();
+    const ledgerSalesTotal = ledgers.reduce((sum, l) => sum + calculateLedgerSales(l), 0);
 
-    const totalSales = (eventSalesData?.total || 0) + (regularSalesData?.total || 0);
+    const totalSales = (eventSalesData?.total || 0) + ledgerSalesTotal;
 
     const [expenseData] = await Expense.aggregate([
       { $match: { date: { $gte: startDate } } },
@@ -44,54 +83,35 @@ export class DashboardRepository {
     const groupFormat = period === "2y" ? "%Y-%m" : "%Y-%m-%d";
 
     const eventSales = await EventOrder.aggregate([
-      { $match: { eventDate: { $gte: startDate } } },
+      { $match: { deliveryDate: { $gte: startDate } } },
       {
         $group: {
-          _id: { $dateToString: { format: groupFormat, date: "$eventDate" } },
+          _id: { $dateToString: { format: groupFormat, date: "$deliveryDate" } },
           amount: { $sum: "$totalAmount" },
         },
       },
     ]);
 
-    const regularSales = await RegularOrder.aggregate([
-      { $match: { orderDate: { $gte: startDate } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: groupFormat, date: "$orderDate" } },
-          amount: { $sum: "$payment.amount" },
-        },
-      },
-    ]);
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate } }).lean();
+    const ledgerSales = ledgers.map((l) => {
+      const dateStr = new Date(l.date).toISOString().split("T")[0];
+      return {
+        _id: period === "2y" ? dateStr.slice(0, 7) : dateStr,
+        amount: calculateLedgerSales(l),
+      };
+    });
 
     const salesMap = {};
-    [...eventSales, ...regularSales].forEach((sale) => {
+    [...eventSales, ...ledgerSales].forEach((sale) => {
       salesMap[sale._id] = (salesMap[sale._id] || 0) + sale.amount;
     });
 
-    const salesData = [];
-    const today = new Date();
-    if (period === "2y") {
-      for (let i = 0; i <= 24; i++) {
-        const d = new Date(startDate);
-        d.setMonth(d.getMonth() + i);
-        if (d > today) break;
-        const monthStr = d.toISOString().split("-").slice(0, 2).join("-");
-        salesData.push({ date: monthStr, amount: salesMap[monthStr] || 0 });
-      }
-    } else {
-      for (let i = 0; i <= 30; i++) {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + i);
-        if (d > today) break;
-        const dateStr = d.toISOString().split("T")[0];
-        salesData.push({ date: dateStr, amount: salesMap[dateStr] || 0 });
-      }
-    }
-
-    return salesData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Object.entries(salesMap)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
   }
 
-  static async getExpenseBreakdown() {
+  static async getExpenseCategoryDistribution() {
     await connectDB();
     return await Expense.aggregate([
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
@@ -104,16 +124,15 @@ export class DashboardRepository {
     await connectDB();
     return await EventOrder.find({ status: "pending" })
       .sort({ eventDate: 1 })
-      .limit(5);
+      .limit(5)
+      .lean();
   }
 
-  static async getLowStockItems() {
+  static async getUpcomingReminders() {
     await connectDB();
-    return await Inventory.find({ quantity: { $lte: 10 } }).sort({ quantity: 1 });
-  }
-
-  static async getReminders() {
-    await connectDB();
-    return await Reminder.find().sort({ eventDate: 1 });
+    return await Reminder.find({ eventDate: { $gte: new Date() } })
+      .sort({ eventDate: 1 })
+      .limit(5)
+      .lean();
   }
 }

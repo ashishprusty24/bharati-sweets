@@ -55,14 +55,15 @@ const invoiceTemplate = (order, title, status) => {
     .toFixed(2);
   const balance = (calculatedTotal - totalPaid).toFixed(2);
 
+  const dayjs = require("dayjs");
+  const utcPlugin = require("dayjs/plugin/utc");
+  const tzPlugin = require("dayjs/plugin/timezone");
+  dayjs.extend(utcPlugin);
+  dayjs.extend(tzPlugin);
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return dayjs(dateString).tz("Asia/Kolkata").format("D MMMM, YYYY");
   };
 
   const activeLogo = logoBase64 || crestLogoSvg;
@@ -527,7 +528,7 @@ const invoiceTemplate = (order, title, status) => {
     <table class="footer-info-row">
       <tr>
         <td style="text-align: left;">📍 Bharati Sweets, By Pass, Dala,<br/>&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</td>
-        <td style="text-align: center;">📞 +91 70089 14416</td>
+        <td style="text-align: center;">📞 +91 70089 14416 / +91 70080 84419</td>
         <td style="text-align: right;">✉️ bharatisweets@gmail.com</td>
       </tr>
     </table>

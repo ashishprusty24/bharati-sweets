@@ -1,8 +1,50 @@
 const EventOrder = require("../models/EventOrder");
-const RegularOrder = require("../models/RegularOrder");
 const Expense = require("../models/Expense");
+const HomeExpense = require("../models/HomeExpense");
+const DailyLedger = require("../models/DailyLedger");
 const Inventory = require("../models/Inventory");
 const Reminder = require("../models/Reminder");
+
+const calculateLedgerSales = (ledger) => {
+  const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
+  const items = ledgerObj.items || [];
+  const cashExpenseTotal = items
+    .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const bankExpenseTotal = items
+    .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const cashIncomeTotal = items
+    .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const bankIncomeTotal = items
+    .filter((i) => i.type === "income" && i.paymentMode === "bank")
+    .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+  const derivedCash = Math.max(
+    0,
+    Number(ledgerObj.closingBalance || 0) +
+      cashExpenseTotal +
+      Number(ledgerObj.cashToHome || 0) -
+      Number(ledgerObj.openingBalance || 0) -
+      Number(ledgerObj.otherIncome || 0) -
+      cashIncomeTotal
+  );
+
+  const derivedDigital = Math.max(
+    0,
+    Number(ledgerObj.closingBankBalance || 0) +
+      bankExpenseTotal +
+      Number(ledgerObj.digitalToHome || 0) -
+      Number(ledgerObj.openingBankBalance || 0) -
+      bankIncomeTotal
+  );
+
+  const cashSales = ledgerObj.cashSales || derivedCash;
+  const digitalSales = ledgerObj.digitalSales || derivedDigital;
+
+  return cashSales + digitalSales;
+};
 
 const getSummaryData = async (period = "30d") => {
   try {
@@ -16,24 +58,30 @@ const getSummaryData = async (period = "30d") => {
     }
     startDate.setHours(0, 0, 0, 0);
 
-    // Use aggregation for total sales (delivered event orders + regular orders)
+    // Event sales
     const [eventSalesData] = await EventOrder.aggregate([
       { $match: { orderStatus: "delivered", deliveryDate: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } }
     ]);
 
-    const [regularSalesData] = await RegularOrder.aggregate([
-      { $match: { orderDate: { $gte: startDate } } },
-      { $group: { _id: null, total: { $sum: "$payment.amount" } } }
-    ]);
+    // Daily Ledger sales
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate } });
+    const ledgerSalesTotal = ledgers.reduce((sum, l) => sum + calculateLedgerSales(l), 0);
 
-    const totalSales = (eventSalesData?.total || 0) + (regularSalesData?.total || 0);
+    const totalSales = (eventSalesData?.total || 0) + ledgerSalesTotal;
 
     const [expenseData] = await Expense.aggregate([
       { $match: { date: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
-    const totalExpenses = expenseData?.total || 0;
+    const shopExpenses = expenseData?.total || 0;
+
+    // Include HomeExpense (non-intake) for total expenses
+    const [homeExpenseData] = await HomeExpense.aggregate([
+      { $match: { date: { $gte: startDate }, category: { $nin: ["home_intake", "personal"] } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    const totalExpenses = shopExpenses + (homeExpenseData?.total || 0);
 
     const netProfit = totalSales - totalExpenses;
     const pendingOrders = await EventOrder.countDocuments({ orderStatus: "pending" });
@@ -67,10 +115,6 @@ const getSalesData = async (period = "30d") => {
       orderStatus: "delivered", 
       deliveryDate: { $gte: startDate } 
     };
-    
-    const matchStageRegular = { 
-      orderDate: { $gte: startDate } 
-    };
 
     const groupFormat = period === "2y" ? "%Y-%m" : "%Y-%m-%d";
 
@@ -84,20 +128,19 @@ const getSalesData = async (period = "30d") => {
       }
     ]);
 
-    const regularSales = await RegularOrder.aggregate([
-      { $match: matchStageRegular },
-      {
-        $group: {
-          _id: { $dateToString: { format: groupFormat, date: "$orderDate" } },
-          amount: { $sum: "$payment.amount" }
-        }
-      }
-    ]);
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate } });
+    const ledgerSales = ledgers.map(l => {
+      const dateStr = l.date.toISOString().split("T")[0];
+      return {
+        _id: period === "2y" ? dateStr.slice(0, 7) : dateStr,
+        amount: calculateLedgerSales(l)
+      };
+    });
 
-    console.log(`[Dashboard] Fetched ${eventSales.length} event sales and ${regularSales.length} regular sales for period: ${period}`);
+    console.log(`[Dashboard] Fetched ${eventSales.length} event sales and ${ledgerSales.length} ledger sales for period: ${period}`);
 
     const salesMap = {};
-    [...eventSales, ...regularSales].forEach(sale => {
+    [...eventSales, ...ledgerSales].forEach(sale => {
       salesMap[sale._id] = (salesMap[sale._id] || 0) + sale.amount;
     });
 

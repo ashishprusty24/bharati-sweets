@@ -134,7 +134,7 @@ const EventOrdersPage = () => {
         items,
         subtotal,
         totalAmount,
-        deliveryDate: values.deliveryDate.toISOString(),
+        deliveryDate: values.deliveryDate.format("YYYY-MM-DD"),
       };
 
       if (!editingOrder && values.advancePayment > 0 && values.advancePaymentMethod) {

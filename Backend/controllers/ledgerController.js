@@ -140,9 +140,38 @@ const saveLedger = (date, payload) => {
         closingBankBalance = 0,
       } = payload;
 
-      const totalExpenses = items
-        .filter((i) => i.type === "expense")
+      // Compute derived sales to persist in MongoDB
+      const cashExpenseTotal = items
+        .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const bankExpenseTotal = items
+        .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const cashIncomeTotal = items
+        .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      const bankIncomeTotal = items
+        .filter((i) => i.type === "income" && i.paymentMode === "bank")
+        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+      const cashSales = Math.max(
+        0,
+        Number(closingBalance || 0) +
+          cashExpenseTotal +
+          Number(cashToHome || 0) -
+          Number(openingBalance || 0) -
+          Number(otherIncome || 0) -
+          cashIncomeTotal
+      );
+
+      const digitalSales = Math.max(
+        0,
+        Number(closingBankBalance || 0) +
+          bankExpenseTotal +
+          Number(digitalToHome || 0) -
+          Number(openingBankBalance || 0) -
+          bankIncomeTotal
+      );
 
       // Save as-is — closingBalance is the user's physical count, NOT computed
       const ledger = await DailyLedger.findOneAndUpdate(
@@ -151,6 +180,8 @@ const saveLedger = (date, payload) => {
           date: targetDate,
           openingBalance: Number(openingBalance),
           openingBankBalance: Number(openingBankBalance),
+          cashSales,
+          digitalSales,
           otherIncome: Number(otherIncome),
           cashToHome: Number(cashToHome),
           digitalToHome: Number(digitalToHome),

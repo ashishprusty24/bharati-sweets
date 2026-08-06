@@ -13,6 +13,13 @@ const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Helper to ensure delivery date is always normalized to UTC midnight of the intended day in IST
+const parseDeliveryDate = (d) => {
+  if (!d) return new Date();
+  const dayStr = dayjs(d).tz("Asia/Kolkata").format("YYYY-MM-DD");
+  return new Date(`${dayStr}T00:00:00.000Z`);
+};
+
 const createEventOrder = (payload) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -31,7 +38,7 @@ const createEventOrder = (payload) => {
 
       const newOrder = new EventOrder({
         customerName, phone, purpose, address,
-        deliveryDate: new Date(deliveryDate), deliveryTime,
+        deliveryDate: parseDeliveryDate(deliveryDate), deliveryTime,
         items: itemsWithPackets, payments: payments || [], discount, packets,
         totalAmount, paidAmount,
       });
@@ -322,6 +329,9 @@ const getEventOrderById = (orderId) => {
 const updateEventOrder = (orderId, updateData) => {
   return new Promise(async (resolve, reject) => {
     try {
+      if (updateData.deliveryDate) {
+        updateData.deliveryDate = parseDeliveryDate(updateData.deliveryDate);
+      }
       const updatedOrder = await EventOrder.findByIdAndUpdate(orderId, updateData, {
         new: true,
         runValidators: true,

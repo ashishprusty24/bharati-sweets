@@ -180,7 +180,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
         items,
         totalAmount: values.totalAmount || totalAmount,
         advancePaid: values.advancePayment || 0,
-        eventDate: values.deliveryDate ? values.deliveryDate.toISOString() : new Date().toISOString(),
+        eventDate: values.deliveryDate ? values.deliveryDate.format("YYYY-MM-DD") : new Date().toISOString(),
       };
 
       const res = await fetch("/api/event-orders", {

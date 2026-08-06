@@ -7,19 +7,11 @@ const homeExpenseSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     category: {
       type: String,
-      enum: [
-        "home_intake",
-        "staff_salary",
-        "supplier_payment",
-        "personal",
-        "credit_card_bill",
-        "other",
-      ],
       required: true,
     },
     paymentSource: {
       type: String,
-      enum: ["home_cash", "bank_account"],
+      enum: ["home_cash", "bank_account", "credit_card"],
       default: "home_cash",
     },
     sourceTag: {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Card, Row, Col, Table, Button, InputNumber, Input, Select, DatePicker,
   Modal, Form, message, Typography, Space, Tag, Statistic, Empty, Popconfirm,
-  Grid, Badge, Progress
+  Grid, Badge, Progress, AutoComplete
 } from "antd";
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, HomeOutlined,
@@ -30,6 +30,7 @@ const CATEGORY_CONFIG = {
 const SOURCE_CONFIG = {
   home_cash: { label: "Home Cash", color: "#10b981", bg: "#d1fae5", icon: <WalletOutlined /> },
   bank_account: { label: "Bank Account", color: "#6366f1", bg: "#e0e7ff", icon: <BankOutlined /> },
+  credit_card: { label: "Credit Card", color: "#ef4444", bg: "#fee2e2", icon: <CreditCardOutlined /> },
 };
 
 const TAG_CONFIG = {
@@ -50,6 +51,8 @@ const HomeExpensesPage = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [creditCards, setCreditCards] = useState([]);
+  const [selectedPaymentSource, setSelectedPaymentSource] = useState("home_cash");
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -103,9 +106,19 @@ const HomeExpensesPage = () => {
     }
   };
 
+  const fetchCreditCards = async () => {
+    try {
+      const data = await api.get("/credit-cards");
+      setCreditCards(data || []);
+    } catch (err) {
+      console.error("Failed to fetch credit cards", err);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
     fetchSummary();
+    fetchCreditCards();
   }, [dateRange, filterCategory]);
 
   const filteredExpenses = useMemo(() => {
@@ -170,7 +183,8 @@ const HomeExpensesPage = () => {
   const openAddModal = () => {
     setEditingExpense(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash", category: "other", sourceTag: "direct" });
+    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash", category: "other" });
+    setSelectedPaymentSource("home_cash");
     setModalVisible(true);
   };
 
@@ -256,29 +270,7 @@ const HomeExpensesPage = () => {
         );
       },
     },
-    {
-      title: "Origin Tag",
-      dataIndex: "sourceTag",
-      width: 130,
-      render: (tag) => {
-        const cfg = TAG_CONFIG[tag] || TAG_CONFIG.direct;
-        return (
-          <Tag
-            style={{
-              color: cfg.color,
-              background: cfg.bg,
-              border: `1px solid ${cfg.color}33`,
-              borderRadius: 8,
-              padding: "4px 10px",
-              fontWeight: 600,
-              fontSize: 11,
-            }}
-          >
-            {cfg.label}
-          </Tag>
-        );
-      },
-    },
+
     {
       title: "Amount",
       dataIndex: "amount",
@@ -409,18 +401,25 @@ const HomeExpensesPage = () => {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#be185d" }}>
-                Home Intake Tracking
+                Home Intake Balance
               </Text>
               <HomeOutlined style={{ color: "#ec4899", fontSize: 16 }} />
             </div>
-            <div style={{ marginTop: 6 }}>
-              <Text strong style={{ color: "#be185d", fontSize: 22, fontWeight: 800 }}>
-                ₹{(summary?.homeIntakeSummary?.total || 0).toLocaleString("en-IN")}
+            <div style={{ marginTop: 4 }}>
+              <Text strong style={{ color: "#be185d", fontSize: 20, fontWeight: 800 }}>
+                ₹{(summary?.homeIntakeSummary?.remaining?.total || 0).toLocaleString("en-IN")}
               </Text>
+              <Text style={{ color: "#78716c", fontSize: 10, display: "block" }}>Remaining Balance</Text>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 11 }}>
-              <span style={{ color: "#047857", fontWeight: 700 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.cash || 0).toLocaleString("en-IN")}</span>
-              <span style={{ color: "#4338ca", fontWeight: 700 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.bank || 0).toLocaleString("en-IN")}</span>
+            <div style={{ borderTop: "1px solid #fbcfe8", marginTop: 8, paddingTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                <span style={{ color: "#047857", fontWeight: 700 }}>📥 Received: ₹{(summary?.homeIntakeSummary?.totalReceived || 0).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#dc2626", fontWeight: 700 }}>📤 Spent: ₹{(summary?.homeIntakeSummary?.totalSpent || 0).toLocaleString("en-IN")}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                <span style={{ color: "#047857", fontWeight: 600 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.remaining?.cash || 0).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#4338ca", fontWeight: 600 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.remaining?.bank || 0).toLocaleString("en-IN")}</span>
+              </div>
             </div>
           </Card>
         </Col>
@@ -778,19 +777,27 @@ const HomeExpensesPage = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="category" label="Category" rules={[{ required: true }]}>
-                <Select placeholder="Select category" style={{ height: 42 }}>
-                  {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
-                    <Option key={key} value={key}>
-                      <Space>{cfg.icon} <span>{cfg.label}</span></Space>
-                    </Option>
-                  ))}
-                </Select>
+              <Form.Item name="category" label="Category" rules={[{ required: true, message: "Enter category" }]}>
+                <AutoComplete
+                  placeholder="Type or select category"
+                  style={{ height: 42 }}
+                  options={Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => ({
+                    value: key,
+                    label: <Space>{cfg.icon} <span>{cfg.label}</span></Space>,
+                  }))}
+                  filterOption={(inputValue, option) =>
+                    option.value.toLowerCase().includes(inputValue.toLowerCase())
+                  }
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="paymentSource" label="Paid From" rules={[{ required: true }]}>
-                <Select placeholder="Select source" style={{ height: 42 }}>
+                <Select
+                  placeholder="Select source"
+                  style={{ height: 42 }}
+                  onChange={(val) => setSelectedPaymentSource(val)}
+                >
                   {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => (
                     <Option key={key} value={key}>
                       <Space>{cfg.icon} <span>{cfg.label}</span></Space>
@@ -801,15 +808,20 @@ const HomeExpensesPage = () => {
             </Col>
           </Row>
 
-          <Form.Item name="sourceTag" label="Origin Tag (Daily Ledger, Expenses, Event Order, Direct)" initialValue="direct">
-            <Select placeholder="Select origin tag" style={{ height: 42 }}>
-              {Object.entries(TAG_CONFIG).map(([key, cfg]) => (
-                <Option key={key} value={key}>
-                  <Tag color={cfg.color} style={{ borderRadius: 6 }}>{cfg.label}</Tag>
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+          {selectedPaymentSource === "credit_card" && (
+            <Form.Item name="creditCardId" label="Select Credit Card" rules={[{ required: true, message: "Select a credit card" }]}>
+              <Select placeholder="Choose credit card" style={{ height: 42 }}>
+                {creditCards.map((card) => (
+                  <Option key={card._id} value={card._id}>
+                    <Space>
+                      <CreditCardOutlined />
+                      <span>{card.cardName} (•••• {card.last4Digits})</span>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="Any additional payment details..." style={{ borderRadius: 10 }} />

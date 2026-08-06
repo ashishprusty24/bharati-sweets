@@ -32,11 +32,21 @@ const getHomeExpenses = (query = {}) => {
 const DailyLedger = require("../models/DailyLedger");
 const Vendor = require("../models/Vendor");
 
+const isIntakeCategory = (cat = "") => {
+  const norm = String(cat).toLowerCase().trim();
+  return (
+    norm === "home_intake" ||
+    norm === "home intake" ||
+    norm === "personal" ||
+    norm === "intake"
+  );
+};
+
 const createHomeExpense = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
       // Auto-vendor creation and transaction logging for any named expense item (e.g., Electricity Bill, Pradip Alu wala)
-      if (data.description && data.category !== "home_intake") {
+      if (data.description && !isIntakeCategory(data.category)) {
         try {
           const vendorName = data.description.trim();
           let vendor = null;
@@ -77,6 +87,26 @@ const createHomeExpense = (data) => {
       const expense = new HomeExpense(data);
       const saved = await expense.save();
 
+      // --- AUTO SYNC TO CREDIT CARD TRANSACTIONS ---
+      if (data.paymentSource === "credit_card" && data.creditCardId) {
+        try {
+          const CreditCard = require("../models/CreditCard");
+          const card = await CreditCard.findById(data.creditCardId);
+          if (card) {
+            card.transactions.push({
+              date: data.date ? new Date(data.date) : new Date(),
+              description: data.description || "Expense via Credit Card",
+              amount: Number(data.amount) || 0,
+              category: "business",
+              isSettled: false,
+            });
+            await card.save();
+          }
+        } catch (ccErr) {
+          console.error("Credit card transaction sync error in homeExpense:", ccErr);
+        }
+      }
+
       // --- AUTO SYNC TO DAILY LEDGER ---
       try {
         const txDate = data.date ? new Date(data.date) : new Date();
@@ -96,7 +126,7 @@ const createHomeExpense = (data) => {
           });
         }
 
-        if (data.category === "home_intake" || data.category === "personal") {
+        if (isIntakeCategory(data.category)) {
           if (data.paymentSource === "home_cash" || !data.paymentSource) {
             ledger.cashToHome = (Number(ledger.cashToHome) || 0) + Number(data.amount || 0);
           } else {
@@ -194,17 +224,40 @@ const getHomeExpenseSummary = (query = {}) => {
         return acc;
       }, {});
 
-      // Home intake breakdown (cash vs bank)
-      const homeIntakeExpenses = expenses.filter(
-        (e) => e.category === "home_intake" || e.category === "personal"
-      );
-      const homeIntakeCash = homeIntakeExpenses
-        .filter((e) => e.paymentSource === "home_cash")
+      // ── HOME INTAKE BALANCE CALCULATION ──
+      const isIntakeCategory = (cat = "") => {
+        const norm = String(cat).toLowerCase().trim();
+        return (
+          norm === "home_intake" ||
+          norm === "home intake" ||
+          norm === "personal" ||
+          norm === "intake"
+        );
+      };
+
+      // Money RECEIVED into home (intake entries)
+      const intakeEntries = expenses.filter((e) => isIntakeCategory(e.category));
+      const receivedCash = intakeEntries
+        .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
         .reduce((s, e) => s + (e.amount || 0), 0);
-      const homeIntakeBank = homeIntakeExpenses
+      const receivedBank = intakeEntries
         .filter((e) => e.paymentSource === "bank_account")
         .reduce((s, e) => s + (e.amount || 0), 0);
-      const homeIntakeTotal = homeIntakeCash + homeIntakeBank;
+
+      // Money SPENT from home funds (non-intake entries)
+      const spentEntries = expenses.filter((e) => !isIntakeCategory(e.category));
+      const spentCash = spentEntries
+        .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+        .reduce((s, e) => s + (e.amount || 0), 0);
+      const spentBank = spentEntries
+        .filter((e) => e.paymentSource === "bank_account")
+        .reduce((s, e) => s + (e.amount || 0), 0);
+      const spentCreditCard = spentEntries
+        .filter((e) => e.paymentSource === "credit_card")
+        .reduce((s, e) => s + (e.amount || 0), 0);
+
+      const remainingCash = receivedCash - spentCash;
+      const remainingBank = receivedBank - spentBank;
 
       resolve({
         total,
@@ -213,9 +266,19 @@ const getHomeExpenseSummary = (query = {}) => {
         bySource,
         bySourceTag,
         homeIntakeSummary: {
-          total: homeIntakeTotal,
-          cash: homeIntakeCash,
-          bank: homeIntakeBank,
+          totalReceived: receivedCash + receivedBank,
+          totalSpent: spentCash + spentBank + spentCreditCard,
+          received: { cash: receivedCash, bank: receivedBank },
+          spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard },
+          remaining: {
+            cash: remainingCash,
+            bank: remainingBank,
+            total: remainingCash + remainingBank,
+          },
+          // Legacy fields for backward compatibility
+          total: receivedCash + receivedBank,
+          cash: receivedCash,
+          bank: receivedBank,
         },
         period: { startDate, endDate },
       });

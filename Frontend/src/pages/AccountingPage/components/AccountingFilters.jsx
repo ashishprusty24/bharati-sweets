@@ -1,59 +1,194 @@
-import React, { useState } from "react";
-import { Select, DatePicker, Button, Row, Col, Typography } from "antd";
-import { ReloadOutlined, DollarOutlined } from "@ant-design/icons";
+import React from "react";
+import { Select, DatePicker, Button, Space, Typography, Tag, Grid } from "antd";
+import {
+  ReloadOutlined,
+  DollarOutlined,
+  CalendarOutlined,
+  ThunderboltOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
-const { Title, Text } = Typography;
+const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
+const { useBreakpoint } = Grid;
 
-const AccountingFilters = ({ timeframe, dateRange, onTimeframeChange, onDateRangeChange, onRefresh }) => {
-  const timeframes = [
+const AccountingFilters = ({
+  timeframe,
+  dateRange,
+  onTimeframeChange,
+  onDateRangeChange,
+  onRefresh,
+}) => {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
+  const presets = [
     { value: "week", label: "This Week" },
     { value: "month", label: "This Month" },
     { value: "quarter", label: "This Quarter" },
     { value: "year", label: "This Year" },
-    { value: "custom", label: "Custom Range" },
   ];
 
   return (
-    <Row gutter={[16, 16]} justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-      <Col xs={24} lg={12}>
-        <Title level={3} style={{ margin: 0, fontSize: "clamp(18px, 4vw, 24px)" }}>
-          <DollarOutlined /> Accounting Dashboard
-        </Title>
-        <Text type="secondary">
-          {dateRange[0].format("MMM D, YYYY")} to {dateRange[1].format("MMM D, YYYY")}
-        </Text>
-      </Col>
-      <Col xs={24} lg={12} style={{ textAlign: "right", display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
-        <Select
-          value={timeframe}
-          onChange={onTimeframeChange}
-          style={{ width: "100%", maxWidth: 180, height: 45 }}
-          dropdownStyle={{ borderRadius: 12 }}
+    <div
+      style={{
+        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)",
+        borderRadius: 24,
+        padding: isMobile ? "20px 16px" : "28px 32px",
+        color: "#fff",
+        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.2)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Decorative Glow Elements */}
+      <div
+        style={{
+          position: "absolute",
+          right: "-50px",
+          top: "-50px",
+          width: "200px",
+          height: "200px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(139,92,246,0.25) 0%, rgba(0,0,0,0) 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justify: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 20,
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Title & Date Subtitle */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+            <span
+              style={{
+                background: "rgba(255, 255, 255, 0.15)",
+                padding: "8px 12px",
+                borderRadius: 14,
+                display: "inline-flex",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+              }}
+            >
+              <DollarOutlined style={{ fontSize: 22, color: "#34d399" }} />
+            </span>
+            <Title
+              level={2}
+              style={{
+                color: "#fff",
+                margin: 0,
+                fontWeight: 800,
+                fontSize: isMobile ? "1.4rem" : "1.8rem",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              Financial Intelligence & Accounting
+            </Title>
+          </div>
+          <Text style={{ color: "#cbd5e1", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+            <CalendarOutlined style={{ color: "#a78bfa" }} />
+            Active Period:{" "}
+            <strong style={{ color: "#f8fafc" }}>
+              {dateRange[0]?.format("DD MMM YYYY")} — {dateRange[1]?.format("DD MMM YYYY")}
+            </strong>
+          </Text>
+        </div>
+
+        {/* Filter Controls */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 10,
+            width: isMobile ? "100%" : "auto",
+          }}
         >
-          {timeframes.map((tf) => (
-            <Select.Option key={tf.value} value={tf.value}>
-              {tf.label}
-            </Select.Option>
-          ))}
-        </Select>
-        <RangePicker
-          value={dateRange}
-          onChange={onDateRangeChange}
-          style={{ width: "100%", maxWidth: 280, height: 45, borderRadius: 12 }}
-        />
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
-          onClick={onRefresh}
-          size="large"
-          style={{ height: 45, borderRadius: 10 }}
-        >
-          Refresh
-        </Button>
-      </Col>
-    </Row>
+          {/* Preset Buttons */}
+          <div
+            style={{
+              background: "rgba(255, 255, 255, 0.08)",
+              padding: 4,
+              borderRadius: 14,
+              display: "flex",
+              gap: 4,
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              width: isMobile ? "100%" : "auto",
+              overflowX: "auto",
+            }}
+          >
+            {presets.map((p) => {
+              const isActive = timeframe === p.value;
+              return (
+                <Button
+                  key={p.value}
+                  type={isActive ? "primary" : "text"}
+                  onClick={() => onTimeframeChange(p.value)}
+                  style={{
+                    borderRadius: 10,
+                    height: 36,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: isActive ? "#fff" : "#cbd5e1",
+                    background: isActive
+                      ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+                      : "transparent",
+                    border: "none",
+                    boxShadow: isActive ? "0 4px 12px rgba(99, 102, 241, 0.4)" : "none",
+                  }}
+                >
+                  {p.label}
+                </Button>
+              );
+            })}
+          </div>
+
+          {/* Custom Date Range */}
+          <RangePicker
+            value={dateRange}
+            onChange={onDateRangeChange}
+            format="DD MMM YYYY"
+            style={{
+              height: 44,
+              borderRadius: 14,
+              background: "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "#fff",
+              width: isMobile ? "100%" : 240,
+            }}
+          />
+
+          {/* Refresh Button */}
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={onRefresh}
+            style={{
+              height: 44,
+              padding: "0 20px",
+              borderRadius: 14,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              border: "none",
+              boxShadow: "0 4px 14px rgba(16, 185, 129, 0.35)",
+            }}
+          >
+            Refresh
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -6,7 +6,8 @@ import {
 } from "antd";
 import {
   PlusOutlined, DeleteOutlined, CreditCardOutlined, DollarOutlined,
-  WalletOutlined, BankOutlined, CheckCircleOutlined, ClockCircleOutlined
+  WalletOutlined, BankOutlined, CheckCircleOutlined, ClockCircleOutlined,
+  EditOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
@@ -276,6 +277,19 @@ const CreditCardPage = () => {
                   {/* Actions */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Button size="small" type="primary" ghost style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", borderRadius: 6, fontSize: 11 }}
+                      onClick={() => {
+                        setEditingCard(card);
+                        cardForm.setFieldsValue({
+                          cardName: card.cardName,
+                          last4Digits: card.last4Digits,
+                          cardType: card.cardType,
+                          creditLimit: card.creditLimit,
+                        });
+                        setCardModalVisible(true);
+                      }}>
+                      <EditOutlined /> Edit
+                    </Button>
+                    <Button size="small" type="primary" ghost style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", borderRadius: 6, fontSize: 11 }}
                       onClick={() => openAddTxnModal(card._id)}>
                       + Transaction
                     </Button>
@@ -289,6 +303,11 @@ const CreditCardPage = () => {
                         Transactions
                       </Button>
                     </Badge>
+                    <Popconfirm title="Delete this card?" description="This will remove all transactions too." onConfirm={() => handleDeleteCard(card._id)} okText="Delete" okButtonProps={{ danger: true }}>
+                      <Button size="small" type="primary" ghost danger style={{ borderColor: "rgba(255,100,100,0.5)", borderRadius: 6, fontSize: 11 }}>
+                        <DeleteOutlined /> Delete
+                      </Button>
+                    </Popconfirm>
                   </div>
                 </div>
               </Card>

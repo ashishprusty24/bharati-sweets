@@ -1,4 +1,5 @@
 const CreditCard = require("../models/CreditCard");
+const Vendor = require("../models/Vendor");
 
 const getAllCards = () => {
   return new Promise(async (resolve, reject) => {
