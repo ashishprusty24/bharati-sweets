@@ -22,6 +22,7 @@ const homeExpenseSchema = new mongoose.Schema(
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
     creditCardId: { type: mongoose.Schema.Types.ObjectId, ref: "CreditCard" },
+    ledgerItemId: { type: String, default: null },
     notes: { type: String, default: "" },
   },
   { timestamps: true }

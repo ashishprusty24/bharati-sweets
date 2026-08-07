@@ -208,17 +208,26 @@ const saveLedger = (date, payload) => {
       // --- AUTO SYNC SAVED ITEMS TO HOME EXPENSES & VENDORS ---
       try {
         const endOfDay = dayjs(date).endOf("day").toDate();
-        for (const item of items) {
+        const savedItems = ledger.items || [];
+
+        for (const item of savedItems) {
           if (item.type === "expense" && item.description && item.description.trim()) {
             const descName = item.description.trim();
             const itemAmount = Number(item.amount) || 0;
             const escapedName = descName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const itemIdStr = item._id ? String(item._id) : null;
 
-            // Find existing HomeExpense for this date & description
-            let existingExp = await HomeExpense.findOne({
-              date: { $gte: targetDate, $lte: endOfDay },
-              description: new RegExp("^" + escapedName + "$", "i"),
-            });
+            // 1. Match by exact ledgerItemId first
+            let existingExp = itemIdStr ? await HomeExpense.findOne({ ledgerItemId: itemIdStr }) : null;
+
+            // 2. Fallback to date + description if no ledgerItemId assigned yet
+            if (!existingExp) {
+              existingExp = await HomeExpense.findOne({
+                date: { $gte: targetDate, $lte: endOfDay },
+                description: new RegExp("^" + escapedName + "$", "i"),
+                $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }],
+              });
+            }
 
             // Find/Create Vendor
             let vendor = await Vendor.findOne({ name: new RegExp("^" + escapedName + "$", "i") });
@@ -253,9 +262,11 @@ const saveLedger = (date, payload) => {
             }
 
             if (existingExp) {
+              existingExp.description = descName;
               existingExp.amount = itemAmount;
               existingExp.category = item.category || existingExp.category || "other";
               existingExp.paymentSource = item.paymentMode === "bank" ? "bank_account" : "home_cash";
+              if (itemIdStr) existingExp.ledgerItemId = itemIdStr;
               if (vendor) existingExp.vendorId = vendor._id;
               await existingExp.save();
             } else {
@@ -266,6 +277,7 @@ const saveLedger = (date, payload) => {
                 category: item.category || "other",
                 paymentSource: item.paymentMode === "bank" ? "bank_account" : "home_cash",
                 sourceTag: "daily_ledger",
+                ledgerItemId: itemIdStr,
                 vendorId: vendor ? vendor._id : item.vendorId || null,
               });
               await newExp.save();
