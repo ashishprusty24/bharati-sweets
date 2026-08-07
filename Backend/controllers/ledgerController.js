@@ -3,6 +3,16 @@ const HomeExpense = require("../models/HomeExpense");
 const Vendor = require("../models/Vendor");
 const dayjs = require("dayjs");
 
+const isIntakeCategory = (cat = "") => {
+  const norm = String(cat).toLowerCase().trim();
+  return (
+    norm === "home_intake" ||
+    norm === "home intake" ||
+    norm === "personal" ||
+    norm === "intake"
+  );
+};
+
 const getLedgerByDate = (date) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -18,7 +28,7 @@ const getLedgerByDate = (date) => {
           date: { $gte: targetDate, $lte: endOfDay },
         });
         homeIntakeTotal = homeExpenses
-          .filter((e) => e.category === "personal" || e.paymentSource === "home_cash")
+          .filter((e) => isIntakeCategory(e.category) || e.paymentSource === "home_cash")
           .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
       } catch (hErr) {
         console.error("Error auto-fetching home intake:", hErr);
@@ -60,7 +70,7 @@ const getLedgerByDate = (date) => {
           date: { $gte: targetDate, $lte: endOfDay },
         });
         homeExpenses.forEach((exp) => {
-          if (exp.category !== "personal" && exp.category !== "home_intake") {
+          if (!isIntakeCategory(exp.category)) {
             const exists = items.some(
               (i) => i.description === exp.description && Number(i.amount) === Number(exp.amount)
             );

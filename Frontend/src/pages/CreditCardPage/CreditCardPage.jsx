@@ -115,7 +115,7 @@ const CreditCardPage = () => {
   const handleTxnSubmit = async () => {
     try {
       const values = await txnForm.validateFields();
-      const payload = { ...values, date: values.date.toISOString() };
+      const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/credit-cards/${selectedCardId}/transactions`, payload);
       message.success("Transaction added");
       setTxnModalVisible(false);
@@ -143,7 +143,7 @@ const CreditCardPage = () => {
   const handleBillSubmit = async () => {
     try {
       const values = await billForm.validateFields();
-      const payload = { ...values, date: values.date.toISOString() };
+      const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/credit-cards/${billCardId}/bill-payments`, payload);
       message.success("Bill payment recorded");
       setBillModalVisible(false);

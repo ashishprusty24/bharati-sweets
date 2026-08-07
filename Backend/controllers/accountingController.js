@@ -50,6 +50,16 @@ const calculateLedgerSales = (ledger) => {
   };
 };
 
+const isIntakeCategory = (cat = "") => {
+  const norm = String(cat).toLowerCase().trim();
+  return (
+    norm === "home_intake" ||
+    norm === "home intake" ||
+    norm === "personal" ||
+    norm === "intake"
+  );
+};
+
 const getFinancialSummary = (startDate, endDate) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -63,7 +73,7 @@ const getFinancialSummary = (startDate, endDate) => {
       // --- EXPENSES: Combine shop Expense + HomeExpense (non-intake) ---
       const shopExpenseTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
       const homeExpenseTotal = homeExpenses
-        .filter((e) => e.category !== "home_intake" && e.category !== "personal")
+        .filter((e) => !isIntakeCategory(e.category))
         .reduce((sum, e) => sum + (e.amount || 0), 0);
       const totalExpenses = shopExpenseTotal + homeExpenseTotal;
 
@@ -89,7 +99,7 @@ const getFinancialSummary = (startDate, endDate) => {
         expenseDistribution[exp.category] = (expenseDistribution[exp.category] || 0) + (exp.amount || 0);
       });
       homeExpenses
-        .filter((e) => e.category !== "home_intake" && e.category !== "personal")
+        .filter((e) => !isIntakeCategory(e.category))
         .forEach((exp) => {
           expenseDistribution[exp.category] = (expenseDistribution[exp.category] || 0) + (exp.amount || 0);
         });
@@ -103,7 +113,7 @@ const getFinancialSummary = (startDate, endDate) => {
         weekEnd.setDate(weekEnd.getDate() + 6);
 
         const weekExpenses = expenses.filter(e => e.date >= weekStart && e.date <= weekEnd).reduce((sum, e) => sum + (e.amount || 0), 0);
-        const weekHomeExpenses = homeExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd && e.category !== "home_intake" && e.category !== "personal").reduce((sum, e) => sum + (e.amount || 0), 0);
+        const weekHomeExpenses = homeExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd && !isIntakeCategory(e.category)).reduce((sum, e) => sum + (e.amount || 0), 0);
         const weekEventRevenue = eventOrders.filter(o => o.createdAt >= weekStart && o.createdAt <= weekEnd).reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
         const weekLedgerSales = ledgers.filter(l => l.date >= weekStart && l.date <= weekEnd).reduce((sum, l) => sum + calculateLedgerSales(l).totalSales, 0);
 
@@ -144,7 +154,7 @@ const getTransactions = (startDate, endDate) => {
       const transactions = [
         ...expenses.map(e => ({ id: e._id, date: e.date, description: e.description, type: "expense", category: e.category, amount: e.amount, source: "shop" })),
         ...homeExpenses
-          .filter((e) => e.category !== "home_intake" && e.category !== "personal")
+          .filter((e) => !isIntakeCategory(e.category))
           .map(e => ({ id: e._id, date: e.date, description: e.description, type: "expense", category: e.category, amount: e.amount, source: "home" })),
         ...eventOrders.map(o => ({ id: o._id, date: o.createdAt, description: `Event: ${o.customerName} (${o.purpose})`, type: "revenue", category: "event", amount: o.totalAmount ?? 0 })),
         ...ledgers.map(l => ({

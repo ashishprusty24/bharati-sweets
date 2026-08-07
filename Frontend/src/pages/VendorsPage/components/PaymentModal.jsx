@@ -24,7 +24,7 @@ const PaymentModal = ({ visible, vendor, creditCards, paymentMethods, onCancel, 
     const values = await form.validateFields();
     onOk({
       ...values,
-      date: values.date.toISOString(),
+      date: values.date.format("YYYY-MM-DD"),
       amount: values.quantity * values.rate,
     });
   };

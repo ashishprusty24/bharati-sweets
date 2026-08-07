@@ -138,7 +138,7 @@ const HomeExpensesPage = () => {
       const values = await form.validateFields();
       const payload = {
         ...values,
-        date: values.date.toISOString(),
+        date: values.date.format("YYYY-MM-DD"),
       };
 
       if (editingExpense) {

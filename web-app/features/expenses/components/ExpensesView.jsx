@@ -82,7 +82,7 @@ export default function ExpensesView() {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      const payload = { ...values, date: values.date.toISOString() };
+      const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
 
       if (editingExpense) {
         await fetch(`/api/expenses/${editingExpense._id}`, {

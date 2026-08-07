@@ -27,26 +27,47 @@ export class LedgerRepository {
       const allVendors = await Vendor.find().lean();
       
       for (const item of payload.items) {
-        if (item.type === "expense" && item.amount > 0 && item.description) {
-          const desc = item.description.toLowerCase();
+        if (item.type === "expense" && item.amount > 0 && item.description && item.description.trim()) {
+          const desc = item.description.trim();
+          const descLower = desc.toLowerCase();
+          const itemAmount = Number(item.amount) || 0;
           
-          // Save in Expense model
-          await Expense.create({
-            date: new Date(targetDate),
-            amount: item.amount,
-            category: desc.includes("milk") || desc.includes("chenna") || desc.includes("veg") ? "ingredients" : "other",
-            description: item.description,
-            paymentMode: item.paymentMode || "cash",
-          }).catch(() => {});
+          // Match existing expense by date and description
+          const startOfDay = new Date(targetDate);
+          startOfDay.setHours(0,0,0,0);
+          const endOfDay = new Date(targetDate);
+          endOfDay.setHours(23,59,59,999);
+
+          const existingExp = await Expense.findOne({
+            date: { $gte: startOfDay, $lte: endOfDay },
+            description: new RegExp("^" + desc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i"),
+          });
+
+          const cat = descLower.includes("milk") || descLower.includes("chenna") || descLower.includes("veg") ? "ingredients" : "other";
+
+          if (existingExp) {
+            existingExp.amount = itemAmount;
+            existingExp.category = cat;
+            existingExp.paymentMode = item.paymentMode || "cash";
+            await existingExp.save();
+          } else {
+            await Expense.create({
+              date: new Date(targetDate),
+              amount: itemAmount,
+              category: cat,
+              description: desc,
+              paymentMode: item.paymentMode || "cash",
+            }).catch(() => {});
+          }
 
           // Check if matches any vendor name
           const matchedVendor = allVendors.find(v => 
-            v.name && (desc.includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(desc))
+            v.name && (descLower.includes(v.name.toLowerCase()) || v.name.toLowerCase().includes(descLower))
           );
 
           if (matchedVendor) {
             await Vendor.findByIdAndUpdate(matchedVendor._id, {
-              $inc: { outstandingBalance: -item.amount }
+              $set: { lastPaymentDate: new Date(targetDate) }
             });
           }
         }

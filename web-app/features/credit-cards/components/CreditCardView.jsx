@@ -106,7 +106,7 @@ export default function CreditCardView() {
   const handleTxnSubmit = async () => {
     try {
       const values = await txnForm.validateFields();
-      const payload = { ...values, date: values.date.toISOString() };
+      const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await fetch(`/api/credit-cards/${selectedCardId}/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,7 +124,7 @@ export default function CreditCardView() {
   const handleBillSubmit = async () => {
     try {
       const values = await billForm.validateFields();
-      const payload = { ...values, date: values.date.toISOString() };
+      const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await fetch(`/api/credit-cards/${billCardId}/bill-payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -20,7 +20,7 @@ const ExpenseModal = ({ visible, item, categories, paymentMethods, onCancel, onO
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-    onOk({ ...values, date: values.date.toISOString() });
+    onOk({ ...values, date: values.date.format("YYYY-MM-DD") });
   };
 
   return (
