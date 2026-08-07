@@ -164,6 +164,7 @@ const createHomeExpense = (data) => {
 const updateHomeExpense = (id, data) => {
   return new Promise(async (resolve, reject) => {
     try {
+      const oldExp = await HomeExpense.findById(id);
       const updated = await HomeExpense.findByIdAndUpdate(id, data, {
         new: true,
         runValidators: true,
@@ -173,6 +174,31 @@ const updateHomeExpense = (id, data) => {
         .populate("creditCardId", "cardName last4Digits");
 
       if (!updated) return reject({ status: 404, message: "Home expense not found" });
+
+      // Sync update to Daily Ledger
+      try {
+        const txDate = updated.date ? new Date(updated.date) : new Date();
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+        if (ledger && oldExp) {
+          const item = ledger.items.find(
+            (i) => i.description === oldExp.description || i.description === updated.description
+          );
+          if (item) {
+            item.description = updated.description;
+            item.amount = Number(updated.amount) || 0;
+            item.category = updated.category || "other";
+            item.paymentMode = updated.paymentSource === "bank_account" ? "bank" : "cash";
+            ledger.totalExpenses = ledger.items
+              .filter((i) => i.type === "expense")
+              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+            await ledger.save();
+          }
+        }
+      } catch (lErr) {
+        console.error("Error syncing updated expense to ledger:", lErr);
+      }
+
       resolve(updated);
     } catch (err) {
       reject({ status: 400, message: err.message });

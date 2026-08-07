@@ -199,16 +199,20 @@ const saveLedger = (date, payload) => {
       try {
         const endOfDay = dayjs(date).endOf("day").toDate();
         for (const item of items) {
-          if (item.type === "expense" && item.description) {
-            const exists = await HomeExpense.findOne({
+          if (item.type === "expense" && item.description && item.description.trim()) {
+            const descName = item.description.trim();
+            const itemAmount = Number(item.amount) || 0;
+            const escapedName = descName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+            // Find existing HomeExpense for this date & description
+            let existingExp = await HomeExpense.findOne({
               date: { $gte: targetDate, $lte: endOfDay },
-              description: item.description,
-              amount: Number(item.amount),
+              description: new RegExp("^" + escapedName + "$", "i"),
             });
 
-            const descName = item.description.trim();
-            let vendor = await Vendor.findOne({ name: new RegExp("^" + descName + "$", "i") });
-            if (!vendor && item.description) {
+            // Find/Create Vendor
+            let vendor = await Vendor.findOne({ name: new RegExp("^" + escapedName + "$", "i") });
+            if (!vendor && descName) {
               vendor = new Vendor({
                 name: descName,
                 type: item.category === "supplier_payment" ? "flour" : "other",
@@ -220,27 +224,35 @@ const saveLedger = (date, payload) => {
             }
 
             if (vendor) {
-              const hasTx = vendor.transactions.some(
-                (t) =>
-                  dayjs(t.date).isSame(targetDate, "day") && Number(t.amount) === Number(item.amount)
+              const existingTx = vendor.transactions.find((t) =>
+                dayjs(t.date).isSame(targetDate, "day")
               );
-              if (!hasTx) {
+              if (existingTx) {
+                existingTx.amount = itemAmount;
+                existingTx.paymentMethod = item.paymentMode === "bank" ? "bank" : "cash";
+              } else {
                 vendor.transactions.push({
                   date: targetDate,
                   quantity: 1,
-                  amount: Number(item.amount) || 0,
+                  amount: itemAmount,
                   paymentMethod: item.paymentMode === "bank" ? "bank" : "cash",
                 });
-                vendor.lastPaymentDate = targetDate;
-                await vendor.save();
               }
+              vendor.lastPaymentDate = targetDate;
+              await vendor.save();
             }
 
-            if (!exists) {
+            if (existingExp) {
+              existingExp.amount = itemAmount;
+              existingExp.category = item.category || existingExp.category || "other";
+              existingExp.paymentSource = item.paymentMode === "bank" ? "bank_account" : "home_cash";
+              if (vendor) existingExp.vendorId = vendor._id;
+              await existingExp.save();
+            } else {
               const newExp = new HomeExpense({
                 date: targetDate,
-                description: item.description,
-                amount: Number(item.amount) || 0,
+                description: descName,
+                amount: itemAmount,
                 category: item.category || "other",
                 paymentSource: item.paymentMode === "bank" ? "bank_account" : "home_cash",
                 sourceTag: "daily_ledger",
