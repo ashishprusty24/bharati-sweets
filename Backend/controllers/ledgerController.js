@@ -154,6 +154,8 @@ const saveLedger = (date, payload) => {
         .filter((i) => i.type === "income" && i.paymentMode === "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
+      const totalExpenses = cashExpenseTotal + bankExpenseTotal;
+
       const cashSales = Math.max(
         0,
         Number(closingBalance || 0) +
