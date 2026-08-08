@@ -677,6 +677,12 @@ export default function HomeExpensesView() {
             <Input placeholder="e.g., Staff salary for July, Kaju supplier payment, Electricity Bill" style={{ height: 42, borderRadius: 10 }} />
           </Form.Item>
 
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "10px 14px", borderRadius: 10, marginBottom: 16 }}>
+            <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+              💡 <strong>Payment Source Choice:</strong> Selecting <strong>Home Cash</strong> deducts from your physical cash balance, while <strong>Bank Account</strong> deducts from your bank intake.
+            </Text>
+          </div>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="category" label="Category" rules={[{ required: true }]}>
@@ -691,7 +697,11 @@ export default function HomeExpensesView() {
             </Col>
             <Col span={12}>
               <Form.Item name="paymentSource" label="Paid From" rules={[{ required: true }]}>
-                <Select placeholder="Select source" style={{ height: 42 }}>
+                <Select
+                  placeholder="Select source"
+                  style={{ height: 42 }}
+                  onChange={(val) => setSelectedPaymentSource && setSelectedPaymentSource(val)}
+                >
                   {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => (
                     <Option key={key} value={key}>
                       <Space>{cfg.icon} <span>{cfg.label}</span></Space>
@@ -701,6 +711,7 @@ export default function HomeExpensesView() {
               </Form.Item>
             </Col>
           </Row>
+
 
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="Any additional payment details..." style={{ borderRadius: 10 }} />

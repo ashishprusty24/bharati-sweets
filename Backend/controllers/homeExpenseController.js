@@ -4,7 +4,15 @@ const dayjs = require("dayjs");
 const getHomeExpenses = (query = {}) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const filter = {};
+      const filter = {
+        // Exclude records auto-synced from the Daily Ledger:
+        // 1. Records explicitly tagged "daily_ledger" (created by Backend auto-sync)
+        // 2. Records with a ledgerItemId (linked to a specific ledger item)
+        // After running /api/home-expenses/cleanup-ledger-sync, all stale records
+        // will be tagged "daily_ledger" and hidden by condition #1.
+        sourceTag: { $ne: "daily_ledger" },
+        $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+      };
 
       if (query.startDate || query.endDate) {
         filter.date = {};
@@ -228,8 +236,11 @@ const getHomeExpenseSummary = (query = {}) => {
         ? new Date(query.endDate)
         : dayjs().endOf("month").toDate();
 
+      // Exclude auto-synced daily ledger shop expenses — same logic as getHomeExpenses
       const expenses = await HomeExpense.find({
         date: { $gte: startDate, $lte: endDate },
+        sourceTag: { $ne: "daily_ledger" },
+        $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
       });
 
       const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);

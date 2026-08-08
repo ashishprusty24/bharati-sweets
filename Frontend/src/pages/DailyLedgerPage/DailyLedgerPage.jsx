@@ -1,21 +1,37 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Card, Row, Col, DatePicker, Table, Button, InputNumber, Input, Select,
-  message, Typography, Space, Divider, Tag
+  message, Typography, Space, Tag, Tooltip, AutoComplete
 } from "antd";
 import {
   SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined,
-  BankOutlined, HomeOutlined, ShoppingCartOutlined
+  BankOutlined, HomeOutlined, ShoppingCartOutlined,
+  GiftOutlined, StarOutlined, ExperimentOutlined, TrophyOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
+import FestivalAnalyticsModal from "./components/FestivalAnalyticsModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const FESTIVALS = [
+  "Rakhi Purnima", "Diwali", "Dussehra / Vijaya Dashami", "Durga Puja",
+  "Chhath Puja", "Holi", "Christmas", "New Year", "Eid", "Ganesh Chaturthi",
+  "Janmashtami", "Onam", "Raja Sankranti", "Nuakhai", "Kumar Purnima",
+  "Kartik Purnima", "Makar Sankranti",
+];
+
+const SWEET_NAMES = [
+  "Rasgolla", "Gulab Jamun", "Chhena Poda", "Kheer Mohan", "Sandesh",
+  "Ladoo", "Barfi", "Kaju Katli", "Halwa", "Jalebi", "Imarti",
+  "Rasmalai", "Pantua", "Ledikeni", "Chhena Gaja",
+];
+
 const DailyLedgerPage = () => {
   const [date, setDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [ledgerData, setLedgerData] = useState({
     openingBalance: 0,
     openingBankBalance: 0,
@@ -24,6 +40,8 @@ const DailyLedgerPage = () => {
     digitalToHome: 0,
     closingBalance: 0,
     closingBankBalance: 0,
+    festival: "",
+    sweetProduction: [],
     items: [],
   });
 
@@ -39,6 +57,8 @@ const DailyLedgerPage = () => {
         digitalToHome: data.digitalToHome || 0,
         closingBalance: data.closingBalance || 0,
         closingBankBalance: data.closingBankBalance || 0,
+        festival: data.festival || "",
+        sweetProduction: data.sweetProduction || [],
         items: data.items || [],
       });
     } catch (error) {
@@ -67,12 +87,13 @@ const DailyLedgerPage = () => {
     }
   };
 
+  // ── Ledger items ──────────────────────────────────────────────────
   const addItem = () => {
     setLedgerData({
       ...ledgerData,
       items: [
         ...ledgerData.items,
-        { description: "", amount: 0, type: "expense", paymentMode: "cash" },
+        { description: "", amount: null, type: "expense", paymentMode: "cash" },
       ],
     });
   };
@@ -89,7 +110,30 @@ const DailyLedgerPage = () => {
     setLedgerData({ ...ledgerData, items: newItems });
   };
 
-  // ---------- DERIVED CALCULATIONS ----------
+  // ── Sweet production ──────────────────────────────────────────────
+  const addSweetRow = () => {
+    setLedgerData({
+      ...ledgerData,
+      sweetProduction: [
+        ...ledgerData.sweetProduction,
+        { sweetName: "", quantity: null, unit: "ghan", actualSold: null, notes: "" },
+      ],
+    });
+  };
+
+  const removeSweetRow = (index) => {
+    const arr = [...ledgerData.sweetProduction];
+    arr.splice(index, 1);
+    setLedgerData({ ...ledgerData, sweetProduction: arr });
+  };
+
+  const updateSweetRow = (index, field, value) => {
+    const arr = [...ledgerData.sweetProduction];
+    arr[index][field] = value;
+    setLedgerData({ ...ledgerData, sweetProduction: arr });
+  };
+
+  // ── Derived calculations ──────────────────────────────────────────
   const totals = useMemo(() => {
     const items = ledgerData.items || [];
 
@@ -107,7 +151,6 @@ const DailyLedgerPage = () => {
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
     const totalExpenses = cashExpenses + bankExpenses;
-
     const opening = Number(ledgerData.openingBalance || 0);
     const openingBank = Number(ledgerData.openingBankBalance || 0);
     const closing = Number(ledgerData.closingBalance || 0);
@@ -116,30 +159,23 @@ const DailyLedgerPage = () => {
     const digitalHome = Number(ledgerData.digitalToHome || 0);
     const otherInc = Number(ledgerData.otherIncome || 0);
 
-    // SELL FORMULA (from client):
     // Cash Sell = Closing Cash + Cash Expenses + Cash to Home − Opening Cash − Other Cash Income
     const derivedCashSell = closing + cashExpenses + cashHome - opening - otherInc - cashIncome;
     // Digital Sell = Closing Digital + Digital Expenses + Digital Home − Opening Digital − Digital Income
     const derivedDigitalSell = closingBank + bankExpenses + digitalHome - openingBank - bankIncome;
     const derivedTotalSell = derivedCashSell + derivedDigitalSell;
-
-    // Has closing been entered? (to decide whether to show sell)
     const hasClosing = closing > 0 || closingBank > 0;
 
     return {
-      cashExpenses,
-      bankExpenses,
-      totalExpenses,
-      derivedCashSell,
-      derivedDigitalSell,
-      derivedTotalSell,
-      cashHome,
-      digitalHome,
-      hasClosing,
+      cashExpenses, bankExpenses, totalExpenses,
+      derivedCashSell, derivedDigitalSell, derivedTotalSell,
+      cashHome, digitalHome, hasClosing,
     };
   }, [ledgerData]);
 
-  // ---------- TABLE COLUMNS ----------
+  const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
+
+  // ── Table columns ─────────────────────────────────────────────────
   const columns = [
     {
       title: "#",
@@ -192,14 +228,17 @@ const DailyLedgerPage = () => {
     {
       title: "Amount (₹)",
       dataIndex: "amount",
-      width: 140,
+      width: 150,
       render: (amount, _, index) => (
         <InputNumber
-          value={amount}
+          value={amount === 0 ? null : amount}
           onChange={(value) => updateItem(index, "amount", value)}
           style={{ width: "100%" }}
           prefix="₹"
           min={0}
+          precision={0}
+          placeholder="0"
+          controls={false}
         />
       ),
     },
@@ -217,8 +256,96 @@ const DailyLedgerPage = () => {
     },
   ];
 
-  // ---------- RENDER ----------
-  const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
+  const sweetColumns = [
+    {
+      title: "#",
+      width: 40,
+      render: (_, __, i) => <Text type="secondary" style={{ fontWeight: 600 }}>{i + 1}</Text>,
+    },
+    {
+      title: "Sweet Name",
+      dataIndex: "sweetName",
+      render: (val, _, i) => (
+        <AutoComplete
+          options={SWEET_NAMES.map(s => ({ value: s }))}
+          value={val}
+          onChange={(v) => updateSweetRow(i, "sweetName", v)}
+          placeholder="e.g. Rasgolla, Gulab Jamun..."
+          filterOption={(inp, opt) => opt.value.toLowerCase().includes(inp.toLowerCase())}
+          style={{ width: "100%" }}
+        />
+      ),
+    },
+    {
+      title: "Qty Made",
+      dataIndex: "quantity",
+      width: 130,
+      render: (val, _, i) => (
+        <InputNumber
+          value={val === 0 ? null : val}
+          onChange={(v) => updateSweetRow(i, "quantity", v)}
+          style={{ width: "100%" }}
+          min={0}
+          precision={0}
+          placeholder="0"
+          controls={false}
+        />
+      ),
+    },
+    {
+      title: "Unit",
+      dataIndex: "unit",
+      width: 100,
+      render: (val, _, i) => (
+        <Select
+          value={val || "ghan"}
+          onChange={(v) => updateSweetRow(i, "unit", v)}
+          style={{ width: "100%" }}
+        >
+          <Option value="ghan">Ghan</Option>
+          <Option value="kg">Kg</Option>
+          <Option value="pcs">Pcs</Option>
+          <Option value="litre">Litre</Option>
+        </Select>
+      ),
+    },
+    {
+      title: "Actual Sold",
+      dataIndex: "actualSold",
+      width: 130,
+      render: (val, _, i) => (
+        <Tooltip title="How much was actually sold (helps next year planning)">
+          <InputNumber
+            value={val === 0 ? null : val}
+            onChange={(v) => updateSweetRow(i, "actualSold", v)}
+            style={{ width: "100%" }}
+            min={0}
+            precision={0}
+            placeholder="0"
+            controls={false}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Notes (Shortage / Surplus)",
+      dataIndex: "notes",
+      render: (val, _, i) => (
+        <Input
+          value={val}
+          onChange={(e) => updateSweetRow(i, "notes", e.target.value)}
+          placeholder="e.g. 20 Ghan shortage, increase next year"
+        />
+      ),
+    },
+    {
+      title: "",
+      width: 45,
+      render: (_, __, i) => (
+        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeSweetRow(i)} />
+      ),
+    },
+  ];
 
   return (
     <div style={{ padding: "0 8px" }}>
@@ -239,6 +366,21 @@ const DailyLedgerPage = () => {
           </Text>
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }} className="header-actions">
+          <Button
+            onClick={() => setAnalyticsModalOpen(true)}
+            icon={<TrophyOutlined style={{ color: "#f59e0b" }} />}
+            style={{
+              height: 45,
+              borderRadius: 10,
+              fontWeight: 700,
+              background: "#fffbeb",
+              borderColor: "#fde68a",
+              color: "#b45309",
+            }}
+          >
+            🏆 Festival Intelligence (YoY)
+          </Button>
+
           <DatePicker
             value={date}
             onChange={setDate}
@@ -259,12 +401,59 @@ const DailyLedgerPage = () => {
         </div>
       </div>
 
-      {/* ─── OPENING BALANCE ─── */}
+      {/* ─── FESTIVAL TAG CARD ─── */}
       <Card
         bordered={false}
         className="glass-card"
-        style={{ borderRadius: 16, marginBottom: 20 }}
+        style={{
+          borderRadius: 16, marginBottom: 20,
+          borderLeft: "4px solid #f59e0b",
+          background: ledgerData.festival ? "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)" : undefined,
+        }}
       >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <GiftOutlined style={{ fontSize: 20, color: "#f59e0b" }} />
+          <div>
+            <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Festival / Occasion Tag
+            </Text>
+            <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
+              Tag this day for year-over-year comparison (e.g. "Rakhi Purnima 2026")
+            </Text>
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            <Button
+              size="small"
+              icon={<TrophyOutlined />}
+              onClick={() => setAnalyticsModalOpen(true)}
+              style={{ borderRadius: 6, fontWeight: 600, background: "#fef3c7", color: "#b45309", borderColor: "#fcd34d" }}
+            >
+              Compare YoY History
+            </Button>
+            {ledgerData.festival && (
+              <Tag
+                color="gold"
+                icon={<StarOutlined />}
+                style={{ fontWeight: 700, fontSize: 13, padding: "4px 12px", borderRadius: 20 }}
+              >
+                {ledgerData.festival}
+              </Tag>
+            )}
+          </div>
+        </div>
+        <AutoComplete
+          options={FESTIVALS.map(f => ({ value: f }))}
+          value={ledgerData.festival}
+          onChange={(v) => setLedgerData({ ...ledgerData, festival: v })}
+          placeholder="Select or type festival name... (e.g. Rakhi Purnima, Diwali)"
+          filterOption={(inp, opt) => opt.value.toLowerCase().includes(inp.toLowerCase())}
+          style={{ width: "100%", maxWidth: 400 }}
+          allowClear
+        />
+      </Card>
+
+      {/* ─── OPENING BALANCE ─── */}
+      <Card bordered={false} className="glass-card" style={{ borderRadius: 16, marginBottom: 20 }}>
         <Row gutter={[20, 16]} align="middle">
           <Col xs={24} sm={8}>
             <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
@@ -283,7 +472,7 @@ const DailyLedgerPage = () => {
               value={ledgerData.openingBalance}
               onChange={(v) => setLedgerData({ ...ledgerData, openingBalance: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8 }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
           <Col xs={12} sm={8}>
@@ -295,7 +484,7 @@ const DailyLedgerPage = () => {
               value={ledgerData.openingBankBalance}
               onChange={(v) => setLedgerData({ ...ledgerData, openingBankBalance: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8 }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
         </Row>
@@ -311,12 +500,7 @@ const DailyLedgerPage = () => {
               <Title level={4} style={{ margin: 0 }}>Daily Expenses & Income</Title>
               <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP, Home Loan, Supplier, etc.</Text>
             </div>
-            <Button
-              type="primary"
-              onClick={addItem}
-              icon={<PlusOutlined />}
-              style={{ borderRadius: 8 }}
-            >
+            <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
               Add Entry
             </Button>
           </div>
@@ -347,14 +531,11 @@ const DailyLedgerPage = () => {
         </div>
       </Card>
 
-      {/* ─── MAA / CASH TO HOME ─── */}
+      {/* ─── MAA / HOME ─── */}
       <Card
         bordered={false}
         className="glass-card"
-        style={{
-          borderRadius: 16, marginBottom: 20,
-          borderLeft: "4px solid #8b5cf6",
-        }}
+        style={{ borderRadius: 16, marginBottom: 20, borderLeft: "4px solid #8b5cf6" }}
       >
         <Row gutter={[20, 16]} align="middle">
           <Col xs={24} sm={8}>
@@ -365,7 +546,7 @@ const DailyLedgerPage = () => {
                   Maa / Home
                 </Text>
                 <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-                  Cash & digital taken home
+                  Cash & digital taken home (auto-synced from Home Expenses)
                 </Text>
               </div>
             </div>
@@ -379,7 +560,7 @@ const DailyLedgerPage = () => {
               value={ledgerData.cashToHome}
               onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
           <Col xs={12} sm={8}>
@@ -391,29 +572,24 @@ const DailyLedgerPage = () => {
               value={ledgerData.digitalToHome}
               onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
         </Row>
       </Card>
 
-      {/* ─── CLOSING BALANCE (Physical Count) ─── */}
+      {/* ─── CLOSING BALANCE ─── */}
       <Card
         bordered={false}
         className="glass-card"
-        style={{
-          borderRadius: 16, marginBottom: 20,
-          borderLeft: "4px solid #f59e0b",
-        }}
+        style={{ borderRadius: 16, marginBottom: 20, borderLeft: "4px solid #f59e0b" }}
       >
         <Row gutter={[20, 16]} align="middle">
           <Col xs={24} sm={8}>
             <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
               Closing Balance
             </Text>
-            <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-              Physical cash count (evening)
-            </Text>
+            <Text type="secondary" style={{ display: "block", fontSize: 11 }}>Physical cash count (evening)</Text>
           </Col>
           <Col xs={12} sm={8}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -424,7 +600,7 @@ const DailyLedgerPage = () => {
               value={ledgerData.closingBalance}
               onChange={(v) => setLedgerData({ ...ledgerData, closingBalance: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#fffbeb", borderColor: "#fcd34d" }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
           <Col xs={12} sm={8}>
@@ -436,13 +612,13 @@ const DailyLedgerPage = () => {
               value={ledgerData.closingBankBalance}
               onChange={(v) => setLedgerData({ ...ledgerData, closingBankBalance: v || 0 })}
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#fffbeb", borderColor: "#fcd34d" }}
-              prefix="₹"
+              prefix="₹" min={0} precision={0}
             />
           </Col>
         </Row>
       </Card>
 
-      {/* ─── ★ DERIVED SELL ★ ─── */}
+      {/* ─── TODAY'S SELL ─── */}
       <Card
         bordered={false}
         style={{
@@ -452,22 +628,26 @@ const DailyLedgerPage = () => {
             : "#f1f5f9",
           overflow: "hidden",
           position: "relative",
+          marginBottom: 20,
         }}
       >
-        {/* Decorative circles */}
         {totals.hasClosing && (
           <>
             <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(59,130,246,0.08)" }} />
             <div style={{ position: "absolute", bottom: -20, left: 40, width: 100, height: 100, borderRadius: "50%", background: "rgba(16,185,129,0.06)" }} />
           </>
         )}
-
         <div style={{ position: "relative", zIndex: 1, padding: "8px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <ShoppingCartOutlined style={{ fontSize: 24, color: totals.hasClosing ? "#60a5fa" : "#94a3b8" }} />
             <Title level={3} style={{ margin: 0, color: totals.hasClosing ? "white" : "#64748b", fontWeight: 800, letterSpacing: 1 }}>
               TODAY'S SELL
             </Title>
+            {ledgerData.festival && totals.hasClosing && (
+              <Tag icon={<GiftOutlined />} color="gold" style={{ marginLeft: 8, fontWeight: 700, fontSize: 12, borderRadius: 20 }}>
+                {ledgerData.festival}
+              </Tag>
+            )}
           </div>
 
           {!totals.hasClosing ? (
@@ -511,8 +691,6 @@ const DailyLedgerPage = () => {
                   </div>
                 </Col>
               </Row>
-
-              {/* Formula explanation */}
               <div style={{ marginTop: 16, padding: "10px 16px", background: "rgba(255,255,255,0.04)", borderRadius: 8 }}>
                 <Text style={{ color: "#64748b", fontSize: 11, fontFamily: "monospace" }}>
                   Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Expenses ({fmt(totals.totalExpenses)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
@@ -522,6 +700,96 @@ const DailyLedgerPage = () => {
           )}
         </div>
       </Card>
+
+      {/* ─── SWEET PRODUCTION TABLE ─── */}
+      <Card
+        bordered={false}
+        className="glass-card"
+        title={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ExperimentOutlined style={{ fontSize: 18, color: "#6366f1" }} />
+              <div>
+                <Title level={4} style={{ margin: 0 }}>Sweet Production Log</Title>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Record how much you made today — helps plan quantities for next year's same festival.
+                </Text>
+              </div>
+            </div>
+            <Button
+              onClick={addSweetRow}
+              icon={<PlusOutlined />}
+              style={{
+                borderRadius: 8,
+                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                color: "#fff",
+                border: "none",
+                fontWeight: 600,
+              }}
+            >
+              Add Sweet
+            </Button>
+          </div>
+        }
+        style={{ borderRadius: 20, marginBottom: 20, borderLeft: "4px solid #6366f1" }}
+      >
+        {ledgerData.sweetProduction.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8" }}>
+            <ExperimentOutlined style={{ fontSize: 32, marginBottom: 8, display: "block" }} />
+            <Text type="secondary">
+              No sweets logged yet. Click "Add Sweet" to record production for{" "}
+              {ledgerData.festival ? (
+                <Text strong style={{ color: "#f59e0b" }}>{ledgerData.festival}</Text>
+              ) : "today"}.
+            </Text>
+          </div>
+        ) : (
+          <Table
+            dataSource={ledgerData.sweetProduction}
+            columns={sweetColumns}
+            pagination={false}
+            rowKey={(_, index) => index}
+            size="middle"
+            footer={() => {
+              const totalMade = ledgerData.sweetProduction.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+              const totalSold = ledgerData.sweetProduction.reduce((s, r) => s + (Number(r.actualSold) || 0), 0);
+              const diff = totalSold - totalMade;
+              return (
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 24 }}>
+                  <Text type="secondary" style={{ fontWeight: 600 }}>
+                    Total Made: <Text strong style={{ color: "#6366f1" }}>{fmt(totalMade)}</Text>
+                  </Text>
+                  <Text type="secondary" style={{ fontWeight: 600 }}>
+                    Total Sold: <Text strong style={{ color: "#10b981" }}>{fmt(totalSold)}</Text>
+                  </Text>
+                  {totalSold > 0 && (
+                    <Text style={{ fontWeight: 700 }}>
+                      {diff < 0 ? (
+                        <Text strong style={{ color: "#ef4444" }}>
+                          ⚠️ Shortage: {fmt(Math.abs(diff))} (increase next year)
+                        </Text>
+                      ) : diff > 0 ? (
+                        <Text strong style={{ color: "#f59e0b" }}>
+                          📦 Surplus: {fmt(diff)} (reduce next year)
+                        </Text>
+                      ) : (
+                        <Text strong style={{ color: "#10b981" }}>✅ Perfect match!</Text>
+                      )}
+                    </Text>
+                  )}
+                </div>
+              );
+            }}
+          />
+        )}
+      </Card>
+
+      {/* ─── FESTIVAL ANALYTICS MODAL ─── */}
+      <FestivalAnalyticsModal
+        open={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        defaultFestival={ledgerData.festival || "Rakhi Purnima"}
+      />
     </div>
   );
 };

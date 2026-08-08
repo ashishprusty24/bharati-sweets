@@ -240,11 +240,11 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
                     <span style={{ display: "inline-block", background: "#00BAF2", color: "#fff", fontWeight: 800, fontSize: 12, padding: "3px 10px", borderRadius: 4, letterSpacing: 0.5 }}>
                       pay<span style={{ fontWeight: 400 }}>tm</span>
                     </span>
-                    <div style={{ fontSize: 9, color: "#44403c", fontWeight: 600, marginTop: 2 }}>BHARATI SWEETS<br/>+91 70089 14416</div>
+                    <div style={{ fontSize: 9, color: "#44403c", fontWeight: 600, marginTop: 2 }}>BHARATI SWEETS<br />+91 70089 14416</div>
                   </div>
                 </div>
                 <img
-                  src="/assets/qrcode.jpeg"
+                  src="/assets/qrcode.png"
                   alt="UPI QR Code"
                   style={{ width: 120, height: 120, objectFit: "contain", border: "1px solid #e2e8f0", borderRadius: 8, padding: 4, background: "#fff" }}
                 />
@@ -257,7 +257,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             Thank you for your business! ♡
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 9, color: "#78350f", padding: "0 4px" }}>
-            <span style={{ textAlign: "left" }}>📍 Bharati Sweets, By Pass, Dala,<br/>&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</span>
+            <span style={{ textAlign: "left" }}>📍 Bharati Sweets, By Pass, Dala,<br />&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</span>
             <span style={{ textAlign: "center" }}>📞 +91 70089 14416 / +91 70080 84419</span>
             <span style={{ textAlign: "right" }}>✉️ bharatisweets@gmail.com</span>
           </div>

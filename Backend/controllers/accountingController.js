@@ -65,7 +65,9 @@ const getFinancialSummary = (startDate, endDate) => {
     try {
       const [expenses, homeExpenses, eventOrders, ledgers] = await Promise.all([
         Expense.find({ date: { $gte: startDate, $lte: endDate } }),
-        HomeExpense.find({ date: { $gte: startDate, $lte: endDate } }),
+        // Exclude daily_ledger auto-synced records — those shop expenses are already
+        // counted via the Expense model to avoid double-counting
+        HomeExpense.find({ date: { $gte: startDate, $lte: endDate }, sourceTag: { $ne: "daily_ledger" } }),
         EventOrder.find({ createdAt: { $gte: startDate, $lte: endDate } }),
         DailyLedger.find({ date: { $gte: startDate, $lte: endDate } }),
       ]);
@@ -146,7 +148,7 @@ const getTransactions = (startDate, endDate) => {
     try {
       const [expenses, homeExpenses, eventOrders, ledgers] = await Promise.all([
         Expense.find({ date: { $gte: startDate, $lte: endDate } }),
-        HomeExpense.find({ date: { $gte: startDate, $lte: endDate } }),
+        HomeExpense.find({ date: { $gte: startDate, $lte: endDate }, sourceTag: { $ne: "daily_ledger" } }),
         EventOrder.find({ createdAt: { $gte: startDate, $lte: endDate } }),
         DailyLedger.find({ date: { $gte: startDate, $lte: endDate } }),
       ]);

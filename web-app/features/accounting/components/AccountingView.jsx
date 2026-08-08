@@ -84,12 +84,13 @@ export default function AccountingView() {
     }
   };
 
-  const handleDateRangeChange = (dates) => {
+  const handleDateRangeChange = (dates, forceCustom = true) => {
     if (dates) {
       setDateRange(dates);
-      setTimeframe("custom");
+      if (forceCustom) setTimeframe("custom");
     }
   };
+
 
   const generateFinancialReport = () => {
     if (!financialData) return;

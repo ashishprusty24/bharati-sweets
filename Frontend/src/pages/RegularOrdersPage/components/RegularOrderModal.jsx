@@ -64,7 +64,7 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
             <Switch checkedChildren="Reminder ON" unCheckedChildren="Reminder OFF" />
             <Text style={{ marginLeft: 12 }}>Set a yearly reminder for this customer to get repeat business</Text>
           </Form.Item>
-          
+
           <Form.Item noStyle shouldUpdate={(prev, curr) => prev.setReminder !== curr.setReminder}>
             {({ getFieldValue }) => getFieldValue("setReminder") && (
               <Row gutter={16} style={{ marginTop: 16 }}>
@@ -133,7 +133,7 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
             </Form.Item>
           </Col>
         </Row>
-        
+
         <Form.Item noStyle shouldUpdate={(prev, curr) => prev.paymentMethod !== curr.paymentMethod}>
           {({ getFieldValue }) => {
             const method = getFieldValue("paymentMethod");
@@ -142,10 +142,10 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
                 <div style={{ textAlign: "center", margin: "20px 0" }}>
                   <Text strong>Scan to Pay ₹{form.getFieldValue("paymentAmount") || 0}</Text>
                   <Divider style={{ margin: "10px 0" }} />
-                  <img 
-                    src="/assets/qrcode.jpeg" 
-                    alt="Payment QR Code" 
-                    style={{ width: "200px", height: "200px", objectFit: "contain", borderRadius: 8, border: "1px solid #e2e8f0" }} 
+                  <img
+                    src="/assets/qrcode.png"
+                    alt="Payment QR Code"
+                    style={{ width: "200px", height: "200px", objectFit: "contain", borderRadius: 8, border: "1px solid #e2e8f0" }}
                   />
                   <div style={{ marginTop: 8 }}>
                     <Text type="secondary">Customer must enter the amount manually after scanning.</Text>
@@ -156,7 +156,7 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
             return null;
           }}
         </Form.Item>
-        
+
         <Form.Item noStyle shouldUpdate={(prev, curr) => prev.paymentMethod !== curr.paymentMethod}>
           {({ getFieldValue }) => getFieldValue("paymentMethod") === "card" && (
             <Form.Item name="cardId" label="Card ID" rules={[{ required: true }]}>

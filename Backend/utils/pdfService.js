@@ -4,7 +4,7 @@ const pdf = require("html-pdf");
 
 let qrCodeBase64 = "";
 try {
-  const qrPath = path.join(process.cwd(), "public", "images", "qrcode.jpeg");
+  const qrPath = path.join(process.cwd(), "public", "images", "qrcode.png");
   if (fs.existsSync(qrPath)) {
     const bitmap = fs.readFileSync(qrPath);
     qrCodeBase64 = `data:image/jpeg;base64,${bitmap.toString("base64")}`;
@@ -423,8 +423,8 @@ const invoiceTemplate = (order, title, status) => {
     </thead>
     <tbody>
       ${items
-        .map(
-          (item) => `
+      .map(
+        (item) => `
         <tr>
           <td>${item.name}</td>
           <td>${item.quantity || 1}</td>
@@ -432,8 +432,8 @@ const invoiceTemplate = (order, title, status) => {
           <td>₹${(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2)}</td>
         </tr>
       `
-        )
-        .join("")}
+      )
+      .join("")}
     </tbody>
   </table>
 
@@ -476,9 +476,8 @@ const invoiceTemplate = (order, title, status) => {
           <span class="total-row-lbl">Paid</span>
           <span class="total-row-val">₹${Number(totalPaid).toFixed(2)}</span>
         </div>
-        ${
-          Number(balance) > 0
-            ? `
+        ${Number(balance) > 0
+      ? `
           <div class="balance-box">
             <div class="total-row" style="margin: 0;">
               <span style="display: table-cell; text-align: left;">Balance</span>
@@ -486,21 +485,20 @@ const invoiceTemplate = (order, title, status) => {
             </div>
           </div>
           `
-            : `
+      : `
           <div style="color: #16a34a; font-weight: 800; font-size: 11px; text-align: right; margin-top: 4px;">
             STATUS: PAID IN FULL
           </div>
           `
-        }
+    }
       </td>
     </tr>
   </table>
 
   <!-- PAY & FOOTER CARD -->
   <div class="pay-card">
-    ${
-      Number(balance) > 0 && qrCodeBase64
-        ? `
+    ${Number(balance) > 0 && qrCodeBase64
+      ? `
       <div class="scan-title">Scan to pay balance (₹${Number(balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })})</div>
       <div style="color: #d97706; font-size: 9px; margin-bottom: 6px;">— ✦ —</div>
       <div class="upi-container">
@@ -522,7 +520,7 @@ const invoiceTemplate = (order, title, status) => {
         <div class="scan-caption">Scan & Pay with any UPI App</div>
       </div>
       `
-        : ""
+      : ""
     }
     <div class="thank-you">Thank you for your business! ♡</div>
     <table class="footer-info-row">

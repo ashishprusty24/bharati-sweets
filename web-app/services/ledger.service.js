@@ -10,14 +10,21 @@ export class LedgerService {
     const endOfDay = dayjs(date).endOf("day").toDate();
     let ledger = await LedgerRepository.findByDate(targetDate);
 
-    let homeIntakeTotal = 0;
+    // Only count actual Home Intake entries (cash drawn from till to home)
+    // Split by payment source to correctly account for cash vs bank
+    let cashHomeIntake = 0;
+    let bankHomeIntake = 0;
     try {
       await connectDB();
       const homeExpenses = await HomeExpense.find({
         date: { $gte: targetDate, $lte: endOfDay },
+        category: "home_intake", // Only home_intake category — NOT shop cash expenses
       });
-      homeIntakeTotal = homeExpenses
-        .filter((e) => e.category === "personal" || e.paymentSource === "home_cash")
+      cashHomeIntake = homeExpenses
+        .filter((e) => e.paymentSource === "home_cash")
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      bankHomeIntake = homeExpenses
+        .filter((e) => e.paymentSource === "bank_account")
         .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     } catch (hErr) {
       console.error("Error auto-fetching home intake in web-app service:", hErr);
@@ -31,20 +38,28 @@ export class LedgerService {
 
       ledger = {
         date: targetDate,
+        festival: "",
+        sweetProduction: [],
         openingBalance,
         openingBankBalance,
         cashSales: 0,
         digitalSales: 0,
         totalExpenses: 0,
         otherIncome: 0,
-        cashToHome: homeIntakeTotal,
-        digitalToHome: 0,
+        cashToHome: cashHomeIntake,
+        digitalToHome: bankHomeIntake,
         closingBalance: 0,
         closingBankBalance: 0,
         items: [],
       };
-    } else if (!ledger.cashToHome && homeIntakeTotal > 0) {
-      ledger.cashToHome = homeIntakeTotal;
+    } else {
+      // Auto-populate from home intake if not already set manually
+      if (!ledger.cashToHome && cashHomeIntake > 0) {
+        ledger.cashToHome = cashHomeIntake;
+      }
+      if (!ledger.digitalToHome && bankHomeIntake > 0) {
+        ledger.digitalToHome = bankHomeIntake;
+      }
     }
 
     const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
@@ -67,7 +82,7 @@ export class LedgerService {
     const totalExpenses = cashExpenseTotal + bankExpenseTotal;
 
     // Derived sell formula:
-    // Cash Sell = Closing Cash + Cash Expenses + Cash to Home - Opening Cash - Other Income
+    // Cash Sell = Closing Cash + Cash Expenses + Cash to Home - Opening Cash - Other Income - Cash Income
     const derivedCashSales =
       Number(ledgerObj.closingBalance || 0) +
       cashExpenseTotal +
@@ -76,6 +91,7 @@ export class LedgerService {
       Number(ledgerObj.otherIncome || 0) -
       cashIncomeTotal;
 
+    // Digital Sell = Closing Bank + Bank Expenses + Account to Home - Opening Bank - Bank Income
     const derivedDigitalSales =
       Number(ledgerObj.closingBankBalance || 0) +
       bankExpenseTotal +
@@ -95,6 +111,8 @@ export class LedgerService {
     const targetDate = dayjs(date).startOf("day").toDate();
     const {
       items = [],
+      festival = "",
+      sweetProduction = [],
       openingBalance = 0,
       openingBankBalance = 0,
       otherIncome = 0,
@@ -109,6 +127,8 @@ export class LedgerService {
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
     const updatePayload = {
+      festival: festival || "",
+      sweetProduction: sweetProduction || [],
       openingBalance: Number(openingBalance),
       openingBankBalance: Number(openingBankBalance),
       otherIncome: Number(otherIncome),
@@ -120,18 +140,69 @@ export class LedgerService {
       items,
     };
 
-    // Auto-sync items to HomeExpense and Vendor
+    // --- AUTO SYNC CASH TO HOME & DIGITAL TO HOME (HOME INTAKE) ---
     try {
       await connectDB();
       const endOfDay = dayjs(date).endOf("day").toDate();
+
+      if (Number(cashToHome) > 0) {
+        await HomeExpense.findOneAndUpdate(
+          {
+            date: { $gte: targetDate, $lte: endOfDay },
+            category: "home_intake",
+            paymentSource: "home_cash",
+          },
+          {
+            date: targetDate,
+            description: "Cash taken home from shop",
+            amount: Number(cashToHome),
+            category: "home_intake",
+            paymentSource: "home_cash",
+            sourceTag: "direct",
+          },
+          { upsert: true, new: true }
+        );
+      } else {
+        await HomeExpense.deleteMany({
+          date: { $gte: targetDate, $lte: endOfDay },
+          category: "home_intake",
+          paymentSource: "home_cash",
+        });
+      }
+
+      if (Number(digitalToHome) > 0) {
+        await HomeExpense.findOneAndUpdate(
+          {
+            date: { $gte: targetDate, $lte: endOfDay },
+            category: "home_intake",
+            paymentSource: "bank_account",
+          },
+          {
+            date: targetDate,
+            description: "Digital funds transferred to home",
+            amount: Number(digitalToHome),
+            category: "home_intake",
+            paymentSource: "bank_account",
+            sourceTag: "direct",
+          },
+          { upsert: true, new: true }
+        );
+      } else {
+        await HomeExpense.deleteMany({
+          date: { $gte: targetDate, $lte: endOfDay },
+          category: "home_intake",
+          paymentSource: "bank_account",
+        });
+      }
+    } catch (intakeErr) {
+      console.error("Home intake sync error in web-app ledger service:", intakeErr);
+    }
+
+    // --- AUTO SYNC TO VENDORS ONLY ---
+    try {
+      await connectDB();
       for (const item of items) {
         if (item.type === "expense" && item.description) {
-          const exists = await HomeExpense.findOne({
-            date: { $gte: targetDate, $lte: endOfDay },
-            description: item.description,
-            amount: Number(item.amount),
-          });
-
           const descName = item.description.trim();
           let vendor = await Vendor.findOne({ name: new RegExp("^" + descName + "$", "i") });
           if (!vendor && item.category === "supplier_payment") {
@@ -161,24 +232,14 @@ export class LedgerService {
               await vendor.save();
             }
           }
-
-          if (!exists) {
-            const newExp = new HomeExpense({
-              date: targetDate,
-              description: item.description,
-              amount: Number(item.amount) || 0,
-              category: item.category || "other",
-              paymentSource: item.paymentMode === "bank" ? "bank_account" : "home_cash",
-              vendorId: vendor ? vendor._id : item.vendorId || null,
-            });
-            await newExp.save();
-          }
         }
       }
     } catch (syncErr) {
-      console.error("Web-app ledger save auto-sync error:", syncErr);
+      console.error("Web-app ledger save vendor-sync error:", syncErr);
     }
 
     return await LedgerRepository.saveOrUpdateLedger(targetDate, updatePayload);
   }
 }
+
+

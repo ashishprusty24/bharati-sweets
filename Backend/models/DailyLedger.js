@@ -9,19 +9,29 @@ const ledgerItemSchema = new mongoose.Schema({
   paymentMode: { type: String, enum: ["cash", "bank"], default: "cash" }
 });
 
+const sweetProductionSchema = new mongoose.Schema({
+  sweetName: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  unit: { type: String, enum: ["kg", "ghan", "pcs", "litre"], default: "ghan" },
+  actualSold: { type: Number, default: 0 },
+  notes: { type: String, default: "" }
+});
+
 const dailyLedgerSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, unique: true },
-    openingBalance: { type: Number, default: 0 }, // Represents openingCashBalance
+    festival: { type: String, default: "" },              // Festival tag e.g. "Rakhi Purnima"
+    sweetProduction: [sweetProductionSchema],              // Manual sweet production log
+    openingBalance: { type: Number, default: 0 },         // Represents openingCashBalance
     openingBankBalance: { type: Number, default: 0 },
     cashSales: { type: Number, default: 0 },
-    digitalSales: { type: Number, default: 0 }, // PhonePe, GPay
+    digitalSales: { type: Number, default: 0 },           // PhonePe, GPay
     totalExpenses: { type: Number, default: 0 },
     otherIncome: { type: Number, default: 0 },
-    cashToHome: { type: Number, default: 0 },         // Cash taken home at end of day
-    digitalToHome: { type: Number, default: 0 },       // Digital funds transferred to personal
+    cashToHome: { type: Number, default: 0 },             // Cash taken home at end of day
+    digitalToHome: { type: Number, default: 0 },          // Digital funds transferred to personal
     items: [ledgerItemSchema],
-    closingBalance: { type: Number, default: 0 }, // Represents closingCashBalance
+    closingBalance: { type: Number, default: 0 },         // Represents closingCashBalance
     closingBankBalance: { type: Number, default: 0 },
     status: { type: String, enum: ["open", "closed"], default: "open" },
     notes: { type: String }
@@ -30,3 +40,4 @@ const dailyLedgerSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("DailyLedger", dailyLedgerSchema);
+

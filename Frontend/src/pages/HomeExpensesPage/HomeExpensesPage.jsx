@@ -775,6 +775,12 @@ const HomeExpensesPage = () => {
             <Input placeholder="e.g., Staff salary for July, Kaju supplier payment, Electricity Bill" style={{ height: 42, borderRadius: 10 }} />
           </Form.Item>
 
+          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "10px 14px", borderRadius: 10, marginBottom: 16 }}>
+            <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+              💡 <strong>Payment Source Choice:</strong> Selecting <strong>Home Cash</strong> deducts from your physical cash balance, while <strong>Bank Account</strong> deducts from your bank intake.
+            </Text>
+          </div>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="category" label="Category" rules={[{ required: true, message: "Enter category" }]}>
@@ -805,8 +811,16 @@ const HomeExpensesPage = () => {
                   ))}
                 </Select>
               </Form.Item>
+              <div style={{ marginTop: -12, marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: selectedPaymentSource === "home_cash" ? "#10b981" : selectedPaymentSource === "bank_account" ? "#6366f1" : "#ef4444", fontWeight: 600 }}>
+                  {selectedPaymentSource === "home_cash" && "💵 Deducts from Home Cash"}
+                  {selectedPaymentSource === "bank_account" && "🏦 Deducts from Bank Account"}
+                  {selectedPaymentSource === "credit_card" && "💳 Deducts from Credit Card"}
+                </Text>
+              </div>
             </Col>
           </Row>
+
 
           {selectedPaymentSource === "credit_card" && (
             <Form.Item name="creditCardId" label="Select Credit Card" rules={[{ required: true, message: "Select a credit card" }]}>

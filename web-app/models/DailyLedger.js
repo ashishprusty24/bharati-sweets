@@ -9,9 +9,19 @@ const ledgerItemSchema = new mongoose.Schema({
   paymentMode: { type: String, enum: ["cash", "bank"], default: "cash" },
 });
 
+const sweetProductionSchema = new mongoose.Schema({
+  sweetName: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  unit: { type: String, enum: ["kg", "ghan", "pcs", "litre"], default: "ghan" },
+  actualSold: { type: Number, default: 0 },
+  notes: { type: String, default: "" },
+});
+
 const dailyLedgerSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, unique: true },
+    festival: { type: String, default: "" },
+    sweetProduction: [sweetProductionSchema],
     openingBalance: { type: Number, default: 0 },
     openingBankBalance: { type: Number, default: 0 },
     cashSales: { type: Number, default: 0 },
