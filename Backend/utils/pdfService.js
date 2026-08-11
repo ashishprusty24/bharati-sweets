@@ -44,16 +44,20 @@ const invoiceTemplate = (order, title, status) => {
   const discountPerPacket = Number(order.discount || 0);
 
   const packetTotal = items.reduce(
-    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+    (sum, item) => sum + Number(item.price || item.unitPrice || 0) * Number(item.quantity || 1),
     0
   );
 
   const finalPacketPrice = (packetTotal - discountPerPacket).toFixed(2);
-  const calculatedTotal = (finalPacketPrice * packets).toFixed(2);
-  const totalPaid = (order.payments || [])
-    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
-    .toFixed(2);
-  const balance = (calculatedTotal - totalPaid).toFixed(2);
+  const calculatedTotalNum = Number(order.totalAmount || (finalPacketPrice * packets));
+  const calculatedTotal = calculatedTotalNum.toFixed(2);
+
+  const totalPaidNumber = (order.payments && order.payments.length > 0)
+    ? order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
+    : Number(order.paidAmount || order.advancePaid || order.advancePayment || 0);
+
+  const totalPaid = totalPaidNumber.toFixed(2);
+  const balance = Math.max(0, calculatedTotalNum - totalPaidNumber).toFixed(2);
 
   const dayjs = require("dayjs");
   const utcPlugin = require("dayjs/plugin/utc");

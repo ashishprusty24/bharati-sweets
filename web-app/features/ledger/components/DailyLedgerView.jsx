@@ -405,15 +405,49 @@ export default function DailyLedgerView() {
       ),
     },
     {
-      title: "Notes (Shortage / Surplus)",
+      title: "Notes",
       dataIndex: "notes",
       render: (val, _, i) => (
         <Input
           value={val}
           onChange={(e) => updateSweetRow(i, "notes", e.target.value)}
-          placeholder="e.g. 20 Ghan shortage, increase next year"
+          placeholder="e.g. Special order notes..."
         />
       ),
+    },
+    {
+      title: "Status & Suggestion",
+      key: "statusSuggestion",
+      width: 220,
+      render: (_, record) => {
+        const made = Number(record.quantity) || 0;
+        const sold = Number(record.actualSold) || 0;
+        const unit = record.unit || "ghan";
+        if (made === 0 && sold === 0) return <Text type="secondary" style={{ fontSize: 12 }}>—</Text>;
+
+        if (made > sold) {
+          const surplus = made - sold;
+          return (
+            <Tag color="orange" style={{ borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>
+              📦 Surplus: {surplus} {unit} (Decrease next year)
+            </Tag>
+          );
+        } else if (sold > made) {
+          const shortage = sold - made;
+          return (
+            <Tag color="red" style={{ borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>
+              ⚠️ Shortage: {shortage} {unit} (Increase next year)
+            </Tag>
+          );
+        } else if (made > 0 && sold === made) {
+          return (
+            <Tag color="green" style={{ borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>
+              ✅ 100% Sold Out
+            </Tag>
+          );
+        }
+        return null;
+      },
     },
     {
       title: "",
@@ -531,11 +565,14 @@ export default function DailyLedgerView() {
       <Card variant="borderless" style={{ borderRadius: 16, marginBottom: 20 }}>
         <Row gutter={[20, 16]} align="middle">
           <Col xs={24} sm={8}>
-            <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
-              Opening Balance
-            </Text>
-            <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-              Physical cash count (morning)
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Opening Balance
+              </Text>
+              <Tag color="blue" style={{ fontSize: 10, borderRadius: 10, margin: 0, padding: "0 6px" }}>Auto-synced</Tag>
+            </div>
+            <Text type="secondary" style={{ display: "block", fontSize: 11, marginTop: 2 }}>
+              Auto-carried from previous day's closing count
             </Text>
           </Col>
           <Col xs={12} sm={8}>
@@ -848,32 +885,49 @@ export default function DailyLedgerView() {
             rowKey={(_, index) => index}
             size="middle"
             footer={() => {
-              const totalMade = ledgerData.sweetProduction.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
-              const totalSold = ledgerData.sweetProduction.reduce((s, r) => s + (Number(r.actualSold) || 0), 0);
-              const diff = totalSold - totalMade;
               return (
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 24 }}>
-                  <Text type="secondary" style={{ fontWeight: 600 }}>
-                    Total Made: <Text strong style={{ color: "#6366f1" }}>{fmt(totalMade)}</Text>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Text strong style={{ fontSize: 13, color: "#475569", borderBottom: "1px dashed #cbd5e1", paddingBottom: 4 }}>
+                    Sweet-wise Production &amp; Demand Breakdown:
                   </Text>
-                  <Text type="secondary" style={{ fontWeight: 600 }}>
-                    Total Sold: <Text strong style={{ color: "#10b981" }}>{fmt(totalSold)}</Text>
-                  </Text>
-                  {totalSold > 0 && (
-                    <Text style={{ fontWeight: 700 }}>
-                      {diff < 0 ? (
-                        <Text strong style={{ color: "#ef4444" }}>
-                          ⚠️ Shortage: {fmt(Math.abs(diff))} (increase next year)
+                  {ledgerData.sweetProduction.map((item, idx) => {
+                    const name = item.sweetName || `Sweet #${idx + 1}`;
+                    const made = Number(item.quantity) || 0;
+                    const sold = Number(item.actualSold) || 0;
+                    const unit = item.unit || "ghan";
+                    let statusTag = null;
+
+                    if (made > sold) {
+                      statusTag = (
+                        <Text strong style={{ color: "#d97706" }}>
+                          📦 Surplus: {made - sold} {unit} (Decrease next year)
                         </Text>
-                      ) : diff > 0 ? (
-                        <Text strong style={{ color: "#f59e0b" }}>
-                          📦 Surplus: {fmt(diff)} (reduce next year)
+                      );
+                    } else if (sold > made) {
+                      statusTag = (
+                        <Text strong style={{ color: "#dc2626" }}>
+                          ⚠️ Shortage: {sold - made} {unit} (Increase next year)
                         </Text>
-                      ) : (
-                        <Text strong style={{ color: "#10b981" }}>✅ Perfect match!</Text>
-                      )}
-                    </Text>
-                  )}
+                      );
+                    } else if (made > 0 && sold === made) {
+                      statusTag = (
+                        <Text strong style={{ color: "#16a34a" }}>
+                          ✅ 100% Sold Out
+                        </Text>
+                      );
+                    }
+
+                    return (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 13 }}>
+                        <Text strong style={{ color: "#1e293b", minWidth: 140 }}>{name}:</Text>
+                        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                          <Text type="secondary">Made: <strong style={{ color: "#4f46e5" }}>{made} {unit}</strong></Text>
+                          <Text type="secondary">Sold: <strong style={{ color: "#059669" }}>{sold} {unit}</strong></Text>
+                          {statusTag}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             }}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Button,
   Modal,
@@ -21,9 +21,11 @@ import {
   SearchOutlined,
   InboxOutlined,
   GiftOutlined,
+  PrinterOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import html2pdf from "html2pdf.js";
 import api from "../../../services/api";
 
 dayjs.extend(utc);
@@ -36,6 +38,7 @@ const PreparationReportModal = () => {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState([]);
   const [selectedDate, setSelectedDate] = useState(dayjs());
+  const printRef = useRef();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -52,6 +55,30 @@ const PreparationReportModal = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const reportData = report.length > 0 ? report[0] : null;
+  const totalItems = reportData?.items?.length || 0;
+  const totalQuantity =
+    reportData?.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+
+  const exportPDF = () => {
+    if (!report.length || !reportData) {
+      message.warning("No data to export");
+      return;
+    }
+    const element = printRef.current;
+    if (!element) return;
+
+    const opt = {
+      margin: [6, 6, 6, 6],
+      filename: `preparation-report-${selectedDate.format("YYYY-MM-DD")}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollY: 0 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    html2pdf().set(opt).from(element).save();
   };
 
   const exportCSV = () => {
@@ -117,11 +144,6 @@ const PreparationReportModal = () => {
       ),
     },
   ];
-
-  const reportData = report.length > 0 ? report[0] : null;
-  const totalItems = reportData?.items?.length || 0;
-  const totalQuantity =
-    reportData?.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
 
   return (
     <>
@@ -237,17 +259,84 @@ const PreparationReportModal = () => {
             {isMobile ? "" : "Fetch Report"}
           </Button>
           <Button
-            onClick={exportCSV}
+            type="primary"
+            onClick={exportPDF}
             disabled={!report.length}
             icon={<DownloadOutlined />}
+            style={{
+              height: 42,
+              borderRadius: 10,
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              border: "none",
+              boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+            }}
+          >
+            {isMobile ? "PDF" : "Download PDF"}
+          </Button>
+          <Button
+            onClick={exportCSV}
+            disabled={!report.length}
             style={{
               height: 42,
               borderRadius: 10,
               fontWeight: 600,
             }}
           >
-            {isMobile ? "" : "Export CSV"}
+            {isMobile ? "CSV" : "Export CSV"}
           </Button>
+        </div>
+
+        {/* Printable Hidden PDF Template */}
+        <div style={{ display: "none" }}>
+          <div ref={printRef} style={{ padding: "24px", fontFamily: "Helvetica, Arial, sans-serif", color: "#1e293b", background: "#ffffff" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "3px solid #6366f1", paddingBottom: "12px", marginBottom: "16px" }}>
+              <div>
+                <h2 style={{ margin: 0, color: "#1e1b4b", fontSize: "24px", fontWeight: "800", letterSpacing: "-0.5px" }}>BHARATI SWEETS</h2>
+                <p style={{ margin: "2px 0 0 0", color: "#6366f1", fontSize: "13px", fontWeight: "700" }}>DAILY EVENT PREPARATION REPORT</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", display: "block" }}>Delivery Target Date</span>
+                <strong style={{ fontSize: "16px", color: "#0f172a" }}>{selectedDate.format("DD MMMM YYYY")}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "20px", background: "#f8fafc", padding: "12px 16px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+              <div><span style={{ color: "#64748b", fontSize: "12px" }}>Total Packets: </span><strong style={{ fontSize: "14px", color: "#4f46e5" }}>{reportData?.packets || 0}</strong></div>
+              <div><span style={{ color: "#64748b", fontSize: "12px" }}>Unique Sweets/Items: </span><strong style={{ fontSize: "14px", color: "#059669" }}>{totalItems}</strong></div>
+              <div><span style={{ color: "#64748b", fontSize: "12px" }}>Total Quantity Required: </span><strong style={{ fontSize: "14px", color: "#d97706" }}>{totalQuantity}</strong></div>
+            </div>
+
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", marginBottom: "24px" }}>
+              <thead>
+                <tr style={{ background: "#4f46e5", color: "#ffffff" }}>
+                  <th style={{ padding: "10px 12px", textAlign: "left", width: "50px" }}>#</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left" }}>Sweet / Item Name</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right", width: "160px" }}>Preparation Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(reportData?.items || []).map((item, idx) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #e2e8f0", background: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                    <td style={{ padding: "10px 12px", color: "#64748b" }}>{idx + 1}</td>
+                    <td style={{ padding: "10px 12px", fontWeight: "bold", color: "#1e293b" }}>{item.name}</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: "bold", color: "#059669", fontSize: "14px" }}>{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#e0e7ff", fontWeight: "bold" }}>
+                  <td colSpan={2} style={{ padding: "12px", color: "#3730a3", fontSize: "14px" }}>TOTAL UNITS TO PREPARE</td>
+                  <td style={{ padding: "12px", textAlign: "right", color: "#3730a3", fontSize: "16px" }}>{totalQuantity}</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <div style={{ paddingTop: "12px", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#94a3b8" }}>
+              <span>Report Generated: {dayjs().format("DD MMM YYYY, hh:mm A")}</span>
+              <span>Bharati Sweets ERP System — Confidential</span>
+            </div>
+          </div>
         </div>
 
         {/* Report Content */}

@@ -40,9 +40,13 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
   );
 
   const finalPacketPrice = (packetTotal - discountPerPacket).toFixed(2);
-  const calculatedTotal = (finalPacketPrice * packets).toFixed(2);
-  const totalPaid = (order.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0) || order.advancePaid || order.paidAmount || 0;
-  const balance = (calculatedTotal - totalPaid).toFixed(2);
+  const calculatedTotalNum = Number(order.totalAmount || (finalPacketPrice * packets));
+  const calculatedTotal = calculatedTotalNum.toFixed(2);
+  const totalPaidNumber = (order.payments && order.payments.length > 0)
+    ? order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
+    : Number(order.paidAmount || order.advancePaid || order.advancePayment || 0);
+  const totalPaid = totalPaidNumber.toFixed(2);
+  const balance = Math.max(0, calculatedTotalNum - totalPaidNumber).toFixed(2);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";

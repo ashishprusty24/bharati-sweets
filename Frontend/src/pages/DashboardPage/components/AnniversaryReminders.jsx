@@ -5,6 +5,8 @@ import useFetch from "../../../hooks/useFetch";
 import dayjs from "dayjs";
 import EmptyState from "./EmptyState";
 
+import { formatWhatsAppPhone } from "../../MarketingPage/config";
+
 const { Text } = Typography;
 
 const AnniversaryReminders = () => {
@@ -13,7 +15,8 @@ const AnniversaryReminders = () => {
   const handleWhatsApp = (item) => {
     const formattedDate = dayjs(item.date).format("MMMM Do");
     const text = `Namaste ${item.customerName}! Wishing you a very Happy ${item.eventType} coming up on ${formattedDate} from Bharati Sweets! Let us know if you'd like to pre-order any sweets for your celebration.`;
-    const url = `https://wa.me/91${item.phone}?text=${encodeURIComponent(text)}`;
+    const formattedPhone = formatWhatsAppPhone(item.phone);
+    const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 

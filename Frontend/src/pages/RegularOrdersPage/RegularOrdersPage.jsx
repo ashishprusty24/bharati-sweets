@@ -193,6 +193,7 @@ const RegularOrdersPage = () => {
       <RegularKOTModal
         visible={isKOTVisible}
         order={currentOrder}
+        inventoryItems={inventoryItems || []}
         onCancel={() => setIsKOTVisible(false)}
       />
     </div>

@@ -120,18 +120,21 @@ const createHomeExpense = (data) => {
         const txDate = data.date ? new Date(data.date) : new Date();
         const targetDate = dayjs(txDate).startOf("day").toDate();
         let ledger = await DailyLedger.findOne({ date: targetDate });
-        if (!ledger) {
-          const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-          const prevLedger = await DailyLedger.findOne({ date: prevDay });
-          const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-          const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+        const prevLedger = await DailyLedger.findOne({ date: prevDay });
+        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
 
+        if (!ledger) {
           ledger = new DailyLedger({
             date: targetDate,
             openingBalance,
             openingBankBalance,
             items: [],
           });
+        } else if (prevLedger) {
+          ledger.openingBalance = openingBalance;
+          ledger.openingBankBalance = openingBankBalance;
         }
 
         if (isIntakeCategory(data.category)) {

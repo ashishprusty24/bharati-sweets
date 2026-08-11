@@ -25,12 +25,15 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
     if (visible) {
       setSubmitting(false);
       if (item) {
+        const initialAdvance = item.advancePayment ?? item.advancePaid ?? item.paidAmount ?? (item.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0) ?? 0;
+        const initialMethod = item.advancePaymentMethod ?? item.paymentMethod ?? (item.payments && item.payments[0]?.method) ?? "cash";
+
         form.setFieldsValue({
           ...item,
           deliveryDate: dayjs(item.deliveryDate || item.eventDate),
           phone: item.customerPhone || item.phone,
-          advancePayment: item.advancePayment || item.advancePaid || 0,
-          advancePaymentMethod: item.advancePaymentMethod || item.paymentMethod || "cash",
+          advancePayment: initialAdvance,
+          advancePaymentMethod: initialMethod,
         });
       } else {
         form.resetFields();

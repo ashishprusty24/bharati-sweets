@@ -42,19 +42,20 @@ const getLedgerByDate = (date) => {
         console.error("Error auto-fetching home intake:", hErr);
       }
 
+      // Fetch previous day's ledger to auto-fill/sync opening balance
+      const prevDay = dayjs(date).subtract(1, "day").startOf("day").toDate();
+      const prevLedger = await DailyLedger.findOne({ date: prevDay });
+      const prevClosingCash = prevLedger ? (Number(prevLedger.closingBalance) || 0) : 0;
+      const prevClosingBank = prevLedger ? (Number(prevLedger.closingBankBalance) || 0) : 0;
+
       if (!ledger) {
         // New day — auto-fill opening from previous day's closing (physical count)
-        const prevDay = dayjs(date).subtract(1, "day").startOf("day").toDate();
-        const prevLedger = await DailyLedger.findOne({ date: prevDay });
-        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
-
         ledger = new DailyLedger({
           date: targetDate,
           festival: "",
           sweetProduction: [],
-          openingBalance,
-          openingBankBalance,
+          openingBalance: prevClosingCash,
+          openingBankBalance: prevClosingBank,
           cashSales: 0,
           digitalSales: 0,
           totalExpenses: 0,
@@ -66,6 +67,11 @@ const getLedgerByDate = (date) => {
           items: [],
         });
       } else {
+        // If previous day exists, auto-sync opening balance from previous day's closing balance
+        if (prevLedger) {
+          ledger.openingBalance = prevClosingCash;
+          ledger.openingBankBalance = prevClosingBank;
+        }
         // Auto-populate if not already set manually
         if (!ledger.cashToHome && cashHomeIntake > 0) ledger.cashToHome = cashHomeIntake;
         if (!ledger.digitalToHome && bankHomeIntake > 0) ledger.digitalToHome = bankHomeIntake;
@@ -223,6 +229,51 @@ const saveLedger = (date, payload) => {
         },
         { upsert: true, new: true }
       );
+
+      // --- AUTO SYNC NEXT DAY'S OPENING BALANCE ---
+      try {
+        const nextDayDateStr = dayjs(date).add(1, "day").format("YYYY-MM-DD");
+        const nextDayDate = new Date(`${nextDayDateStr}T00:00:00.000Z`);
+        const nextLedger = await DailyLedger.findOne({ date: nextDayDate });
+        if (nextLedger) {
+          nextLedger.openingBalance = Number(closingBalance || 0);
+          nextLedger.openingBankBalance = Number(closingBankBalance || 0);
+          const nItems = nextLedger.items || [];
+          const nCashExpenses = nItems
+            .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+            .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+          const nBankExpenses = nItems
+            .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+            .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+          const nCashIncome = nItems
+            .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+            .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+          const nBankIncome = nItems
+            .filter((i) => i.type === "income" && i.paymentMode === "bank")
+            .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+          nextLedger.cashSales = Math.max(
+            0,
+            Number(nextLedger.closingBalance || 0) +
+              nCashExpenses +
+              Number(nextLedger.cashToHome || 0) -
+              Number(nextLedger.openingBalance || 0) -
+              Number(nextLedger.otherIncome || 0) -
+              nCashIncome
+          );
+          nextLedger.digitalSales = Math.max(
+            0,
+            Number(nextLedger.closingBankBalance || 0) +
+              nBankExpenses +
+              Number(nextLedger.digitalToHome || 0) -
+              Number(nextLedger.openingBankBalance || 0) -
+              nBankIncome
+          );
+          await nextLedger.save();
+        }
+      } catch (nextSyncErr) {
+        console.error("Error auto-syncing next day opening balance:", nextSyncErr);
+      }
 
       // --- AUTO SYNC CASH TO HOME & DIGITAL TO HOME (HOME INTAKE) ---
       try {

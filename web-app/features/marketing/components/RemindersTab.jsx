@@ -3,6 +3,8 @@ import { Table, Input, Button, Tag, Space, Popconfirm, message, Typography } fro
 import { SearchOutlined, DeleteOutlined, WhatsAppOutlined, BellOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { formatWhatsAppPhone } from "./config";
+
 const { Text } = Typography;
 
 const RemindersTab = () => {
@@ -48,7 +50,8 @@ const RemindersTab = () => {
     const formattedDate = dayjs(thisYearAnniv).format("MMMM D");
     
     const text = `Hello ${reminder.customerName}, wishing you a very Happy ${reminder.eventType} coming up on ${formattedDate} from Bharati Sweets! Let us know if you need any sweets for the occasion.`;
-    const url = `https://wa.me/91${reminder.phone}?text=${encodeURIComponent(text)}`;
+    const formattedPhone = formatWhatsAppPhone(reminder.phone);
+    const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 

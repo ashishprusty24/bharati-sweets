@@ -1,3 +1,16 @@
+export const formatWhatsAppPhone = (phone) => {
+  if (!phone) return "";
+  let digits = String(phone).replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 10) {
+    return "91" + digits;
+  }
+  if (digits.length === 11 && digits.startsWith("0")) {
+    return "91" + digits.slice(1);
+  }
+  return digits;
+};
+
 export const PLATFORM_CONFIG = {
   whatsapp: {
     label: "WhatsApp",
@@ -5,10 +18,12 @@ export const PLATFORM_CONFIG = {
     color: "#25D366",
     bg: "#dcfce7",
     textColor: "#166534",
-    getUrl: (text, phone) =>
-      phone
-        ? `https://wa.me/${phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`
-        : `https://wa.me/?text=${encodeURIComponent(text)}`,
+    getUrl: (text, phone) => {
+      const formatted = formatWhatsAppPhone(phone);
+      return formatted
+        ? `https://wa.me/${formatted}?text=${encodeURIComponent(text)}`
+        : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    },
   },
   facebook: {
     label: "Facebook",

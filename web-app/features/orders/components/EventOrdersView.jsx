@@ -10,6 +10,7 @@ import EventPaymentModal from "./EventPaymentModal";
 import InvoiceModal from "./InvoiceModal";
 import ChefSlipModal from "./ChefSlipModal";
 import EventOrderDetails from "./EventOrderDetails";
+import { formatWhatsAppPhone } from "../../marketing/components/config";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -81,26 +82,50 @@ export default function EventOrdersView() {
     fetchData();
   }, []);
 
+  const allPurposeOptions = useMemo(() => {
+    const DEFAULT_PURPOSES = [
+      "Marriage",
+      "Reception",
+      "Engagement / Ring Ceremony",
+      "Birthday Party",
+      "Anniversary",
+      "Thread Ceremony (Upanayana)",
+      "Baby Shower (Sadh)",
+      "Corporate Event",
+      "Festival Celebration",
+      "Other Celebration",
+    ];
+    const fromOrders = (orders || []).map((o) => (o.purpose || "").trim()).filter(Boolean);
+    return Array.from(new Set([...DEFAULT_PURPOSES, ...fromOrders]));
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
     let result = [...orders];
 
     if (searchText) {
+      const q = searchText.toLowerCase().trim();
       result = result.filter(
         (o) =>
-          o.customerName?.toLowerCase().includes(searchText.toLowerCase()) ||
-          o.customerPhone?.includes(searchText) ||
-          o.phone?.includes(searchText) ||
-          o._id?.toLowerCase().includes(searchText.toLowerCase())
+          (o.customerName || "").toLowerCase().includes(q) ||
+          (o.customerPhone || "").includes(q) ||
+          (o.phone || "").includes(q) ||
+          (o._id || "").toLowerCase().includes(q) ||
+          (o.purpose || "").toLowerCase().includes(q) ||
+          (o.deliveryAddress || "").toLowerCase().includes(q)
       );
     }
 
     if (statusFilter !== "all") {
-      result = result.filter((o) => o.status === statusFilter);
+      result = result.filter((o) => o.status === statusFilter || o.orderStatus === statusFilter);
     }
 
     if (occasionFilter !== "all") {
-      result = result.filter((o) => o.purpose === occasionFilter);
+      const targetOccasion = occasionFilter.toLowerCase().trim();
+      result = result.filter((o) => {
+        const p = (o.purpose || "").toLowerCase().trim();
+        return p === targetOccasion || p.includes(targetOccasion);
+      });
     }
 
     return result;
@@ -157,8 +182,8 @@ ${itemsSummary}
 
 Thank you for choosing Bharati Sweets! 🍬`;
 
-    const phone = (orderData.phone || orderData.customerPhone || "").replace(/[^0-9]/g, "");
-    const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    const formattedPhone = formatWhatsAppPhone(orderData.phone || orderData.customerPhone);
+    const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
   };
 
@@ -166,6 +191,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
     if (savingOrder) return;
     setSavingOrder(true);
     try {
+      const isEdit = Boolean(editingOrder && editingOrder._id);
       const items = (values.items || []).map((item) => ({
         ...item,
         name: inventoryItems.find((i) => i._id === item.itemId)?.name || "Sweet Item",
@@ -173,25 +199,40 @@ Thank you for choosing Bharati Sweets! 🍬`;
       }));
 
       const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
+      const advanceAmt = Number(values.advancePayment || 0);
 
       const orderData = {
         ...values,
         customerPhone: values.phone,
         items,
         totalAmount: values.totalAmount || totalAmount,
-        advancePaid: values.advancePayment || 0,
+        advancePaid: isEdit ? (editingOrder.advancePaid || editingOrder.paidAmount || 0) : (advanceAmt > 0 ? advanceAmt : 0),
+        paidAmount: isEdit ? (editingOrder.paidAmount || editingOrder.advancePaid || 0) : (advanceAmt > 0 ? advanceAmt : 0),
         eventDate: values.deliveryDate ? values.deliveryDate.format("YYYY-MM-DD") : new Date().toISOString(),
       };
 
-      const res = await fetch("/api/event-orders", {
-        method: "POST",
+      if (isEdit && editingOrder.payments) {
+        orderData.payments = editingOrder.payments;
+      } else if (!isEdit && advanceAmt > 0 && values.advancePaymentMethod) {
+        orderData.payments = [{
+          amount: advanceAmt,
+          method: values.advancePaymentMethod,
+          timestamp: new Date()
+        }];
+      }
+
+      const url = isEdit ? `/api/event-orders/${editingOrder._id}` : "/api/event-orders";
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
 
       if (!res.ok) throw new Error("Failed to save order");
 
-      message.success("Order saved successfully!");
+      message.success(isEdit ? "Order updated successfully!" : "Order saved successfully!");
       setIsOrderModalVisible(false);
       
       // Trigger WhatsApp confirmation
@@ -224,8 +265,8 @@ Thank you for choosing Bharati Sweets! 🍬`;
       const paid = updated.paidAmount || updated.advancePaid || ((currentOrder.paidAmount || 0) + Number(paymentData.amount));
       const balance = total - paid;
       const text = `Namaste ${currentOrder.customerName}! Payment of ₹${paymentData.amount} received for order #${(currentOrder._id || "").slice(-6).toUpperCase()}.\nTotal Paid: ₹${paid}\nRemaining Balance: ₹${balance > 0 ? balance : 0}\nThank you! - Bharati Sweets`;
-      const phone = (currentOrder.phone || currentOrder.customerPhone || "").replace(/\D/g, "");
-      const url = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+      const formattedPhone = formatWhatsAppPhone(currentOrder.phone || currentOrder.customerPhone);
+      const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
       window.open(url, "_blank");
 
       fetchData();
@@ -282,7 +323,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
           <Col xs={24} sm={12} md={5}>
             <Select value={occasionFilter} onChange={setOccasionFilter} style={{ width: "100%", height: 45 }}>
               <Option value="all">All Occasions</Option>
-              {PURPOSE_OPTIONS.map((p) => <Option key={p} value={p}>{p}</Option>)}
+              {allPurposeOptions.map((p) => <Option key={p} value={p}>{p}</Option>)}
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -346,6 +387,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
         <ChefSlipModal
           visible={isChefSlipModalVisible}
           order={currentOrder}
+          inventoryItems={inventoryItems || []}
           onCancel={() => setIsChefSlipModalVisible(false)}
         />
       )}

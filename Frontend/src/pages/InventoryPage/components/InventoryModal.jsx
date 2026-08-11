@@ -43,11 +43,21 @@ const InventoryModal = ({ visible, item, onCancel, onOk, loading }) => {
         <Form.Item name="name" label="Sweet Name" rules={[{ required: true }]}>
           <Input placeholder="Enter sweet name" />
         </Form.Item>
-        <Form.Item name="category" label="Category" rules={[{ required: true }]}>
-          <Select placeholder="Select category">
-            {categoryOptions.map(cat => <Option key={cat} value={cat}>{cat}</Option>)}
-          </Select>
-        </Form.Item>
+        <div style={{ display: "flex", gap: "16px" }}>
+          <Form.Item name="category" label="Category" rules={[{ required: true }]} style={{ flex: 1 }}>
+            <Select placeholder="Select category">
+              {categoryOptions.map(cat => <Option key={cat} value={cat}>{cat}</Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="kitchenSection" label="Kitchen Section" initialValue="Uncategorized" rules={[{ required: true }]} style={{ flex: 1 }}>
+            <Select placeholder="Select kitchen section">
+              <Option value="Sweets">Sweets</Option>
+              <Option value="Samosa Section">Samosa Section</Option>
+              <Option value="Bara Section">Bara Section</Option>
+              <Option value="Uncategorized">Uncategorized</Option>
+            </Select>
+          </Form.Item>
+        </div>
         <div style={{ display: "flex", gap: "16px" }}>
           <Form.Item name="quantity" label="Quantity" rules={[{ required: true }]} style={{ flex: 1 }}>
             <InputNumber min={0} style={{ width: "100%" }} />

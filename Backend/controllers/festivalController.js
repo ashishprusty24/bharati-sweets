@@ -122,17 +122,16 @@ const getFestivalAnalytics = async (festivalName) => {
       const diff = made - sold; // positive = stock remaining (surplus), 0 = 100% sold out
 
       let status = "matched";
-      let recommendation = `✅ Production matched demand in ${yr.year}`;
+      let recommendation = `✅ Production matched demand (${made} ${sp.unit || "ghan"}) in ${yr.year}`;
 
-      if (sold > 0) {
-        if (made > sold) {
-          status = "surplus";
-          const surplus = made - sold;
-          recommendation = `📦 ${surplus} ${sp.unit || "ghan"} surplus stock remained in ${yr.year}. Consider reducing production to ~${sold} ${sp.unit || "ghan"}`;
-        } else {
-          status = "shortage";
-          recommendation = `⚠️ All ${made} ${sp.unit || "ghan"} sold out in ${yr.year}! Consider increasing by 10-20% for next year`;
-        }
+      if (made > sold) {
+        status = "surplus";
+        const surplus = made - sold;
+        recommendation = `📦 ${surplus} ${sp.unit || "ghan"} surplus stock remained in ${yr.year}. Consider reducing production to ~${sold} ${sp.unit || "ghan"}`;
+      } else if (sold > made) {
+        status = "shortage";
+        const shortage = sold - made;
+        recommendation = `⚠️ Shortage of ${shortage} ${sp.unit || "ghan"} in ${yr.year}! Consider increasing production next year`;
       }
 
       sweetMap[name].push({

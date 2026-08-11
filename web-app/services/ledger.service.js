@@ -30,18 +30,18 @@ export class LedgerService {
       console.error("Error auto-fetching home intake in web-app service:", hErr);
     }
 
-    if (!ledger) {
-      const prevDate = dayjs(date).subtract(1, "day").startOf("day").toDate();
-      const prevLedger = await LedgerRepository.findPreviousDayLedger(prevDate);
-      const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-      const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+    const prevDate = dayjs(date).subtract(1, "day").startOf("day").toDate();
+    const prevLedger = await LedgerRepository.findPreviousDayLedger(prevDate);
+    const prevClosingCash = prevLedger ? (Number(prevLedger.closingBalance) || 0) : 0;
+    const prevClosingBank = prevLedger ? (Number(prevLedger.closingBankBalance) || 0) : 0;
 
+    if (!ledger) {
       ledger = {
         date: targetDate,
         festival: "",
         sweetProduction: [],
-        openingBalance,
-        openingBankBalance,
+        openingBalance: prevClosingCash,
+        openingBankBalance: prevClosingBank,
         cashSales: 0,
         digitalSales: 0,
         totalExpenses: 0,
@@ -53,6 +53,10 @@ export class LedgerService {
         items: [],
       };
     } else {
+      if (prevLedger) {
+        ledger.openingBalance = prevClosingCash;
+        ledger.openingBankBalance = prevClosingBank;
+      }
       // Auto-populate from home intake if not already set manually
       if (!ledger.cashToHome && cashHomeIntake > 0) {
         ledger.cashToHome = cashHomeIntake;

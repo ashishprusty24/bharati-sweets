@@ -26,6 +26,13 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       render: (cat) => <Tag style={{ borderRadius: 4 }}>{cat}</Tag>
     },
     {
+      title: "Kitchen Sec.",
+      dataIndex: "kitchenSection",
+      key: "kitchenSection",
+      responsive: ["lg"],
+      render: (sec) => <Tag color={sec === "Sweets" ? "magenta" : sec === "Samosa Section" ? "orange" : sec === "Bara Section" ? "cyan" : "default"} style={{ borderRadius: 4 }}>{sec || "Uncategorized"}</Tag>
+    },
+    {
       title: "In Stock",
       dataIndex: "quantity",
       key: "quantity",

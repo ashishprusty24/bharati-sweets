@@ -37,6 +37,28 @@ export class OrderRepository {
 
   static async updateEventOrder(id, data) {
     await connectDB();
+    const existingOrder = await EventOrder.findById(id);
+    if (!existingOrder) throw new Error("Order not found");
+
+    if (!data.payments || data.payments.length === 0) {
+      if (existingOrder.payments && existingOrder.payments.length > 0) {
+        data.payments = existingOrder.payments;
+      } else if (data.advancePaid > 0 || data.advancePayment > 0) {
+        const amt = Number(data.advancePaid || data.advancePayment || 0);
+        data.payments = [{
+          amount: amt,
+          method: data.advancePaymentMethod || "cash",
+          timestamp: new Date()
+        }];
+      }
+    }
+
+    const paidAmt = (data.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0)
+      || Number(data.advancePaid || data.paidAmount || existingOrder.advancePaid || 0);
+
+    data.advancePaid = paidAmt;
+    data.paidAmount = paidAmt;
+
     return await EventOrder.findByIdAndUpdate(id, data, { new: true });
   }
 }

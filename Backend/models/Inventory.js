@@ -14,6 +14,11 @@ const inventorySchema = new mongoose.Schema({
     enum: ["in-stock", "low-stock", "out-of-stock"],
     default: "in-stock",
   },
+  kitchenSection: {
+    type: String,
+    enum: ["Sweets", "Samosa Section", "Bara Section", "Uncategorized"],
+    default: "Uncategorized",
+  },
 });
 
 module.exports = mongoose.model("Inventory", inventorySchema);

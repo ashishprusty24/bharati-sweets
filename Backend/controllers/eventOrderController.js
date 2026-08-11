@@ -329,22 +329,133 @@ const getEventOrderById = (orderId) => {
 const updateEventOrder = (orderId, updateData) => {
   return new Promise(async (resolve, reject) => {
     try {
+      const existingOrder = await EventOrder.findById(orderId);
+      if (!existingOrder) return reject({ status: 404, message: "Order not found" });
+
       if (updateData.deliveryDate) {
         updateData.deliveryDate = parseDeliveryDate(updateData.deliveryDate);
       }
+
+      // Preserve existing payments or use updated payments array
+      if (!updateData.payments || updateData.payments.length === 0) {
+        if (existingOrder.payments && existingOrder.payments.length > 0) {
+          updateData.payments = existingOrder.payments;
+        } else if (updateData.advancePayment > 0 || updateData.advancePaid > 0) {
+          const amt = Number(updateData.advancePayment || updateData.advancePaid || 0);
+          updateData.payments = [{
+            amount: amt,
+            method: updateData.advancePaymentMethod || "cash",
+            timestamp: new Date()
+          }];
+        }
+      }
+
+      // Calculate paidAmount accurately
+      const paidAmount = (updateData.payments || []).reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      ) || Number(updateData.paidAmount || updateData.advancePaid || existingOrder.paidAmount || 0);
+
+      updateData.paidAmount = paidAmount;
+      const targetTotal = updateData.totalAmount !== undefined ? updateData.totalAmount : existingOrder.totalAmount;
+      updateData.paymentStatus = (paidAmount >= targetTotal
+        ? "paid"
+        : paidAmount > 0
+        ? "partial"
+        : "pending");
+
       const updatedOrder = await EventOrder.findByIdAndUpdate(orderId, updateData, {
         new: true,
         runValidators: true,
       });
-      if (!updatedOrder) return reject({ status: 404, message: "Order not found" });
 
       // Regenerate appropriate invoice/receipt after update
-      if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-        await generateFinalInvoice(updatedOrder);
-      } else {
-        await generatePartialInvoice(updatedOrder);
+      try {
+        const timestamp = Date.now();
+        let invoiceUrl = "";
+        let templateName = "";
+
+        if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
+          await generateFinalInvoice(updatedOrder);
+          invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+          templateName = "final_invoice";
+        } else {
+          await generatePartialInvoice(updatedOrder);
+          invoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+          templateName = "partial_payment_invoice";
+        }
+        await generateBookingReceipt(updatedOrder);
+
+        // Send WhatsApp message
+        try {
+          const response = await fetch(
+            `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378"}/messages`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.WHATSAPP_API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: updatedOrder.phone,
+                type: "template",
+                template: {
+                  name: templateName,
+                  language: { code: "en_US" },
+                  components: [
+                    {
+                      type: "header",
+                      parameters: [
+                        {
+                          type: "document",
+                          document: {
+                            link: invoiceUrl,
+                            filename: `${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "body",
+                      parameters: [
+                        { type: "text", text: updatedOrder.customerName },
+                        { type: "text", text: `${updatedOrder._id}` },
+                        { type: "text", text: updatedOrder.purpose },
+                        { type: "text", text: `${updatedOrder.totalAmount}` },
+                        { type: "text", text: `${updatedOrder.paidAmount}` },
+                      ],
+                    },
+                    {
+                      type: "button",
+                      sub_type: "url",
+                      index: "0",
+                      parameters: [
+                        {
+                          type: "text",
+                          text: invoiceUrl,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            console.error("WhatsApp API error for updated invoice:", response.status, errData);
+          } else {
+            console.log("✅ Updated Invoice WhatsApp message sent successfully");
+          }
+        } catch (whatsappError) {
+          console.error("❌ Failed to send WhatsApp message for updated invoice:", whatsappError);
+        }
+
+      } catch (pdfErr) {
+        console.error("PDF generation warning on order update:", pdfErr);
       }
-      await generateBookingReceipt(updatedOrder);
 
       resolve(updatedOrder);
     } catch (err) {

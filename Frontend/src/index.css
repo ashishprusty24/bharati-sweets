@@ -474,6 +474,94 @@ body {
     }
 }
 
+/* ─── Ant Design DatePicker & RangePicker Mobile Responsiveness ───── */
+@media (max-width: 768px) {
+    .ant-picker-dropdown {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        max-width: calc(100vw - 16px) !important;
+        width: min(340px, calc(100vw - 16px)) !important;
+        box-sizing: border-box !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-panel-container {
+        max-width: 100% !important;
+        overflow: hidden !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-panels {
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-panel {
+        width: 100% !important;
+        min-width: unset !important;
+        border-right: none !important;
+        border-bottom: 1px solid #f0f0f0 !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-panel:last-child {
+        border-bottom: none !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-date-panel,
+    .ant-picker-dropdown .ant-picker-body {
+        width: 100% !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-content {
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-header {
+        padding: 4px 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-header-view {
+        flex: 1 !important;
+        text-align: center !important;
+        font-weight: 600 !important;
+    }
+
+    /* Force back (prev) and next navigation buttons to be visible and touch-friendly on mobile panels */
+    .ant-picker-dropdown .ant-picker-header-prev-btn,
+    .ant-picker-dropdown .ant-picker-header-super-prev-btn,
+    .ant-picker-dropdown .ant-picker-header-next-btn,
+    .ant-picker-dropdown .ant-picker-header-super-next-btn {
+        visibility: visible !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 32px !important;
+        height: 32px !important;
+        font-size: 16px !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: #1e293b !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell {
+        padding: 2px 0 !important;
+    }
+
+    .ant-picker-dropdown .ant-picker-cell-inner {
+        min-width: 28px !important;
+        height: 28px !important;
+        line-height: 28px !important;
+        font-size: 13px !important;
+        margin: 0 auto !important;
+        border-radius: 8px !important;
+    }
+}
+
 /* ─── Header Actions Mobile Layout ─────────────────────────────── */
 @media (max-width: 768px) {
     .header-actions {
