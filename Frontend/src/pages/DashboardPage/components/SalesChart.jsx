@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, Typography, Select, Space, Tag, Row, Col } from "antd";
-import { ArrowUpOutlined, FlashOutlined, RiseOutlined, ShoppingBagOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined, ThunderboltOutlined, RiseOutlined, ShoppingOutlined } from "@ant-design/icons";
 import ReactECharts from "echarts-for-react";
 import useFetch from "../../../hooks/useFetch";
 
@@ -121,7 +121,7 @@ const SalesChart = ({ period = "30d" }) => {
           <Col xs={12} sm={6}>
             <Space size={8}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <FlashOutlined style={{ fontSize: 15 }} />
+                <ThunderboltOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Daily Average</Text>
@@ -157,7 +157,7 @@ const SalesChart = ({ period = "30d" }) => {
           <Col xs={12} sm={6}>
             <Space size={8}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "#e0e7ff", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ShoppingBagOutlined style={{ fontSize: 15 }} />
+                <ShoppingOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Transactions</Text>
