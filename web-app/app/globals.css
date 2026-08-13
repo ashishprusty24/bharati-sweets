@@ -408,6 +408,48 @@ body {
     .event-order-card:hover {
         transform: none;
     }
+
+    /* ─── Mobile Card & Outer Layout Padding Optimization ─────────── */
+    .ant-card.glass-card,
+    .glass-card {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .ant-card.glass-card > .ant-card-body,
+    .glass-card > .ant-card-body {
+        padding: 0 !important;
+    }
+
+    .responsive-table-container {
+        padding: 0 !important;
+    }
+
+    .event-orders-mobile-list {
+        padding: 0 !important;
+        gap: 12px;
+    }
+
+    .event-order-card {
+        border-radius: 14px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+        margin-bottom: 12px !important;
+    }
+
+    .event-order-card-header {
+        padding: 10px 14px !important;
+    }
+
+    .event-order-card-body {
+        padding: 12px 14px !important;
+    }
+
+    .order-amount-highlight {
+        font-size: 17px !important;
+    }
 }
 
 /* ─── Ant Design DatePicker & RangePicker Mobile Responsiveness ───── */

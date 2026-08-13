@@ -125,7 +125,7 @@ export default function ExpensesView() {
     if (expense) {
       form.setFieldsValue({ ...expense, date: dayjs(expense.date) });
     } else {
-      form.setFieldsValue({ date: dayjs(), paymentMethod: "cash", category: "other" });
+      form.setFieldsValue({ date: dayjs(), paymentMethod: "cash" });
     }
     setModalVisible(true);
   };

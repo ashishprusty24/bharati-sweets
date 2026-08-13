@@ -13,7 +13,7 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
 
   const columns = [
     {
-      title: "Sweet Name",
+      title: "Item Name",
       dataIndex: "name",
       key: "name",
       render: (text) => <Text strong style={{ fontSize: 15, color: "var(--primary-color)" }}>{text}</Text>,
@@ -23,14 +23,29 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       dataIndex: "category",
       key: "category",
       responsive: ["md"],
-      render: (cat) => <Tag style={{ borderRadius: 4 }}>{cat}</Tag>
+      render: (cat, record) => (
+        <Space size={4}>
+          <Tag style={{ borderRadius: 4 }}>{cat}</Tag>
+          {record.subCategory && (
+            <Text type="secondary" style={{ fontSize: 12 }}>({record.subCategory})</Text>
+          )}
+        </Space>
+      )
     },
     {
       title: "Kitchen Sec.",
       dataIndex: "kitchenSection",
       key: "kitchenSection",
       responsive: ["lg"],
-      render: (sec) => <Tag color={sec === "Sweets" ? "magenta" : sec === "Samosa Section" ? "orange" : sec === "Bara Section" ? "cyan" : "default"} style={{ borderRadius: 4 }}>{sec || "Uncategorized"}</Tag>
+      render: (sec) => {
+        const colorMap = {
+          "Sweets": "magenta",
+          "Samosa Section": "orange",
+          "Bara Section": "cyan",
+          "Namkeen Section": "purple"
+        };
+        return <Tag color={colorMap[sec] || "default"} style={{ borderRadius: 4 }}>{sec || "Uncategorized"}</Tag>;
+      }
     },
     {
       title: "In Stock",

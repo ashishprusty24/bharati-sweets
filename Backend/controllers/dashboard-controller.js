@@ -4,6 +4,9 @@ const HomeExpense = require("../models/HomeExpense");
 const DailyLedger = require("../models/DailyLedger");
 const Inventory = require("../models/Inventory");
 const Reminder = require("../models/Reminder");
+const CreditCard = require("../models/CreditCard");
+const CCLoan = require("../models/CCLoan");
+const RegularOrder = require("../models/RegularOrder");
 
 const calculateLedgerSales = (ledger) => {
   const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
@@ -53,15 +56,17 @@ const getSummaryData = async (period = "30d") => {
     
     if (period === "2y") {
       startDate.setFullYear(today.getFullYear() - 2);
+    } else if (period === "today") {
+      startDate.setHours(0, 0, 0, 0);
     } else {
       startDate.setDate(today.getDate() - 30);
+      startDate.setHours(0, 0, 0, 0);
     }
-    startDate.setHours(0, 0, 0, 0);
 
     // Event sales
     const [eventSalesData] = await EventOrder.aggregate([
-      { $match: { orderStatus: "delivered", deliveryDate: { $gte: startDate } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      { $match: { orderStatus: { $in: ["delivered", "confirmed", "ready", "pending"] }, deliveryDate: { $gte: startDate } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" }, paid: { $sum: "$paidAmount" } } }
     ]);
 
     // Daily Ledger sales
@@ -70,29 +75,56 @@ const getSummaryData = async (period = "30d") => {
 
     const totalSales = (eventSalesData?.total || 0) + ledgerSalesTotal;
 
+    // Shop Expenses
     const [expenseData] = await Expense.aggregate([
       { $match: { date: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
     const shopExpenses = expenseData?.total || 0;
 
-    // Include HomeExpense (non-intake) for total expenses
+    // Home Expenses
     const [homeExpenseData] = await HomeExpense.aggregate([
-      { $match: { date: { $gte: startDate }, category: { $nin: ["home_intake", "personal"] } } },
+      { $match: { date: { $gte: startDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
-    const totalExpenses = shopExpenses + (homeExpenseData?.total || 0);
+    const totalHomeExpenses = homeExpenseData?.total || 0;
 
+    const totalExpenses = shopExpenses + totalHomeExpenses;
     const netProfit = totalSales - totalExpenses;
-    const pendingOrders = await EventOrder.countDocuments({ orderStatus: "pending" });
-    const lowStockItems = await Inventory.countDocuments({ status: "low-stock" });
+
+    // Latest Ledger balances for cash/bank status
+    const latestLedger = await DailyLedger.findOne().sort({ date: -1 });
+    const cashInHand = latestLedger ? Number(latestLedger.closingBalance || latestLedger.cashToHome || 0) : 0;
+    const bankBalance = latestLedger ? Number(latestLedger.closingBankBalance || latestLedger.digitalToHome || 0) : 0;
+
+    // Credit Card & CC Loan payables
+    const creditCards = await CreditCard.find();
+    const cardPayables = creditCards.reduce((s, c) => s + Number(c.outstandingBalance || c.currentBalance || 0), 0);
+
+    const ccLoans = await CCLoan.find();
+    const loanPayables = ccLoans.reduce((s, l) => s + Number(l.outstandingPrincipal || l.currentDrawdown || 0), 0);
+
+    const totalPayables = cardPayables + loanPayables;
+
+    // Active event orders pending delivery & balance due
+    const activeEventOrders = await EventOrder.find({ orderStatus: { $in: ["pending", "confirmed", "preparing"] } });
+    const pendingOrdersCount = activeEventOrders.length;
+    const totalBalanceDue = activeEventOrders.reduce((s, o) => s + Math.max(0, Number(o.totalAmount || 0) - Number(o.paidAmount || 0)), 0);
+
+    // Low Stock Items (quantity <= minStock)
+    const inventoryAll = await Inventory.find();
+    const lowStockItemsCount = inventoryAll.filter(i => (i.quantity <= (i.minStock || 5)) || i.status === "low-stock" || i.status === "out-of-stock").length;
 
     return {
       totalSales,
       totalExpenses,
       netProfit,
-      pendingOrders,
-      lowStockItems,
+      cashInHand,
+      bankBalance,
+      totalPayables,
+      pendingOrders: pendingOrdersCount,
+      totalBalanceDue,
+      lowStockItems: lowStockItemsCount,
     };
   } catch (err) {
     throw { status: 500, message: err.message };
@@ -111,15 +143,10 @@ const getSalesData = async (period = "30d") => {
     }
     startDate.setHours(0, 0, 0, 0);
 
-    const matchStageEvent = { 
-      orderStatus: "delivered", 
-      deliveryDate: { $gte: startDate } 
-    };
-
     const groupFormat = period === "2y" ? "%Y-%m" : "%Y-%m-%d";
 
     const eventSales = await EventOrder.aggregate([
-      { $match: matchStageEvent },
+      { $match: { deliveryDate: { $gte: startDate } } },
       {
         $group: {
           _id: { $dateToString: { format: groupFormat, date: "$deliveryDate" } },
@@ -137,8 +164,6 @@ const getSalesData = async (period = "30d") => {
       };
     });
 
-    console.log(`[Dashboard] Fetched ${eventSales.length} event sales and ${ledgerSales.length} ledger sales for period: ${period}`);
-
     const salesMap = {};
     [...eventSales, ...ledgerSales].forEach(sale => {
       salesMap[sale._id] = (salesMap[sale._id] || 0) + sale.amount;
@@ -146,7 +171,6 @@ const getSalesData = async (period = "30d") => {
 
     const salesData = [];
     if (period === "2y") {
-      // Aggregate by month for 24 months
       for (let i = 0; i <= 24; i++) {
         const d = new Date(startDate);
         d.setMonth(d.getMonth() + i);
@@ -158,7 +182,6 @@ const getSalesData = async (period = "30d") => {
         });
       }
     } else {
-      // Aggregate by day for 30 days
       for (let i = 0; i <= 30; i++) {
         const d = new Date(startDate);
         d.setDate(d.getDate() + i);
@@ -171,23 +194,37 @@ const getSalesData = async (period = "30d") => {
       }
     }
 
-    console.log(`[Dashboard] Returning ${salesData.length} data points. Sum of amounts: ${salesData.reduce((s, a) => s + a.amount, 0)}`);
     return salesData.sort((a, b) => new Date(a.date) - new Date(b.date));
-
   } catch (err) {
     throw { status: 500, message: err.message };
   }
 };
 
-
 const getExpensesData = async () => {
   try {
-    const expenses = await Expense.aggregate([
+    const shopExpenses = await Expense.aggregate([
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
-      { $project: { category: "$_id", amount: 1, _id: 0 } },
-      { $sort: { amount: -1 } }
+      { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
-    return expenses;
+
+    const homeExpenses = await HomeExpense.aggregate([
+      { $group: { _id: "$category", amount: { $sum: "$amount" } } },
+      { $project: { category: "$_id", amount: 1, _id: 0 } }
+    ]);
+
+    const catMap = {};
+    [...shopExpenses, ...homeExpenses].forEach(item => {
+      if (!item.category) return;
+      const catKey = item.category.toLowerCase().replace(/\s+/g, "_");
+      catMap[catKey] = (catMap[catKey] || 0) + item.amount;
+    });
+
+    const categories = Object.keys(catMap).map(key => ({
+      category: key,
+      amount: catMap[key]
+    })).sort((a, b) => b.amount - a.amount);
+
+    return categories;
   } catch (err) {
     throw { status: 500, message: err.message };
   }
@@ -245,8 +282,9 @@ const getPopularProducts = async () => {
       const item = inventoryItems.find((i) => i._id.toString() === product._id);
       return {
         ...product,
-        category: item?.category || "Unknown",
-        unit: item?.unit || "",
+        category: item?.category || "Sweets",
+        kitchenSection: item?.kitchenSection || "Sweets",
+        unit: item?.unit || "kg",
       };
     });
 
@@ -258,9 +296,9 @@ const getPopularProducts = async () => {
 
 const getPendingOrders = async () => {
   try {
-    const orders = await EventOrder.find({ orderStatus: "pending" })
+    const orders = await EventOrder.find({ orderStatus: { $in: ["pending", "confirmed", "preparing"] } })
       .sort({ deliveryDate: 1 })
-      .limit(5);
+      .limit(6);
     return orders;
   } catch (err) {
     throw { status: 500, message: err.message };
@@ -274,7 +312,6 @@ const getUpcomingReminders = async () => {
     nextMonth.setDate(today.getDate() + 30);
     const upcoming = [];
     
-    // Fetch from Reminder collection (The single source of truth for explicit reminders)
     const reminders = await Reminder.find();
     reminders.forEach(reminder => {
       const anniv = new Date(reminder.eventDate);
@@ -297,10 +334,18 @@ const getUpcomingReminders = async () => {
       }
     });
 
-    // Sort by nearest date
     upcoming.sort((a, b) => a.date - b.date);
+    return upcoming.slice(0, 10);
+  } catch (err) {
+    throw { status: 500, message: err.message };
+  }
+};
 
-    return upcoming.slice(0, 10); // Return top 10
+const getFinancialHealthData = async () => {
+  try {
+    const creditCards = await CreditCard.find();
+    const ccLoans = await CCLoan.find();
+    return { creditCards, ccLoans };
   } catch (err) {
     throw { status: 500, message: err.message };
   }
@@ -313,4 +358,5 @@ module.exports = {
   getPopularProducts,
   getPendingOrders,
   getUpcomingReminders,
+  getFinancialHealthData,
 };

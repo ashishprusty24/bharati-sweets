@@ -77,33 +77,56 @@ export default function InventoryView() {
     }
   };
 
-  const openAddEdit = (item = null) => {
+  const [defaultType, setDefaultType] = useState("Sweets");
+
+  const openAddEdit = (item = null, type = "Sweets") => {
     setEditingItem(item);
+    setDefaultType(type);
     setIsModalVisible(true);
   };
 
   return (
     <div style={{ padding: "0 8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
         <div>
-          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Sweet Inventory</Title>
-          <Text type="secondary">Track raw materials, finished sweets, and stock alerts.</Text>
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Inventory</Title>
+          <Text type="secondary">Track sweets, snacks, namkeens, ingredients, and stock levels.</Text>
         </div>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => openAddEdit()}
-          style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
-        >
-          Add New Sweet
-        </Button>
+        <Space wrap size="middle">
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => openAddEdit(null, "Sweets")}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#10b981", borderColor: "#10b981" }}
+          >
+            Add Sweets
+          </Button>
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => openAddEdit(null, "Snacks")}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#f59e0b", borderColor: "#f59e0b" }}
+          >
+            Add Snacks
+          </Button>
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => openAddEdit(null, "Namkeens")}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#8b5cf6", borderColor: "#8b5cf6" }}
+          >
+            Add Namkeens
+          </Button>
+        </Space>
       </div>
 
       <Card variant="borderless" style={{ borderRadius: 20 }}>
         <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
           <Input
-            placeholder="Search sweets..."
+            placeholder="Search items..."
             prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
             style={{ maxWidth: 350, width: "100%", height: 45, borderRadius: 12 }}
             value={searchText}
@@ -119,6 +142,8 @@ export default function InventoryView() {
             <Option value="Flour-based">Flour-based</Option>
             <Option value="Dry fruits">Dry fruits</Option>
             <Option value="Fried sweets">Fried sweets</Option>
+            <Option value="Snacks">Snacks</Option>
+            <Option value="Namkeens">Namkeens</Option>
             <Option value="Others">Others</Option>
           </Select>
         </div>
@@ -126,7 +151,7 @@ export default function InventoryView() {
         <InventoryTable
           data={filteredItems}
           loading={loading}
-          onEdit={openAddEdit}
+          onEdit={(item) => openAddEdit(item, "Sweets")}
           onDelete={handleDelete}
         />
       </Card>
@@ -134,6 +159,7 @@ export default function InventoryView() {
       <InventoryModal
         visible={isModalVisible}
         item={editingItem}
+        defaultType={defaultType}
         loading={loading}
         onCancel={() => setIsModalVisible(false)}
         onOk={handleSave}

@@ -171,7 +171,11 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions = [], payment
       dataSource={data}
       rowKey="_id"
       loading={loading}
-      pagination={{ pageSize: 10 }}
+      pagination={{
+        pageSize: 15,
+        showSizeChanger: true,
+        pageSizeOptions: ["10", "15", "25", "50", "100"],
+      }}
       size="middle"
       expandable={{ expandedRowRender }}
       style={{ marginTop: 8 }}

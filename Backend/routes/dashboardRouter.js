@@ -59,4 +59,13 @@ router.get("/upcoming-reminders", async (req, res) => {
   }
 });
 
+router.get("/financial-health", async (req, res) => {
+  try {
+    const data = await dashboardController.getFinancialHealthData();
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

@@ -38,7 +38,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
 
   // ─── MOBILE CARD LAYOUT ───────────────────────────────────────────
   // Mobile pagination state
-  const MOBILE_PAGE_SIZE = 5;
+  const MOBILE_PAGE_SIZE = 15;
   const [mobilePage, setMobilePage] = useState(1);
   const totalMobilePages = Math.ceil((data?.length || 0) / MOBILE_PAGE_SIZE);
   const mobileStart = (mobilePage - 1) * MOBILE_PAGE_SIZE;
@@ -343,9 +343,9 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       rowKey="_id"
       loading={loading}
       pagination={{
-        pageSize: 10,
+        pageSize: 15,
         showSizeChanger: true,
-        pageSizeOptions: ["5", "10", "20", "50"],
+        pageSizeOptions: ["10", "15", "25", "50", "100"],
         showTotal: (total, range) => (
           <Text type="secondary" style={{ fontSize: 13 }}>
             Showing <strong>{range[0]}–{range[1]}</strong> of <strong>{total}</strong> orders

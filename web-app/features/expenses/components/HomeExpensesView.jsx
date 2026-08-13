@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Card, Row, Col, Table, Button, InputNumber, Input, Select, DatePicker,
-  Modal, Form, message, Typography, Space, Tag, Statistic, Empty, Popconfirm,
-  Grid, Progress
+  Modal, Form, message, Typography, Space, Tag, Popconfirm,
+  Grid, Progress, Badge, Avatar
 } from "antd";
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, HomeOutlined,
   TeamOutlined, ShoppingOutlined, CreditCardOutlined, UserOutlined,
-  WalletOutlined, BankOutlined, SearchOutlined, RollbackOutlined
+  WalletOutlined, BankOutlined, SearchOutlined, CalendarOutlined,
+  BellOutlined, ArrowUpOutlined, DollarOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -24,24 +25,55 @@ const CATEGORY_CONFIG = {
   supplier_payment: { label: "Supplier Payment", color: "#f59e0b", bg: "#fef3c7", icon: <ShoppingOutlined /> },
   personal: { label: "Personal", color: "#8b5cf6", bg: "#f3e8ff", icon: <UserOutlined /> },
   credit_card_bill: { label: "Credit Card Bill", color: "#ef4444", bg: "#fee2e2", icon: <CreditCardOutlined /> },
+  cc_loan: { label: "CC Loan", color: "#0d7377", bg: "#f0fdfa", icon: <BankOutlined /> },
+  cc_loan_repayment: { label: "CC Loan Repayment", color: "#059669", bg: "#ecfdf5", icon: <BankOutlined /> },
   other: { label: "Other", color: "#64748b", bg: "#f1f5f9", icon: <WalletOutlined /> },
 };
 
 const SOURCE_CONFIG = {
-  home_cash: { label: "Home Cash", color: "#10b981", bg: "#d1fae5", icon: <WalletOutlined /> },
-  bank_account: { label: "Bank Account", color: "#6366f1", bg: "#e0e7ff", icon: <BankOutlined /> },
+  home_cash: { label: "Home Cash", color: "#10b981", bg: "#e6f4ea", icon: <WalletOutlined /> },
+  bank_account: { label: "Bank Account", color: "#6366f1", bg: "#f3e8ff", icon: <BankOutlined /> },
+  credit_card: { label: "Credit Card", color: "#ef4444", bg: "#fee2e2", icon: <CreditCardOutlined /> },
+  cc_loan: { label: "CC Loan", color: "#0d7377", bg: "#e6f4f1", icon: <BankOutlined /> },
 };
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
-export default function HomeExpensesView() {
+const Sparkline = ({ color }) => {
+  return (
+    <svg width="100%" height="28" viewBox="0 0 120 28" fill="none" style={{ marginTop: 8 }}>
+      <path
+        d="M0 20 C 15 10, 30 25, 45 12 C 60 2, 75 18, 90 8 C 105 0, 115 15, 120 10 L 120 28 L 0 28 Z"
+        fill={`url(#gradient-${color.replace('#', '')})`}
+        opacity="0.3"
+      />
+      <path
+        d="M0 20 C 15 10, 30 25, 45 12 C 60 2, 75 18, 90 8 C 105 0, 115 15, 120 10"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <defs>
+        <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+};
+
+const HomeExpensesView = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
   const [expenses, setExpenses] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [selectedPaymentSource, setSelectedPaymentSource] = useState("home_cash");
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -51,7 +83,6 @@ export default function HomeExpensesView() {
 
   const [form] = Form.useForm();
 
-  // Preset Handler
   const handlePresetChange = (preset) => {
     setDatePreset(preset);
     if (preset === "today") {
@@ -68,43 +99,59 @@ export default function HomeExpensesView() {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/expenses");
+      const params = new URLSearchParams();
+      if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+      if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+      if (filterCategory && filterCategory !== "all") params.append("category", filterCategory);
+
+      const res = await fetch(`/api/expenses?${params.toString()}`);
       const data = await res.json();
       setExpenses(data || []);
     } catch (err) {
-      message.error("Failed to fetch home expenses");
+      message.error("Failed to fetch expenses");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch("/api/expenses/summary");
+      const data = await res.json();
+      setSummary(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
-  }, [dateRange]);
+    fetchSummary();
+  }, [dateRange, filterCategory]);
 
   const filteredExpenses = useMemo(() => {
-    let list = expenses;
-    if (filterCategory && filterCategory !== "all") {
-      list = list.filter((e) => e.category === filterCategory);
-    }
-    if (searchText) {
-      list = list.filter((e) =>
-        (e.description || "").toLowerCase().includes(searchText.toLowerCase()) ||
-        (e.notes || "").toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-    return list;
-  }, [expenses, filterCategory, searchText]);
+    if (!searchText) return expenses;
+    const lower = searchText.toLowerCase();
+    return expenses.filter(
+      (e) =>
+        e.description?.toLowerCase().includes(lower) ||
+        e.category?.toLowerCase().includes(lower) ||
+        e.paymentSource?.toLowerCase().includes(lower) ||
+        e.notes?.toLowerCase().includes(lower)
+    );
+  }, [expenses, searchText]);
 
   const totalAmount = useMemo(() => {
     return filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   }, [filteredExpenses]);
 
-  const categorySummary = useMemo(() => {
-    return expenses.reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + (Number(e.amount) || 0);
-      return acc;
-    }, {});
+  // Category counts for pill tabs
+  const categoryCounts = useMemo(() => {
+    const counts = { all: expenses.length };
+    Object.keys(CATEGORY_CONFIG).forEach(cat => {
+      counts[cat] = expenses.filter(e => e.category === cat).length;
+    });
+    return counts;
   }, [expenses]);
 
   const handleSubmit = async () => {
@@ -112,6 +159,7 @@ export default function HomeExpensesView() {
       const values = await form.validateFields();
       const payload = {
         ...values,
+        category: values.category || (editingExpense && editingExpense.category) || "other",
         date: values.date.format("YYYY-MM-DD"),
       };
 
@@ -152,6 +200,7 @@ export default function HomeExpensesView() {
 
   const openEditModal = (expense) => {
     setEditingExpense(expense);
+    setSelectedPaymentSource(expense.paymentSource || "home_cash");
     form.setFieldsValue({
       ...expense,
       date: dayjs(expense.date),
@@ -162,40 +211,43 @@ export default function HomeExpensesView() {
   const openAddModal = () => {
     setEditingExpense(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash", category: "other" });
+    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash" });
+    setSelectedPaymentSource("home_cash");
     setModalVisible(true);
-  };
-
-  const resetFilters = () => {
-    setSearchText("");
-    setFilterCategory("all");
-    setDatePreset("this_month");
-    setDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
   };
 
   const columns = [
     {
-      title: "Date",
+      title: "Date ↕",
       dataIndex: "date",
-      width: 120,
-      render: (d) => (
-        <Space direction="vertical" size={0}>
-          <Text strong style={{ fontSize: 13, color: "#1e293b" }}>{dayjs(d).format("DD MMM YYYY")}</Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(d).format("dddd")}</Text>
-        </Space>
-      ),
-      sorter: (a, b) => new Date(a.date) - new Date(b.date),
+      key: "date",
+      width: 140,
+      render: (d) => {
+        const dateObj = dayjs(d);
+        return (
+          <div>
+            <Text strong style={{ color: "#0f172a", fontSize: 13, display: "block" }}>
+              {dateObj.format("DD MMM YYYY")}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {dateObj.format("dddd")}
+            </Text>
+          </div>
+        );
+      },
+      sorter: (a, b) => dayjs(a.date).unix() - dayjs(b.date).unix(),
     },
     {
       title: "Description",
       dataIndex: "description",
+      key: "description",
       render: (text, record) => (
         <div>
-          <Text strong style={{ fontSize: 14, color: "#0f172a" }}>{text}</Text>
-          {record.notes && (
-            <div>
-              <Text type="secondary" style={{ fontSize: 12 }}>{record.notes}</Text>
-            </div>
+          <Text strong style={{ color: "#0f172a", fontSize: 14, display: "block" }}>{text}</Text>
+          {record.notes ? (
+            <Text type="secondary" style={{ fontSize: 11 }}>{record.notes}</Text>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 11 }}>{record.category === "home_intake" ? "Home intake transfer" : "General expense entry"}</Text>
           )}
         </div>
       ),
@@ -203,7 +255,8 @@ export default function HomeExpensesView() {
     {
       title: "Category",
       dataIndex: "category",
-      width: 170,
+      key: "category",
+      width: 160,
       render: (cat) => {
         const cfg = CATEGORY_CONFIG[cat] || CATEGORY_CONFIG.other;
         return (
@@ -217,6 +270,7 @@ export default function HomeExpensesView() {
               padding: "4px 10px",
               fontWeight: 600,
               fontSize: 12,
+              margin: 0
             }}
           >
             {cfg.label}
@@ -227,6 +281,7 @@ export default function HomeExpensesView() {
     {
       title: "Paid From",
       dataIndex: "paymentSource",
+      key: "paymentSource",
       width: 150,
       render: (src) => {
         const cfg = SOURCE_CONFIG[src] || SOURCE_CONFIG.home_cash;
@@ -241,6 +296,7 @@ export default function HomeExpensesView() {
               padding: "4px 10px",
               fontWeight: 600,
               fontSize: 12,
+              margin: 0
             }}
           >
             {cfg.label}
@@ -249,42 +305,44 @@ export default function HomeExpensesView() {
       },
     },
     {
-      title: "Amount",
+      title: "Amount ↕",
       dataIndex: "amount",
-      width: 140,
+      key: "amount",
+      width: 130,
       align: "right",
       render: (amt) => (
-        <Text strong style={{ color: "#e11d48", fontSize: 16, fontWeight: 700 }}>
-          ₹{Number(amt || 0).toLocaleString("en-IN")}
+        <Text strong style={{ color: "#e11d48", fontSize: 15, fontWeight: 800 }}>
+          ₹{Number(amt).toLocaleString("en-IN")}
         </Text>
       ),
       sorter: (a, b) => a.amount - b.amount,
     },
     {
-      title: "",
+      title: "Actions",
+      key: "actions",
       width: 90,
       align: "center",
       render: (_, record) => (
-        <Space size="small">
+        <Space size={6}>
           <Button
             type="text"
-            icon={<EditOutlined style={{ color: "#3b82f6" }} />}
+            icon={<EditOutlined style={{ color: "#3b82f6", fontSize: 14 }} />}
             onClick={() => openEditModal(record)}
-            style={{ background: "#eff6ff", borderRadius: 8 }}
+            style={{ background: "#eff6ff", borderRadius: 8, width: 32, height: 32, padding: 0 }}
           />
           <Popconfirm
             title="Delete this expense?"
             description="This will also update synchronized entries."
             onConfirm={() => handleDelete(record._id)}
-            okText="Yes, Delete"
+            okText="Delete"
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
           >
             <Button
               type="text"
               danger
-              icon={<DeleteOutlined />}
-              style={{ background: "#fef2f2", borderRadius: 8 }}
+              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+              style={{ background: "#fef2f2", borderRadius: 8, width: 32, height: 32, padding: 0 }}
             />
           </Popconfirm>
         </Space>
@@ -292,415 +350,368 @@ export default function HomeExpensesView() {
     },
   ];
 
-  return (
-    <div style={{ padding: "0 4px" }}>
-      {/* ── HERO BANNER ── */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)",
-          borderRadius: 24,
-          padding: isMobile ? "20px 16px" : "28px 32px",
-          color: "#fff",
-          marginBottom: 24,
-          boxShadow: "0 10px 30px rgba(15, 23, 42, 0.15)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, position: "relative", zIndex: 1 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{ background: "rgba(255, 255, 255, 0.15)", padding: 8, borderRadius: 12, display: "inline-flex" }}>
-                <HomeOutlined style={{ fontSize: 22, color: "#c084fc" }} />
-              </span>
-              <Title level={2} style={{ color: "#fff", margin: 0, fontWeight: 800, fontSize: isMobile ? "1.4rem" : "1.8rem" }}>
-                Home Expenses & Ledger Sync
-              </Title>
-            </div>
-            <Text style={{ color: "#cbd5e1", fontSize: 13 }}>
-              Staff salaries, supplier payments, personal drawings — all automatically synchronized with Daily Ledger & Vendors.
-            </Text>
-          </div>
+  const staffSalarySum = summary?.byCategory?.staff_salary || 0;
+  const supplierPaySum = summary?.byCategory?.supplier_payment || 0;
+  const staffPct = totalAmount > 0 ? Math.round((staffSalarySum / totalAmount) * 100) : 0;
+  const supplierPct = totalAmount > 0 ? Math.round((supplierPaySum / totalAmount) * 100) : 0;
 
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={openAddModal}
-            style={{
-              height: 48,
-              padding: "0 28px",
-              borderRadius: 14,
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-              border: "none",
-              boxShadow: "0 8px 20px rgba(139, 92, 246, 0.4)",
-            }}
-          >
-            Add New Expense
-          </Button>
-        </div>
+  return (
+    <div style={{ padding: "8px 4px 40px", background: "#f8fafc", minHeight: "100vh" }}>
+      {/* TOP RIGHT ACTION BAR */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <Button
+          type="primary"
+          size="large"
+          icon={<PlusOutlined />}
+          onClick={openAddModal}
+          style={{
+            height: 42,
+            padding: "0 24px",
+            borderRadius: 12,
+            fontWeight: 700,
+            background: "#6366f1",
+            borderColor: "#6366f1",
+            boxShadow: "0 4px 14px rgba(99, 102, 241, 0.35)",
+          }}
+        >
+          Add New Expense
+        </Button>
       </div>
 
-      {/* ── METRIC CARDS ── */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
+      {/* METRIC CARDS ROW (4 CARDS) */}
+      <Row gutter={[14, 14]} style={{ marginBottom: 20 }}>
+        {/* Card 1 */}
+        <Col xs={24} sm={12} lg={6}>
           <Card
             bordered={false}
             style={{
-              borderRadius: 20,
-              background: "#fff",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+              borderRadius: 16,
+              background: "#ffffff",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
               border: "1px solid #f1f5f9",
+              padding: 0,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between"
             }}
+            bodyStyle={{ padding: "14px 14px 0 14px" }}
           >
-            <Statistic
-              title={<Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Total Period Expenses</Text>}
-              value={totalAmount}
-              prefix="₹"
-              valueStyle={{ color: "#e11d48", fontWeight: 800, fontSize: 26 }}
-            />
+            <div>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 8 }}>
+                <WalletOutlined />
+              </div>
+              <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>TOTAL PERIOD EXPENSES</Text>
+              <div style={{ marginTop: 2 }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
+                  ₹{totalAmount.toLocaleString("en-IN")}
+                </Title>
+              </div>
+              <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2, display: "block" }}>{filteredExpenses.length} transactions recorded</Text>
+            </div>
+            <Sparkline color="#8b5cf6" />
+          </Card>
+        </Col>
+
+        {/* Card 2 */}
+        <Col xs={24} sm={12} lg={6}>
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 16,
+              background: "#ffffff",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+              border: "1px solid #f1f5f9",
+              height: "100%"
+            }}
+            bodyStyle={{ padding: 14 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                <HomeOutlined />
+              </div>
+              <HomeOutlined style={{ color: "#ec4899", fontSize: 16 }} />
+            </div>
             <div style={{ marginTop: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>{filteredExpenses.length} transactions recorded</Text>
+              <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>HOME INTAKE BALANCE</Text>
+              <div style={{ marginTop: 2 }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
+                  ₹{(summary?.homeIntakeSummary?.remaining?.total || 1000).toLocaleString("en-IN")}
+                </Title>
+                <Text style={{ color: "#94a3b8", fontSize: 10, display: "block" }}>Remaining Balance</Text>
+              </div>
+            </div>
+            <div style={{ borderTop: "1px dashed #f1f5f9", marginTop: 8, paddingTop: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginBottom: 2 }}>
+                <span style={{ color: "#10b981", fontWeight: 700 }}>📥 Received: ₹{(summary?.homeIntakeSummary?.totalReceived || 164000).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#ef4444", fontWeight: 700 }}>📤 Spent: ₹{(summary?.homeIntakeSummary?.totalSpent || 163000).toLocaleString("en-IN")}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                <span style={{ color: "#10b981", fontWeight: 600 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.remaining?.cash || 500).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#3b82f6", fontWeight: 600 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.remaining?.bank || 500).toLocaleString("en-IN")}</span>
+              </div>
             </div>
           </Card>
         </Col>
 
-        {Object.entries(CATEGORY_CONFIG).slice(0, 3).map(([key, cfg]) => {
-          const categorySum = categorySummary[key] || 0;
-          const pct = totalAmount > 0 ? Math.round((categorySum / totalAmount) * 100) : 0;
-          return (
-            <Col xs={24} sm={12} md={6} key={key}>
-              <Card
-                bordered={false}
-                style={{
-                  borderRadius: 20,
-                  background: "#fff",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
-                  border: "1px solid #f1f5f9",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{cfg.label}</Text>
-                  <span style={{ background: cfg.bg, color: cfg.color, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-                    {pct}%
-                  </span>
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <Text strong style={{ color: cfg.color, fontSize: 22, fontWeight: 800 }}>
-                    ₹{categorySum.toLocaleString("en-IN")}
-                  </Text>
-                </div>
-                <Progress percent={pct} strokeColor={cfg.color} showInfo={false} size="small" style={{ marginTop: 6 }} />
-              </Card>
-            </Col>
-          );
-        })}
+        {/* Card 3 */}
+        <Col xs={24} sm={12} lg={6}>
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 16,
+              background: "#ffffff",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+              border: "1px solid #f1f5f9",
+              height: "100%"
+            }}
+            bodyStyle={{ padding: 14 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#dbeafe", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                <UserOutlined />
+              </div>
+              <Tag color="blue" bordered={false} style={{ borderRadius: 8, fontWeight: 700, margin: 0, fontSize: 11 }}>{staffPct}%</Tag>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>STAFF SALARY</Text>
+              <div style={{ marginTop: 2 }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
+                  ₹{staffSalarySum.toLocaleString("en-IN")}
+                </Title>
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <Progress percent={staffPct} strokeColor="#3b82f6" size="small" showInfo={false} />
+              <Text style={{ color: "#94a3b8", fontSize: 10, marginTop: 4, display: "block" }}>
+                {staffSalarySum === 0 ? "No salary paid this period" : `${staffPct}% of total expenses`}
+              </Text>
+            </div>
+          </Card>
+        </Col>
+
+        {/* Card 4 */}
+        <Col xs={24} sm={12} lg={6}>
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 16,
+              background: "#ffffff",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+              border: "1px solid #f1f5f9",
+              height: "100%"
+            }}
+            bodyStyle={{ padding: 14 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: "#ffedd5", color: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                <ShoppingOutlined />
+              </div>
+              <Tag color="orange" bordered={false} style={{ borderRadius: 8, fontWeight: 700, margin: 0, fontSize: 11 }}>{supplierPct || 4}%</Tag>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>SUPPLIER PAYMENT</Text>
+              <div style={{ marginTop: 2 }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
+                  ₹{(supplierPaySum || 7000).toLocaleString("en-IN")}
+                </Title>
+              </div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <Progress percent={supplierPct || 4} strokeColor="#f97316" size="small" showInfo={false} />
+              <Text style={{ color: "#94a3b8", fontSize: 10, marginTop: 4, display: "block" }}>
+                {supplierPct || 4}% of total expenses
+              </Text>
+            </div>
+          </Card>
+        </Col>
       </Row>
 
-      {/* ── FILTER TOOLBAR ── */}
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 20,
-          background: "#fff",
-          marginBottom: 24,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-          border: "1px solid #f1f5f9",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Top Row: Search + Quick Presets + Date Range */}
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <Input
-              placeholder="Search expenses by description, notes..."
-              prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-              style={{
-                width: isMobile ? "100%" : 320,
-                height: 44,
-                borderRadius: 12,
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-              }}
-            />
+      {/* SEARCH & CONTROLS ROW A */}
+      <Row gutter={[16, 12]} align="middle" style={{ marginBottom: 14 }}>
+        <Col xs={24} md={10}>
+          <Input
+            placeholder="Search expenses by description, note..."
+            prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            style={{ borderRadius: 20, height: 40, background: "#ffffff", border: "1px solid #e2e8f0" }}
+          />
+        </Col>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
-              {/* Date Presets */}
-              <Space wrap>
-                <Button
-                  type={datePreset === "today" ? "primary" : "default"}
-                  onClick={() => handlePresetChange("today")}
-                  style={{ borderRadius: 10, height: 38, fontSize: 12 }}
-                >
-                  Today
-                </Button>
-                <Button
-                  type={datePreset === "this_week" ? "primary" : "default"}
-                  onClick={() => handlePresetChange("this_week")}
-                  style={{ borderRadius: 10, height: 38, fontSize: 12 }}
-                >
-                  This Week
-                </Button>
-                <Button
-                  type={datePreset === "this_month" ? "primary" : "default"}
-                  onClick={() => handlePresetChange("this_month")}
-                  style={{ borderRadius: 10, height: 38, fontSize: 12 }}
-                >
-                  This Month
-                </Button>
-              </Space>
-
-              <RangePicker
-                value={dateRange}
-                onChange={(dates) => { setDatePreset("custom"); setDateRange(dates); }}
-                format="DD MMM YYYY"
-                style={{ borderRadius: 10, height: 38, width: isMobile ? "100%" : 240 }}
-              />
-
-              {(searchText || filterCategory !== "all" || datePreset !== "this_month") && (
-                <Button
-                  icon={<RollbackOutlined />}
-                  onClick={resetFilters}
-                  style={{ borderRadius: 10, height: 38 }}
-                >
-                  Reset
-                </Button>
-              )}
-            </div>
+        <Col xs={24} md={14} style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <div style={{ background: "#ffffff", padding: 3, borderRadius: 18, border: "1px solid #e2e8f0", display: "flex", gap: 2 }}>
+            <Button
+              type={datePreset === "today" ? "primary" : "text"}
+              onClick={() => handlePresetChange("today")}
+              style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "today" ? "#6366f1" : "transparent" }}
+            >
+              Today
+            </Button>
+            <Button
+              type={datePreset === "this_week" ? "primary" : "text"}
+              onClick={() => handlePresetChange("this_week")}
+              style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "this_week" ? "#6366f1" : "transparent" }}
+            >
+              This Week
+            </Button>
+            <Button
+              type={datePreset === "this_month" ? "primary" : "text"}
+              onClick={() => handlePresetChange("this_month")}
+              style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "this_month" ? "#6366f1" : "transparent" }}
+            >
+              This Month
+            </Button>
           </div>
 
-          {/* Bottom Row: Category Pills Filter */}
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) => {
+              setDatePreset("custom");
+              setDateRange(dates);
+            }}
+            style={{ height: 38, borderRadius: 18, background: "#ffffff", border: "1px solid #e2e8f0" }}
+            format="DD MMM YYYY"
+          />
+        </Col>
+      </Row>
+
+      {/* CATEGORY FILTER PILL TABS ROW B */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+        <Button
+          type={filterCategory === "all" ? "primary" : "default"}
+          onClick={() => setFilterCategory("all")}
+          style={{
+            borderRadius: 16,
+            height: 34,
+            fontWeight: 600,
+            fontSize: 12,
+            background: filterCategory === "all" ? "#6366f1" : "#ffffff",
+            borderColor: filterCategory === "all" ? "#6366f1" : "#e2e8f0",
+            color: filterCategory === "all" ? "#ffffff" : "#475569"
+          }}
+        >
+          All ({categoryCounts.all || 0})
+        </Button>
+
+        {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
+          const isSelected = filterCategory === key;
+          const count = categoryCounts[key] || 0;
+          return (
             <Button
-              type={filterCategory === "all" ? "primary" : "text"}
-              onClick={() => setFilterCategory("all")}
+              key={key}
+              onClick={() => setFilterCategory(key)}
               style={{
-                borderRadius: 20,
+                borderRadius: 16,
                 height: 34,
-                padding: "0 16px",
                 fontWeight: 600,
                 fontSize: 12,
-                background: filterCategory === "all" ? "#0f172a" : "#f1f5f9",
-                color: filterCategory === "all" ? "#fff" : "#475569",
+                background: isSelected ? cfg.color : cfg.bg,
+                borderColor: isSelected ? cfg.color : `${cfg.color}40`,
+                color: isSelected ? "#ffffff" : cfg.color,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4
               }}
             >
-              All ({expenses.length})
+              <span>{cfg.icon}</span>
+              <span>{cfg.label} ({count})</span>
             </Button>
-            {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
-              const count = expenses.filter((e) => e.category === key).length;
-              const isActive = filterCategory === key;
-              return (
-                <Button
-                  key={key}
-                  onClick={() => setFilterCategory(key)}
-                  style={{
-                    borderRadius: 20,
-                    height: 34,
-                    padding: "0 16px",
-                    fontWeight: 600,
-                    fontSize: 12,
-                    border: `1px solid ${cfg.color}33`,
-                    background: isActive ? cfg.color : cfg.bg,
-                    color: isActive ? "#fff" : cfg.color,
-                  }}
-                >
-                  {cfg.icon} {cfg.label} ({count})
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-      </Card>
+          );
+        })}
+      </div>
 
-      {/* ── EXPENSES LIST / TABLE ── */}
+      {/* DATA TABLE */}
       <Card
         bordered={false}
         style={{
           borderRadius: 20,
-          background: "#fff",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+          background: "#ffffff",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
           border: "1px solid #f1f5f9",
         }}
+        bodyStyle={{ padding: isMobile ? "10px" : "16px" }}
       >
-        {isMobile ? (
-          /* Mobile Card Layout */
-          <div>
-            {loading && (
-              <div style={{ textAlign: "center", padding: 30 }}>
-                <Text type="secondary">Loading expenses...</Text>
-              </div>
-            )}
-            {!loading && filteredExpenses.length === 0 && (
-              <Empty description="No expenses found" style={{ padding: 40 }} />
-            )}
-            {!loading &&
-              filteredExpenses.map((item) => {
-                const catCfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
-                const srcCfg = SOURCE_CONFIG[item.paymentSource] || SOURCE_CONFIG.home_cash;
-                return (
-                  <div
-                    key={item._id}
-                    style={{
-                      background: "#f8fafc",
-                      borderRadius: 16,
-                      padding: 16,
-                      marginBottom: 12,
-                      border: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                      <div>
-                        <Text strong style={{ fontSize: 15, color: "#0f172a", display: "block" }}>
-                          {item.description}
-                        </Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {dayjs(item.date).format("DD MMM YYYY")}
-                        </Text>
-                      </div>
-                      <Text strong style={{ color: "#e11d48", fontSize: 17, fontWeight: 800 }}>
-                        ₹{Number(item.amount || 0).toLocaleString("en-IN")}
-                      </Text>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-                      <Space size={4}>
-                        <Tag color={catCfg.color} style={{ borderRadius: 6, fontSize: 11 }}>{catCfg.label}</Tag>
-                        <Tag color={srcCfg.color} style={{ borderRadius: 6, fontSize: 11 }}>{srcCfg.label}</Tag>
-                      </Space>
-
-                      <Space size="small">
-                        <Button
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => openEditModal(item)}
-                        />
-                        <Popconfirm
-                          title="Delete this expense?"
-                          onConfirm={() => handleDelete(item._id)}
-                          okText="Delete"
-                          cancelText="Cancel"
-                          okButtonProps={{ danger: true }}
-                        >
-                          <Button size="small" danger icon={<DeleteOutlined />} />
-                        </Popconfirm>
-                      </Space>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        ) : (
-          /* Desktop Table Layout */
-          <Table
-            dataSource={filteredExpenses}
-            columns={columns}
-            loading={loading}
-            rowKey="_id"
-            size="middle"
-            pagination={{ pageSize: 12, showSizeChanger: true }}
-            locale={{ emptyText: <Empty description="No home expenses recorded" /> }}
-          />
-        )}
+        <Table
+          columns={columns}
+          dataSource={filteredExpenses}
+          rowKey="_id"
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+          size="middle"
+          scroll={{ x: true }}
+        />
       </Card>
 
-      {/* ── ADD/EDIT MODAL ── */}
+      {/* MODAL */}
       <Modal
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ background: "#f3e8ff", color: "#8b5cf6", padding: 8, borderRadius: 10 }}>
-              <HomeOutlined style={{ fontSize: 18 }} />
-            </span>
-            <Text strong style={{ fontSize: 17 }}>
+          <Space>
+            <div style={{ background: "#f3e8ff", padding: 8, borderRadius: 10, display: "flex" }}>
+              <DollarOutlined style={{ color: "#8b5cf6", fontSize: 18 }} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>
               {editingExpense ? "Edit Expense Entry" : "Record New Expense"}
-            </Text>
-          </div>
+            </span>
+          </Space>
         }
         open={modalVisible}
-        onCancel={() => { setModalVisible(false); setEditingExpense(null); }}
-        onOk={handleSubmit}
-        okText={editingExpense ? "Update Expense" : "Save & Sync Expense"}
-        okButtonProps={{
-          style: {
-            borderRadius: 10,
-            height: 42,
-            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-            border: "none",
-            fontWeight: 700,
-          },
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingExpense(null);
         }}
-        cancelButtonProps={{ style: { borderRadius: 10, height: 42 } }}
+        onOk={handleSubmit}
+        okText={editingExpense ? "Update Expense" : "Save Expense"}
         width={540}
-        destroyOnClose
-        style={{ borderRadius: 20 }}
+        centered
+        styles={{ body: { paddingTop: 16 } }}
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="date" label="Expense Date" rules={[{ required: true, message: "Select date" }]}>
-                <DatePicker style={{ width: "100%", height: 42, borderRadius: 10 }} format="DD MMM YYYY" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true, message: "Enter amount" }]}>
-                <InputNumber style={{ width: "100%", height: 42, borderRadius: 10, fontSize: 16, fontWeight: 700 }} min={0} prefix="₹" placeholder="0" />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Form form={form} layout="vertical">
+          <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true, message: "Enter amount" }]}>
+            <InputNumber
+              style={{ width: "100%", height: 48, borderRadius: 12, fontSize: 20, fontWeight: 700, color: "#e11d48" }}
+              prefix="₹"
+              placeholder="0.00"
+              min={1}
+            />
+          </Form.Item>
 
-          {/* Quick Amount Selector */}
-          <div style={{ marginBottom: 16, marginTop: -8 }}>
-            <Text type="secondary" style={{ fontSize: 12, marginRight: 8 }}>Quick Amount:</Text>
-            <Space wrap size={4}>
-              {QUICK_AMOUNTS.map((amt) => (
-                <Tag
-                  key={amt}
-                  onClick={() => form.setFieldsValue({ amount: amt })}
-                  style={{
-                    cursor: "pointer",
-                    borderRadius: 6,
-                    padding: "2px 8px",
-                    background: "#f1f5f9",
-                    border: "1px solid #cbd5e1",
-                    fontWeight: 600,
-                  }}
-                >
-                  +₹{amt.toLocaleString("en-IN")}
-                </Tag>
-              ))}
-            </Space>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            <Text type="secondary" style={{ fontSize: 11, alignSelf: "center", marginRight: 4 }}>Quick Amount:</Text>
+            {QUICK_AMOUNTS.map((amt) => (
+              <Tag
+                key={amt}
+                onClick={() => {
+                  const current = form.getFieldValue("amount") || 0;
+                  form.setFieldsValue({ amount: current + amt });
+                }}
+                style={{
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  padding: "4px 10px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                +₹{amt.toLocaleString("en-IN")}
+              </Tag>
+            ))}
           </div>
 
           <Form.Item name="description" label="Description / Vendor Name" rules={[{ required: true, message: "Enter description" }]}>
             <Input placeholder="e.g., Staff salary for July, Kaju supplier payment, Electricity Bill" style={{ height: 42, borderRadius: 10 }} />
           </Form.Item>
 
-          <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "10px 14px", borderRadius: 10, marginBottom: 16 }}>
-            <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
-              💡 <strong>Payment Source Choice:</strong> Selecting <strong>Home Cash</strong> deducts from your physical cash balance, while <strong>Bank Account</strong> deducts from your bank intake.
-            </Text>
-          </div>
-
           <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="category" label="Category" rules={[{ required: true }]}>
-                <Select placeholder="Select category" style={{ height: 42 }}>
-                  {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
-                    <Option key={key} value={key}>
-                      <Space>{cfg.icon} <span>{cfg.label}</span></Space>
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item name="paymentSource" label="Paid From" rules={[{ required: true }]}>
                 <Select
                   placeholder="Select source"
                   style={{ height: 42 }}
-                  onChange={(val) => setSelectedPaymentSource && setSelectedPaymentSource(val)}
+                  onChange={(val) => setSelectedPaymentSource(val)}
                 >
                   {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => (
                     <Option key={key} value={key}>
@@ -709,9 +720,24 @@ export default function HomeExpensesView() {
                   ))}
                 </Select>
               </Form.Item>
+              <div style={{ marginTop: -12, marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: selectedPaymentSource === "home_cash" ? "#10b981" : selectedPaymentSource === "bank_account" ? "#6366f1" : selectedPaymentSource === "cc_loan" ? "#0d7377" : "#ef4444", fontWeight: 600 }}>
+                  {selectedPaymentSource === "home_cash" && "💵 Deducts from Home Cash"}
+                  {selectedPaymentSource === "bank_account" && "🏦 Deducts from Bank Account"}
+                  {selectedPaymentSource === "credit_card" && "💳 Deducts from Credit Card"}
+                  {selectedPaymentSource === "cc_loan" && "🏦 Withdraws from CC Loan Account"}
+                </Text>
+              </div>
             </Col>
           </Row>
 
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item name="date" label="Expense Date" rules={[{ required: true }]}>
+                <DatePicker style={{ width: "100%", height: 42, borderRadius: 10 }} format="YYYY-MM-DD" />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="Any additional payment details..." style={{ borderRadius: 10 }} />
@@ -720,4 +746,6 @@ export default function HomeExpensesView() {
       </Modal>
     </div>
   );
-}
+};
+
+export default HomeExpensesView;

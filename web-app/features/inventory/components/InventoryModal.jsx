@@ -3,8 +3,46 @@ import { Modal, Form, Input, InputNumber, Select } from "antd";
 
 const { Option } = Select;
 
-const InventoryModal = ({ visible, item, onCancel, onOk, loading }) => {
+const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+
+  const getModalTitle = () => {
+    if (item) return "Edit Item";
+    if (defaultType === "Snacks") return "Add New Snack";
+    if (defaultType === "Namkeens") return "Add New Namkeen";
+    return "Add New Sweet";
+  };
+
+  const getCategoryOptions = () => {
+    if (defaultType === "Snacks") {
+      return ["Samosa", "Bara", "Cutlet", "Puri", "Kachori", "Snacks", "Others"];
+    }
+    if (defaultType === "Namkeens") {
+      return ["Bhujia", "Mixture", "Sev", "Gathiya", "Chivda", "Papdi", "Namkeens", "Others"];
+    }
+    return ["Milk-based", "Flour-based", "Dry fruits", "Fried sweets", "Sweets", "Others"];
+  };
+
+  const getSubCategoryOptions = () => {
+    if (defaultType === "Namkeens") {
+      return ["Spicy Mixture", "Sweet & Sour Mixture", "Ratlami Sev", "Nylon Sev", "Aloo Bhujia", "Other Namkeen"];
+    }
+    if (defaultType === "Snacks") {
+      return ["Hot Snack", "Fried Snack", "Evening Snack", "Other Snack"];
+    }
+    return ["Special Sweet", "Traditional Sweet", "Dry Sweet", "Bengali Sweet", "Other Sweet"];
+  };
+
+  const getDefaultKitchenSection = () => {
+    if (defaultType === "Snacks") return "Samosa Section";
+    if (defaultType === "Namkeens") return "Namkeen Section";
+    return "Sweets";
+  };
+
+  const getDefaultCategory = () => {
+    const opts = getCategoryOptions();
+    return opts[0] || "Others";
+  };
 
   useEffect(() => {
     if (visible) {
@@ -12,16 +50,19 @@ const InventoryModal = ({ visible, item, onCancel, onOk, loading }) => {
         form.setFieldsValue(item);
       } else {
         form.resetFields();
+        form.setFieldsValue({
+          kitchenSection: getDefaultKitchenSection(),
+          category: getDefaultCategory(),
+        });
       }
     }
-  }, [visible, item, form]);
+  }, [visible, item, defaultType, form]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
     onOk(values);
   };
 
-  const categoryOptions = ["Milk-based", "Flour-based", "Dry fruits", "Fried sweets", "Others"];
   const unitOptions = [
     { value: "kg", label: "Kilogram (kg)" },
     { value: "g", label: "Gram (g)" },
@@ -32,7 +73,7 @@ const InventoryModal = ({ visible, item, onCancel, onOk, loading }) => {
 
   return (
     <Modal
-      title={item ? "Edit Sweet" : "Add Sweet"}
+      title={getModalTitle()}
       open={visible}
       onOk={handleSubmit}
       onCancel={onCancel}
@@ -40,24 +81,34 @@ const InventoryModal = ({ visible, item, onCancel, onOk, loading }) => {
       okText={item ? "Update" : "Add"}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="Sweet Name" rules={[{ required: true }]}>
-          <Input placeholder="Enter sweet name" />
+        <Form.Item name="name" label="Item Name" rules={[{ required: true, message: "Please enter item name" }]}>
+          <Input placeholder={defaultType === "Snacks" ? "e.g. Samosa, Bara" : defaultType === "Namkeens" ? "e.g. Mixture, Bhujia" : "e.g. Malai Barfi"} />
         </Form.Item>
         <div style={{ display: "flex", gap: "16px" }}>
           <Form.Item name="category" label="Category" rules={[{ required: true }]} style={{ flex: 1 }}>
             <Select placeholder="Select category">
-              {categoryOptions.map(cat => <Option key={cat} value={cat}>{cat}</Option>)}
+              {getCategoryOptions().map(cat => <Option key={cat} value={cat}>{cat}</Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="kitchenSection" label="Kitchen Section" initialValue="Uncategorized" rules={[{ required: true }]} style={{ flex: 1 }}>
+          <Form.Item name="kitchenSection" label="Kitchen Section" rules={[{ required: true }]} style={{ flex: 1 }}>
             <Select placeholder="Select kitchen section">
               <Option value="Sweets">Sweets</Option>
               <Option value="Samosa Section">Samosa Section</Option>
               <Option value="Bara Section">Bara Section</Option>
+              <Option value="Namkeen Section">Namkeen Section</Option>
               <Option value="Uncategorized">Uncategorized</Option>
             </Select>
           </Form.Item>
         </div>
+        <Form.Item name="subCategory" label="Sub Category">
+          <Select 
+            placeholder="Select or enter sub category" 
+            allowClear
+            showSearch
+          >
+            {getSubCategoryOptions().map(sub => <Option key={sub} value={sub}>{sub}</Option>)}
+          </Select>
+        </Form.Item>
         <div style={{ display: "flex", gap: "16px" }}>
           <Form.Item name="quantity" label="Quantity" rules={[{ required: true }]} style={{ flex: 1 }}>
             <InputNumber min={0} style={{ width: "100%" }} />

@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const inventorySchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String, required: true },
+  subCategory: { type: String },
   quantity: { type: Number, required: true },
   unit: { type: String, required: true },
   minStock: { type: Number, required: true },
@@ -16,7 +17,7 @@ const inventorySchema = new mongoose.Schema({
   },
   kitchenSection: {
     type: String,
-    enum: ["Sweets", "Samosa Section", "Bara Section", "Uncategorized"],
+    enum: ["Sweets", "Samosa Section", "Bara Section", "Namkeen Section", "Uncategorized"],
     default: "Uncategorized",
   },
 });

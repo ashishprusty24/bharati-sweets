@@ -142,7 +142,7 @@ export default function CreditCardView() {
   const openAddTxnModal = (cardId) => {
     setSelectedCardId(cardId);
     txnForm.resetFields();
-    txnForm.setFieldsValue({ date: dayjs(), category: "other" });
+    txnForm.setFieldsValue({ date: dayjs() });
     setTxnModalVisible(true);
   };
 
