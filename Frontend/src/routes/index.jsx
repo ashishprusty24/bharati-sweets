@@ -10,6 +10,7 @@ import AccountingPage from "../pages/AccountingPage/AccountingPage";
 import DailyLedgerPage from "../pages/DailyLedgerPage/DailyLedgerPage";
 import HomeExpensesPage from "../pages/HomeExpensesPage/HomeExpensesPage";
 import CreditCardPage from "../pages/CreditCardPage/CreditCardPage";
+import CCLoanPage from "../pages/CCLoanPage/CCLoanPage";
 import MarketingPage from "../pages/MarketingPage/MarketingPage";
 import DashboardPage from "../pages/DashboardPage/DashboardPage";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
@@ -33,6 +34,7 @@ const AppRouter = () => (
         <Route path="ledger" element={<DailyLedgerPage />} />
         <Route path="home-expenses" element={<HomeExpensesPage />} />
         <Route path="credit-cards" element={<CreditCardPage />} />
+        <Route path="cc-loans" element={<CCLoanPage />} />
         <Route path="marketing" element={<MarketingPage />} />
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="vendors" element={<VendorsPage />} />

@@ -24,6 +24,8 @@ const CATEGORY_CONFIG = {
   supplier_payment: { label: "Supplier Payment", color: "#f59e0b", bg: "#fef3c7", icon: <ShoppingOutlined /> },
   personal: { label: "Personal", color: "#8b5cf6", bg: "#f3e8ff", icon: <UserOutlined /> },
   credit_card_bill: { label: "Credit Card Bill", color: "#ef4444", bg: "#fee2e2", icon: <CreditCardOutlined /> },
+  cc_loan: { label: "CC Loan", color: "#0d7377", bg: "#f0fdfa", icon: <BankOutlined /> },
+  cc_loan_repayment: { label: "CC Loan Repayment", color: "#059669", bg: "#ecfdf5", icon: <BankOutlined /> },
   other: { label: "Other", color: "#64748b", bg: "#f1f5f9", icon: <WalletOutlined /> },
 };
 
@@ -31,6 +33,7 @@ const SOURCE_CONFIG = {
   home_cash: { label: "Home Cash", color: "#10b981", bg: "#d1fae5", icon: <WalletOutlined /> },
   bank_account: { label: "Bank Account", color: "#6366f1", bg: "#e0e7ff", icon: <BankOutlined /> },
   credit_card: { label: "Credit Card", color: "#ef4444", bg: "#fee2e2", icon: <CreditCardOutlined /> },
+  cc_loan: { label: "CC Loan", color: "#0d7377", bg: "#f0fdfa", icon: <BankOutlined /> },
 };
 
 const TAG_CONFIG = {
@@ -52,6 +55,7 @@ const HomeExpensesPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [creditCards, setCreditCards] = useState([]);
+  const [ccLoanAccounts, setCCLoanAccounts] = useState([]);
   const [selectedPaymentSource, setSelectedPaymentSource] = useState("home_cash");
 
   // Filters
@@ -115,10 +119,20 @@ const HomeExpensesPage = () => {
     }
   };
 
+  const fetchCCLoanAccounts = async () => {
+    try {
+      const data = await api.get("/cc-loans");
+      setCCLoanAccounts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch CC Loan accounts", err);
+    }
+  };
+
   useEffect(() => {
     fetchExpenses();
     fetchSummary();
     fetchCreditCards();
+    fetchCCLoanAccounts();
   }, [dateRange, filterCategory]);
 
   const filteredExpenses = useMemo(() => {
@@ -812,10 +826,11 @@ const HomeExpensesPage = () => {
                 </Select>
               </Form.Item>
               <div style={{ marginTop: -12, marginBottom: 12 }}>
-                <Text style={{ fontSize: 11, color: selectedPaymentSource === "home_cash" ? "#10b981" : selectedPaymentSource === "bank_account" ? "#6366f1" : "#ef4444", fontWeight: 600 }}>
+                <Text style={{ fontSize: 11, color: selectedPaymentSource === "home_cash" ? "#10b981" : selectedPaymentSource === "bank_account" ? "#6366f1" : selectedPaymentSource === "cc_loan" ? "#0d7377" : "#ef4444", fontWeight: 600 }}>
                   {selectedPaymentSource === "home_cash" && "💵 Deducts from Home Cash"}
                   {selectedPaymentSource === "bank_account" && "🏦 Deducts from Bank Account"}
                   {selectedPaymentSource === "credit_card" && "💳 Deducts from Credit Card"}
+                  {selectedPaymentSource === "cc_loan" && "🏦 Withdraws from CC Loan Account"}
                 </Text>
               </div>
             </Col>
@@ -830,6 +845,21 @@ const HomeExpensesPage = () => {
                     <Space>
                       <CreditCardOutlined />
                       <span>{card.cardName} (•••• {card.last4Digits})</span>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
+          {selectedPaymentSource === "cc_loan" && (
+            <Form.Item name="ccLoanId" label="Select CC Loan Account" rules={[{ required: true, message: "Select a CC Loan account" }]}>
+              <Select placeholder="Choose CC Loan account" style={{ height: 42 }}>
+                {ccLoanAccounts.map((acc) => (
+                  <Option key={acc._id} value={acc._id}>
+                    <Space>
+                      <BankOutlined />
+                      <span>{acc.accountName} — {acc.bankName} (•••• {acc.accountNumber})</span>
                     </Space>
                   </Option>
                 ))}

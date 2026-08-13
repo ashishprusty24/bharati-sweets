@@ -28,6 +28,7 @@ const getHomeExpenses = (query = {}) => {
         .populate("staffId", "name")
         .populate("vendorId", "name")
         .populate("creditCardId", "cardName last4Digits")
+        .populate("ccLoanId", "accountName bankName accountNumber")
         .sort({ date: -1 });
 
       resolve(expenses);
@@ -115,7 +116,27 @@ const createHomeExpense = (data) => {
         }
       }
 
-      // --- AUTO SYNC TO DAILY LEDGER ---
+      // --- AUTO SYNC TO CC LOAN ---
+      if (data.paymentSource === "cc_loan" && data.ccLoanId) {
+        try {
+          const CCLoan = require("../models/CCLoan");
+          const ccAccount = await CCLoan.findById(data.ccLoanId);
+          if (ccAccount) {
+            ccAccount.withdrawals.push({
+              date: data.date ? new Date(data.date) : new Date(),
+              description: data.description || "Withdrawal via Home Expense",
+              amount: Number(data.amount) || 0,
+              isRepaid: false,
+            });
+            await ccAccount.save();
+          }
+        } catch (ccErr) {
+          console.error("CC Loan withdrawal sync error in homeExpense:", ccErr);
+        }
+      }
+
+      // --- AUTO SYNC TO DAILY LEDGER (skip for CC Loan — CC Loan only syncs with Expenses) ---
+      if (data.paymentSource !== "cc_loan") {
       try {
         const txDate = data.date ? new Date(data.date) : new Date();
         const targetDate = dayjs(txDate).startOf("day").toDate();
@@ -160,11 +181,13 @@ const createHomeExpense = (data) => {
       } catch (ledgerSyncErr) {
         console.error("Daily Ledger sync error in homeExpense:", ledgerSyncErr);
       }
+      } // end: skip Daily Ledger for cc_loan
 
       const populated = await HomeExpense.findById(saved._id)
         .populate("staffId", "name")
         .populate("vendorId", "name")
-        .populate("creditCardId", "cardName last4Digits");
+        .populate("creditCardId", "cardName last4Digits")
+        .populate("ccLoanId", "accountName bankName accountNumber");
       resolve(populated);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -182,7 +205,8 @@ const updateHomeExpense = (id, data) => {
       })
         .populate("staffId", "name")
         .populate("vendorId", "name")
-        .populate("creditCardId", "cardName last4Digits");
+        .populate("creditCardId", "cardName last4Digits")
+        .populate("ccLoanId", "accountName bankName accountNumber");
 
       if (!updated) return reject({ status: 404, message: "Home expense not found" });
 
@@ -295,6 +319,9 @@ const getHomeExpenseSummary = (query = {}) => {
       const spentCreditCard = spentEntries
         .filter((e) => e.paymentSource === "credit_card")
         .reduce((s, e) => s + (e.amount || 0), 0);
+      const spentCCLoan = spentEntries
+        .filter((e) => e.paymentSource === "cc_loan")
+        .reduce((s, e) => s + (e.amount || 0), 0);
 
       const remainingCash = receivedCash - spentCash;
       const remainingBank = receivedBank - spentBank;
@@ -307,9 +334,9 @@ const getHomeExpenseSummary = (query = {}) => {
         bySourceTag,
         homeIntakeSummary: {
           totalReceived: receivedCash + receivedBank,
-          totalSpent: spentCash + spentBank + spentCreditCard,
+          totalSpent: spentCash + spentBank + spentCreditCard + spentCCLoan,
           received: { cash: receivedCash, bank: receivedBank },
-          spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard },
+          spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
           remaining: {
             cash: remainingCash,
             bank: remainingBank,

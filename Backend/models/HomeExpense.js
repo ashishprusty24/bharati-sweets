@@ -11,7 +11,7 @@ const homeExpenseSchema = new mongoose.Schema(
     },
     paymentSource: {
       type: String,
-      enum: ["home_cash", "bank_account", "credit_card"],
+      enum: ["home_cash", "bank_account", "credit_card", "cc_loan"],
       default: "home_cash",
     },
     sourceTag: {
@@ -22,6 +22,7 @@ const homeExpenseSchema = new mongoose.Schema(
     staffId: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
     creditCardId: { type: mongoose.Schema.Types.ObjectId, ref: "CreditCard" },
+    ccLoanId: { type: mongoose.Schema.Types.ObjectId, ref: "CCLoan" },
     ledgerItemId: { type: String, default: null },
     notes: { type: String, default: "" },
   },
