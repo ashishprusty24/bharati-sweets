@@ -37,13 +37,35 @@ router.get("/test-whatsapp", async (req, res) => {
     const phone = req.query.phone;
     if (!phone) return res.status(400).json({ message: "Phone number required (?phone=91XXXXXXXXXX)" });
     
-    const result = await sendWhatsApp(phone, "✅ Test message from Bharati Sweets WhatsApp API. If you received this, the Meta API integration is working correctly!");
+    const token = process.env.WHATSAPP_API_TOKEN;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378";
+
+    let formattedTo = phone.replace(/\D/g, "");
+    if (formattedTo.length === 10) formattedTo = "91" + formattedTo;
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to: formattedTo,
+      type: "text",
+      text: { body: "✅ Test message from Bharati Sweets WhatsApp API!" }
+    };
+
+    const metaRes = await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const metaData = await metaRes.json();
+
     res.json({ 
-      success: result, 
-      phone,
-      tokenPresent: !!process.env.WHATSAPP_API_TOKEN,
-      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378",
-      phoneNumberIdPresent: true,
+      httpStatus: metaRes.status,
+      metaResponse: metaData,
+      phoneFormatted: formattedTo,
+      phoneNumberId,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
