@@ -163,6 +163,7 @@ const saveLedger = (date, payload) => {
       const {
         items = [],
         festival = "",
+        notes = "",
         sweetProduction = [],
         openingBalance = 0,
         openingBankBalance = 0,
@@ -214,6 +215,7 @@ const saveLedger = (date, payload) => {
         {
           date: targetDate,
           festival: festival || "",
+          notes: notes || "",
           sweetProduction: sweetProduction || [],
           openingBalance: Number(openingBalance),
           openingBankBalance: Number(openingBankBalance),

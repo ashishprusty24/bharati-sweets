@@ -49,42 +49,63 @@ const calculateLedgerSales = (ledger) => {
   return cashSales + digitalSales;
 };
 
-const getSummaryData = async (period = "30d") => {
-  try {
-    const today = new Date();
-    const startDate = new Date();
-    
-    if (period === "2y") {
-      startDate.setFullYear(today.getFullYear() - 2);
-    } else if (period === "today") {
+const getDateRange = (period = "30d", customStartDate, customEndDate) => {
+  const now = new Date();
+  let startDate;
+  let endDate = customEndDate ? new Date(customEndDate) : new Date();
+
+  if (customStartDate) {
+    startDate = new Date(customStartDate);
+  } else {
+    startDate = new Date();
+    if (period === "today") {
       startDate.setHours(0, 0, 0, 0);
+    } else if (period === "6m") {
+      startDate.setMonth(now.getMonth() - 6);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === "1y") {
+      startDate.setFullYear(now.getFullYear() - 1);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === "2y") {
+      startDate.setFullYear(now.getFullYear() - 2);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === "all") {
+      startDate = new Date(0);
     } else {
-      startDate.setDate(today.getDate() - 30);
+      startDate.setDate(now.getDate() - 30);
       startDate.setHours(0, 0, 0, 0);
     }
+  }
+
+  return { startDate, endDate };
+};
+
+const getSummaryData = async (period = "30d", customStartDate, customEndDate) => {
+  try {
+    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
 
     // Event sales
     const [eventSalesData] = await EventOrder.aggregate([
-      { $match: { orderStatus: { $in: ["delivered", "confirmed", "ready", "pending"] }, deliveryDate: { $gte: startDate } } },
+      { $match: { orderStatus: { $in: ["delivered", "confirmed", "ready", "pending"] }, deliveryDate: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: null, total: { $sum: "$totalAmount" }, paid: { $sum: "$paidAmount" } } }
     ]);
 
     // Daily Ledger sales
-    const ledgers = await DailyLedger.find({ date: { $gte: startDate } });
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate, $lte: endDate } });
     const ledgerSalesTotal = ledgers.reduce((sum, l) => sum + calculateLedgerSales(l), 0);
 
     const totalSales = (eventSalesData?.total || 0) + ledgerSalesTotal;
 
     // Shop Expenses
     const [expenseData] = await Expense.aggregate([
-      { $match: { date: { $gte: startDate } } },
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
     const shopExpenses = expenseData?.total || 0;
 
     // Home Expenses
     const [homeExpenseData] = await HomeExpense.aggregate([
-      { $match: { date: { $gte: startDate } } },
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
     const totalHomeExpenses = homeExpenseData?.total || 0;
@@ -131,22 +152,16 @@ const getSummaryData = async (period = "30d") => {
   }
 };
 
-const getSalesData = async (period = "30d") => {
+const getSalesData = async (period = "30d", customStartDate, customEndDate) => {
   try {
-    const today = new Date();
-    const startDate = new Date();
-    
-    if (period === "2y") {
-      startDate.setFullYear(today.getFullYear() - 2);
-    } else {
-      startDate.setDate(today.getDate() - 30);
-    }
-    startDate.setHours(0, 0, 0, 0);
+    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
+    const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const isMonthly = diffDays > 60 || ["2y", "1y", "all"].includes(period);
 
-    const groupFormat = period === "2y" ? "%Y-%m" : "%Y-%m-%d";
+    const groupFormat = isMonthly ? "%Y-%m" : "%Y-%m-%d";
 
     const eventSales = await EventOrder.aggregate([
-      { $match: { deliveryDate: { $gte: startDate } } },
+      { $match: { deliveryDate: { $gte: startDate, $lte: endDate } } },
       {
         $group: {
           _id: { $dateToString: { format: groupFormat, date: "$deliveryDate" } },
@@ -155,11 +170,11 @@ const getSalesData = async (period = "30d") => {
       }
     ]);
 
-    const ledgers = await DailyLedger.find({ date: { $gte: startDate } });
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate, $lte: endDate } });
     const ledgerSales = ledgers.map(l => {
       const dateStr = l.date.toISOString().split("T")[0];
       return {
-        _id: period === "2y" ? dateStr.slice(0, 7) : dateStr,
+        _id: isMonthly ? dateStr.slice(0, 7) : dateStr,
         amount: calculateLedgerSales(l)
       };
     });
@@ -170,27 +185,29 @@ const getSalesData = async (period = "30d") => {
     });
 
     const salesData = [];
-    if (period === "2y") {
-      for (let i = 0; i <= 24; i++) {
-        const d = new Date(startDate);
-        d.setMonth(d.getMonth() + i);
-        if (d > today) break;
-        const monthStr = d.toISOString().split("-").slice(0, 2).join("-");
+    if (isMonthly) {
+      const curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      const limit = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1);
+      while (curr < limit && curr <= new Date()) {
+        const monthStr = curr.toISOString().split("-").slice(0, 2).join("-");
         salesData.push({
           date: monthStr,
           amount: salesMap[monthStr] || 0
         });
+        curr.setMonth(curr.getMonth() + 1);
       }
     } else {
-      for (let i = 0; i <= 30; i++) {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + i);
-        if (d > today) break;
-        const dateStr = d.toISOString().split("T")[0];
+      const curr = new Date(startDate);
+      curr.setHours(0,0,0,0);
+      const limit = new Date(endDate);
+      limit.setHours(23,59,59,999);
+      while (curr <= limit && curr <= new Date()) {
+        const dateStr = curr.toISOString().split("T")[0];
         salesData.push({
           date: dateStr,
           amount: salesMap[dateStr] || 0
         });
+        curr.setDate(curr.getDate() + 1);
       }
     }
 
@@ -200,14 +217,18 @@ const getSalesData = async (period = "30d") => {
   }
 };
 
-const getExpensesData = async () => {
+const getExpensesData = async (period = "30d", customStartDate, customEndDate) => {
   try {
+    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
+
     const shopExpenses = await Expense.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
 
     const homeExpenses = await HomeExpense.aggregate([
+      { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);

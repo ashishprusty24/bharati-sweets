@@ -13,9 +13,9 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions = [], payment
   const getStatusTag = (status, options = []) => {
     const statusInfo = options.find((opt) => opt.value === status);
     return (
-      <Tag 
-        style={{ 
-          color: statusInfo?.color || "#64748b", 
+      <Tag
+        style={{
+          color: statusInfo?.color || "#64748b",
           background: statusInfo?.color ? `${statusInfo.color}1a` : "#f1f5f9",
           border: statusInfo?.color ? `1px solid ${statusInfo.color}33` : "1px solid #e2e8f0",
           borderRadius: 6,
@@ -113,7 +113,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions = [], payment
               style={{ background: "#eff6ff", borderRadius: 8 }}
             />
           </Tooltip>
-          
+
           <Dropdown
             menu={{
               items: [

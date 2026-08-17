@@ -37,8 +37,8 @@ const Sparkline = ({ color }) => {
   );
 };
 
-const DashboardSummary = ({ period = "30d" }) => {
-  const { data: summary, loading } = useFetch(`/dashboard/summary?period=${period}`);
+const DashboardSummary = ({ queryStr = "period=30d" }) => {
+  const { data: summary, loading } = useFetch(`/dashboard/summary?${queryStr}`);
 
   const statCards = [
     { 

@@ -60,6 +60,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
+    values.category = item?.category || values.kitchenSection || defaultType || "General";
     onOk(values);
   };
 
@@ -84,31 +85,16 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
         <Form.Item name="name" label="Item Name" rules={[{ required: true, message: "Please enter item name" }]}>
           <Input placeholder={defaultType === "Snacks" ? "e.g. Samosa, Bara" : defaultType === "Namkeens" ? "e.g. Mixture, Bhujia" : "e.g. Malai Barfi"} />
         </Form.Item>
-        <div style={{ display: "flex", gap: "16px" }}>
-          <Form.Item name="category" label="Category" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Select placeholder="Select category">
-              {getCategoryOptions().map(cat => <Option key={cat} value={cat}>{cat}</Option>)}
-            </Select>
-          </Form.Item>
-          <Form.Item name="kitchenSection" label="Kitchen Section" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Select placeholder="Select kitchen section">
-              <Option value="Sweets">Sweets</Option>
-              <Option value="Samosa Section">Samosa Section</Option>
-              <Option value="Bara Section">Bara Section</Option>
-              <Option value="Namkeen Section">Namkeen Section</Option>
-              <Option value="Uncategorized">Uncategorized</Option>
-            </Select>
-          </Form.Item>
-        </div>
-        <Form.Item name="subCategory" label="Sub Category">
-          <Select 
-            placeholder="Select or enter sub category" 
-            allowClear
-            showSearch
-          >
-            {getSubCategoryOptions().map(sub => <Option key={sub} value={sub}>{sub}</Option>)}
+        <Form.Item name="kitchenSection" label="Kitchen Section" rules={[{ required: true, message: "Please select kitchen section" }]}>
+          <Select placeholder="Select kitchen section">
+            <Option value="Sweets">Sweets</Option>
+            <Option value="Samosa Section">Samosa Section</Option>
+            <Option value="Bara Section">Bara Section</Option>
+            <Option value="Namkeen Section">Namkeen Section</Option>
+            <Option value="Uncategorized">Uncategorized</Option>
           </Select>
         </Form.Item>
+
         <div style={{ display: "flex", gap: "16px" }}>
           <Form.Item name="quantity" label="Quantity" rules={[{ required: true }]} style={{ flex: 1 }}>
             <InputNumber min={0} style={{ width: "100%" }} />

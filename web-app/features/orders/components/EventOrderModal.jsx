@@ -113,38 +113,9 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
             </Form.Item>
           </Col>
         </Row>
-        <div>
-          <div style={{ marginBottom: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-            <Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>Quick Delivery Address:</Text>
-            <Tag
-              color="blue"
-              style={{ cursor: "pointer", padding: "4px 10px", borderRadius: 6, fontWeight: 500, userSelect: "none" }}
-              onClick={() => form.setFieldsValue({ address: "Bharati Sweets, Dala By-pass, Infront Of Vyasanagar Townhall, Jajpur Road." })}
-            >
-              🏢 Shop (Dala By-pass)
-            </Tag>
-            <Tag
-              color="purple"
-              style={{ cursor: "pointer", padding: "4px 10px", borderRadius: 6, fontWeight: 500, userSelect: "none" }}
-              onClick={() => form.setFieldsValue({ address: "Bharati Sweets Workshop, Nahaka By Pass, Infront of Panchali Hotel, Jajpur Road" })}
-            >
-              🏭 Workshop (Nahaka By Pass)
-            </Tag>
-          </div>
-          <Form.Item name="address" label="Delivery Address" rules={[{ required: true, message: "Required" }]}>
-            <AutoComplete
-              options={[
-                { value: "Bharati Sweets, Dala By-pass, Infront Of Vyasanagar Townhall, Jajpur Road." },
-                { value: "Bharati Sweets Workshop, Nahaka By Pass, Infront of Panchali Hotel, Jajpur Road" }
-              ]}
-              filterOption={(inputValue, option) =>
-                option.value.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
-              }
-            >
-              <Input.TextArea rows={2} placeholder="Delivery address (select preset above or type custom address)" />
-            </AutoComplete>
-          </Form.Item>
-        </div>
+        <Form.Item name="address" label="Delivery Address" rules={[{ required: true, message: "Required" }]}>
+          <Input.TextArea rows={2} placeholder="Delivery address" />
+        </Form.Item>
 
         <Divider><BellOutlined /> Smart CRM Reminder</Divider>
         <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, marginBottom: 24, border: "1px solid #e2e8f0" }}>

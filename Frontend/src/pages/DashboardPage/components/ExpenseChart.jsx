@@ -6,8 +6,8 @@ import useFetch from "../../../hooks/useFetch";
 
 const { Title, Text } = Typography;
 
-const ExpenseChart = () => {
-  const { data: expenseData, loading } = useFetch("/dashboard/expenses");
+const ExpenseChart = ({ queryStr = "period=30d" }) => {
+  const { data: expenseData, loading } = useFetch(`/dashboard/expenses?${queryStr}`);
 
   const rawCategories = expenseData && expenseData.length > 0 ? expenseData : [
     { category: "raw_materials", amount: 70650 },
