@@ -42,7 +42,8 @@ router.get("/test-whatsapp", async (req, res) => {
       success: result, 
       phone,
       tokenPresent: !!process.env.WHATSAPP_API_TOKEN,
-      phoneNumberIdPresent: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378",
+      phoneNumberIdPresent: true,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

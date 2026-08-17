@@ -6,10 +6,10 @@
 const sendWhatsApp = async (to, message) => {
   try {
     const token = process.env.WHATSAPP_API_TOKEN;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378";
 
-    if (!token || !phoneNumberId) {
-      console.warn("⚠️ WhatsApp API credentials missing in .env (WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID required)");
+    if (!token) {
+      console.warn("⚠️ WhatsApp API token missing in process.env (WHATSAPP_API_TOKEN required)");
       return false;
     }
 
@@ -65,10 +65,10 @@ const sendWhatsApp = async (to, message) => {
 const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
   try {
     const token = process.env.WHATSAPP_API_TOKEN;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378";
 
-    if (!token || !phoneNumberId) {
-      console.warn("⚠️ WhatsApp API credentials missing in .env");
+    if (!token) {
+      console.warn("⚠️ WhatsApp API token missing in process.env");
       return false;
     }
 
