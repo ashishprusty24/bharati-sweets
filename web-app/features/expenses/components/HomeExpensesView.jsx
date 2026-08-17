@@ -116,7 +116,11 @@ const HomeExpensesView = () => {
 
   const fetchSummary = async () => {
     try {
-      const res = await fetch("/api/expenses/summary");
+      const params = new URLSearchParams();
+      if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+      if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+
+      const res = await fetch(`/api/expenses/summary?${params.toString()}`);
       const data = await res.json();
       setSummary(data);
     } catch (err) {

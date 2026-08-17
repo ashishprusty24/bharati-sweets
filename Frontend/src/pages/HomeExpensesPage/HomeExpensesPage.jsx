@@ -114,7 +114,11 @@ const HomeExpensesPage = () => {
 
   const fetchSummary = async () => {
     try {
-      const data = await api.get("/home-expenses/summary");
+      const params = new URLSearchParams();
+      if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+      if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+
+      const data = await api.get(`/home-expenses/summary?${params.toString()}`);
       setSummary(data);
     } catch (err) {
       console.error(err);
