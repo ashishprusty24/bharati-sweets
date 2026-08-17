@@ -1,6 +1,6 @@
 /**
  * WhatsApp Business API Service
- * Sends text messages and documents via Meta Graph API
+ * Sends text messages, documents, and templates via Meta Graph API
  */
 
 const sendWhatsApp = async (to, message) => {
@@ -13,7 +13,6 @@ const sendWhatsApp = async (to, message) => {
       return false;
     }
 
-    // Format phone number: remove non-digits, add 91 country code if 10 digits
     let formattedTo = to.replace(/\D/g, "");
     if (formattedTo.length === 10) {
       formattedTo = "91" + formattedTo;
@@ -57,10 +56,6 @@ const sendWhatsApp = async (to, message) => {
 
 /**
  * Send a PDF document via WhatsApp
- * @param {string} to - Phone number
- * @param {string} documentUrl - Public URL of the PDF
- * @param {string} filename - Display filename
- * @param {string} caption - Caption text shown with the document
  */
 const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
   try {
@@ -106,7 +101,6 @@ const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
 
     if (!response.ok) {
       console.error("❌ WhatsApp document API error:", response.status, JSON.stringify(data, null, 2));
-      // If document send fails, try fallback text message with link
       console.log("🔄 Falling back to text message with link...");
       return await sendWhatsApp(to, `${caption}\n\n📄 Download: ${documentUrl}`);
     }
@@ -115,7 +109,6 @@ const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
     return true;
   } catch (err) {
     console.error("❌ WhatsApp document send failed:", err.message);
-    // Fallback to text
     try {
       return await sendWhatsApp(to, `${caption}\n\n📄 Download: ${documentUrl}`);
     } catch (fallbackErr) {
@@ -125,4 +118,62 @@ const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
   }
 };
 
-module.exports = { sendWhatsApp, sendWhatsAppDocument };
+/**
+ * Send a WhatsApp Template message with Header Document, Body parameters, and Button parameter
+ */
+const sendWhatsAppTemplate = async (to, templateName, components, languageCode = "en_US") => {
+  try {
+    const token = process.env.WHATSAPP_API_TOKEN;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "775800332280378";
+
+    if (!token) {
+      console.warn("⚠️ WhatsApp API token missing in process.env");
+      return false;
+    }
+
+    let formattedTo = to.replace(/\D/g, "");
+    if (formattedTo.length === 10) {
+      formattedTo = "91" + formattedTo;
+    }
+
+    const payload = {
+      messaging_product: "whatsapp",
+      to: formattedTo,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: languageCode },
+        components: components,
+      },
+    };
+
+    console.log("📤 Sending WhatsApp template:", templateName, "to:", formattedTo);
+
+    const response = await fetch(
+      `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ WhatsApp template API error:", response.status, JSON.stringify(data, null, 2));
+      return false;
+    }
+
+    console.log("✅ WhatsApp template sent successfully:", data.messages?.[0]?.id);
+    return true;
+  } catch (err) {
+    console.error("❌ WhatsApp template send failed:", err.message);
+    return false;
+  }
+};
+
+module.exports = { sendWhatsApp, sendWhatsAppDocument, sendWhatsAppTemplate };

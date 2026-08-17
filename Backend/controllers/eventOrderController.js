@@ -6,7 +6,7 @@ const {
   generatePartialInvoice,
 } = require("../utils/pdfService");
 const { API_BASE_URL } = require("../common/config");
-const { sendWhatsApp, sendWhatsAppDocument } = require("../utils/whatsappService");
+const { sendWhatsApp, sendWhatsAppDocument, sendWhatsAppTemplate } = require("../utils/whatsappService");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
@@ -53,22 +53,53 @@ const createEventOrder = (payload) => {
       await generateBookingReceipt(savedOrder);
       const bookingReceiptUrl = `${API_BASE_URL}/receipts/booking_${savedOrder._id}.pdf`;
 
-      // 📲 WhatsApp: Send Booking Receipt PDF to customer
+      // 📲 Send Meta Template booking_receipt
       if (savedOrder.phone) {
         try {
-          const shortId = savedOrder._id.toString().slice(-6).toUpperCase();
-          const dateStr = dayjs(savedOrder.deliveryDate).format("DD MMM YYYY");
-          const balance = savedOrder.totalAmount - savedOrder.paidAmount;
+          const components = [
+            {
+              type: "header",
+              parameters: [
+                {
+                  type: "document",
+                  document: {
+                    link: bookingReceiptUrl,
+                    filename: `booking_${savedOrder._id}.pdf`,
+                  },
+                },
+              ],
+            },
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: savedOrder.customerName },
+                { type: "text", text: `${savedOrder._id}` },
+                { type: "text", text: savedOrder.purpose || "Event" },
+                { type: "text", text: `${savedOrder.paidAmount}` },
+                { type: "text", text: `${savedOrder.totalAmount}` },
+                { type: "text", text: `₹${savedOrder.totalAmount - savedOrder.paidAmount}` },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: "0",
+              parameters: [
+                {
+                  type: "text",
+                  text: `receipts/booking_${savedOrder._id}.pdf`,
+                },
+              ],
+            },
+          ];
 
-          const caption = `🎉 *Booking Confirmed - Bharati Sweets*\n\nNamaste *${savedOrder.customerName}*!\nYour order #${shortId} for *${savedOrder.purpose || "Event"}* has been booked successfully.\n\n📅 Delivery: ${dateStr}\n💰 Total: ₹${savedOrder.totalAmount.toLocaleString("en-IN")}\n✅ Paid: ₹${savedOrder.paidAmount.toLocaleString("en-IN")}\n⏳ Balance: ₹${balance.toLocaleString("en-IN")}\n\nThank you for choosing Bharati Sweets! 🙏`;
-
-          await sendWhatsAppDocument(
-            savedOrder.phone,
-            bookingReceiptUrl,
-            `Booking_Receipt_${shortId}.pdf`,
-            caption
-          );
-          console.log(`✅ Booking receipt WhatsApp sent to ${savedOrder.phone}`);
+          const sent = await sendWhatsAppTemplate(savedOrder.phone, "booking_receipt", components);
+          if (!sent) {
+            console.log("⚠️ Template send failed, attempting direct WhatsApp Document fallback...");
+            const shortId = savedOrder._id.toString().slice(-6).toUpperCase();
+            const caption = `🎉 *Booking Confirmed - Bharati Sweets*\nNamaste *${savedOrder.customerName}*!\nYour order #${shortId} has been booked.`;
+            await sendWhatsAppDocument(savedOrder.phone, bookingReceiptUrl, `booking_${savedOrder._id}.pdf`, caption);
+          }
         } catch (waErr) {
           console.error("❌ Failed to send booking receipt WhatsApp:", waErr);
         }
@@ -99,9 +130,6 @@ const addPayment = (orderId, paymentData) => {
       const updatedOrder = await order.save();
 
       const timestamp = Date.now();
-      const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
-      const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
-      const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
         // ── FULL PAYMENT: Generate & send Final Invoice ──
@@ -110,15 +138,48 @@ const addPayment = (orderId, paymentData) => {
 
         if (updatedOrder.phone) {
           try {
-            const caption = `✅ *Full Payment Received - Bharati Sweets*\n\nNamaste *${updatedOrder.customerName}*!\nPayment of ₹${paymentData.amount.toLocaleString("en-IN")} received for Order #${shortId}.\n\n🎯 Event: ${updatedOrder.purpose || "Event"} (${dateStr})\n💰 Total Amount: ₹${updatedOrder.totalAmount.toLocaleString("en-IN")}\n✅ Fully Paid: ₹${updatedOrder.paidAmount.toLocaleString("en-IN")}\n\nPlease find your Final Invoice attached.\nThank you for choosing Bharati Sweets! 🙏`;
+            const components = [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "document",
+                    document: {
+                      link: invoiceUrl,
+                      filename: `final_${updatedOrder._id}.pdf`,
+                    },
+                  },
+                ],
+              },
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: updatedOrder.customerName },
+                  { type: "text", text: `${updatedOrder._id}` },
+                  { type: "text", text: updatedOrder.purpose || "Event" },
+                  { type: "text", text: `${updatedOrder.totalAmount}` },
+                  { type: "text", text: `${updatedOrder.paidAmount}` },
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: `receipts/final_${updatedOrder._id}.pdf`,
+                  },
+                ],
+              },
+            ];
 
-            await sendWhatsAppDocument(
-              updatedOrder.phone,
-              invoiceUrl,
-              `Final_Invoice_${shortId}.pdf`,
-              caption
-            );
-            console.log(`✅ Final invoice WhatsApp sent to ${updatedOrder.phone}`);
+            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "final_invoice", components);
+            if (!sent) {
+              const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
+              const caption = `✅ *Full Payment Received - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} is fully paid.`;
+              await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `final_${updatedOrder._id}.pdf`, caption);
+            }
           } catch (waErr) {
             console.error("❌ Failed to send final invoice WhatsApp:", waErr);
           }
@@ -127,18 +188,53 @@ const addPayment = (orderId, paymentData) => {
         // ── PARTIAL PAYMENT: Generate & send Partial Invoice ──
         await generatePartialInvoice(updatedOrder);
         const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
         if (updatedOrder.phone) {
           try {
-            const caption = `💳 *Payment Received - Bharati Sweets*\n\nNamaste *${updatedOrder.customerName}*!\nPayment of ₹${paymentData.amount.toLocaleString("en-IN")} received for Order #${shortId}.\n\n🎯 Event: ${updatedOrder.purpose || "Event"} (${dateStr})\n💰 Total: ₹${updatedOrder.totalAmount.toLocaleString("en-IN")}\n✅ Paid: ₹${updatedOrder.paidAmount.toLocaleString("en-IN")}\n⏳ Balance Due: ₹${balance.toLocaleString("en-IN")}\n\nPlease find your updated invoice attached.\nThank you! 🙏`;
+            const components = [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "document",
+                    document: {
+                      link: partialInvoiceUrl,
+                      filename: `partial_${updatedOrder._id}.pdf`,
+                    },
+                  },
+                ],
+              },
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: updatedOrder.customerName },
+                  { type: "text", text: `${updatedOrder._id}` },
+                  { type: "text", text: updatedOrder.purpose || "Event" },
+                  { type: "text", text: `${updatedOrder.totalAmount}` },
+                  { type: "text", text: `${updatedOrder.paidAmount}` },
+                  { type: "text", text: `${balance}` },
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: `receipts/partial_${updatedOrder._id}.pdf`,
+                  },
+                ],
+              },
+            ];
 
-            await sendWhatsAppDocument(
-              updatedOrder.phone,
-              partialInvoiceUrl,
-              `Partial_Invoice_${shortId}.pdf`,
-              caption
-            );
-            console.log(`✅ Partial invoice WhatsApp sent to ${updatedOrder.phone}`);
+            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "partial_payment_invoice", components);
+            if (!sent) {
+              const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
+              const caption = `💳 *Payment Received - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Payment received for #${shortId}.`;
+              await sendWhatsAppDocument(updatedOrder.phone, partialInvoiceUrl, `partial_${updatedOrder._id}.pdf`, caption);
+            }
           } catch (waErr) {
             console.error("❌ Failed to send partial invoice WhatsApp:", waErr);
           }
@@ -165,7 +261,7 @@ const updateStatus = (orderId, status) => {
       );
       if (!updatedOrder) return reject({ status: 404, message: "Order not found" });
 
-      // 📲 Send real-time status update notification to customer via WhatsApp
+      // Send real-time status update notification to customer via WhatsApp
       if (updatedOrder.phone) {
         try {
           const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
@@ -271,33 +367,66 @@ const updateEventOrder = (orderId, updateData) => {
       // Regenerate appropriate invoice/receipt after update & send via WhatsApp
       try {
         const timestamp = Date.now();
-        const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
-        const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
         let invoiceUrl = "";
+        let templateName = "";
 
         if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
           await generateFinalInvoice(updatedOrder);
           invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+          templateName = "final_invoice";
         } else {
           await generatePartialInvoice(updatedOrder);
           invoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+          templateName = "partial_payment_invoice";
         }
         await generateBookingReceipt(updatedOrder);
 
-        // 📲 WhatsApp: Send updated invoice PDF to customer
         if (updatedOrder.phone) {
           try {
-            const invoiceType = updatedOrder.paidAmount >= updatedOrder.totalAmount ? "Final" : "Updated";
-            const caption = `📝 *${invoiceType} Invoice - Bharati Sweets*\n\nNamaste *${updatedOrder.customerName}*!\nYour Event Order #${shortId} has been updated.\n\n🎯 Event: ${updatedOrder.purpose || "Event"} (${dateStr})\n💰 Total: ₹${updatedOrder.totalAmount.toLocaleString("en-IN")}\n✅ Paid: ₹${updatedOrder.paidAmount.toLocaleString("en-IN")}\n⏳ Balance: ₹${balance.toLocaleString("en-IN")}\n\nPlease find your ${invoiceType.toLowerCase()} invoice attached.\nThank you for choosing Bharati Sweets! 🙏`;
+            const components = [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "document",
+                    document: {
+                      link: invoiceUrl,
+                      filename: `${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
+                    },
+                  },
+                ],
+              },
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: updatedOrder.customerName },
+                  { type: "text", text: `${updatedOrder._id}` },
+                  { type: "text", text: updatedOrder.purpose || "Event" },
+                  { type: "text", text: `${updatedOrder.totalAmount}` },
+                  { type: "text", text: `${updatedOrder.paidAmount}` },
+                  ...(templateName === "partial_payment_invoice" ? [{ type: "text", text: `${balance}` }] : []),
+                ],
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: `receipts/${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
+                  },
+                ],
+              },
+            ];
 
-            await sendWhatsAppDocument(
-              updatedOrder.phone,
-              invoiceUrl,
-              `${invoiceType}_Invoice_${shortId}.pdf`,
-              caption
-            );
-            console.log(`✅ ${invoiceType} invoice WhatsApp sent to ${updatedOrder.phone}`);
+            const sent = await sendWhatsAppTemplate(updatedOrder.phone, templateName, components);
+            if (!sent) {
+              const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
+              const caption = `📝 *Updated Order Invoice - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} has been updated.`;
+              await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `${templateName}_${updatedOrder._id}.pdf`, caption);
+            }
           } catch (waErr) {
             console.error("❌ Failed to send updated invoice WhatsApp:", waErr);
           }
