@@ -234,10 +234,10 @@ Thank you for choosing Bharati Sweets! 🍬`;
 
       message.success(isEdit ? "Order updated successfully!" : "Order saved successfully!");
       setIsOrderModalVisible(false);
-      
+
       // Trigger WhatsApp confirmation
       sendWhatsAppConfirmation(orderData);
-      
+
       fetchData();
     } catch (error) {
       message.error("Failed to save order");
@@ -256,7 +256,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
       });
 
       if (!res.ok) throw new Error("Failed to record payment");
-      
+
       const updated = await res.json();
       message.success("Payment recorded successfully");
       setIsPaymentModalVisible(false);

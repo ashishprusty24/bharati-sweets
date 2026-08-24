@@ -1,6 +1,8 @@
 import connectDB from "../database/mongodb";
 import RegularOrder from "../models/RegularOrder";
 import EventOrder from "../models/EventOrder";
+import { sendWhatsApp } from "../utils/whatsappService";
+import dayjs from "dayjs";
 
 export class OrderRepository {
   static async findRegularOrders(query = {}) {
@@ -21,7 +23,6 @@ export class OrderRepository {
 
   static async createEventOrder(data) {
     await connectDB();
-    // Idempotency check to prevent duplicate order generation
     const fiveSecondsAgo = new Date(Date.now() - 5000);
     const existing = await EventOrder.findOne({
       customerName: data.customerName,
@@ -59,6 +60,46 @@ export class OrderRepository {
     data.advancePaid = paidAmt;
     data.paidAmount = paidAmt;
 
-    return await EventOrder.findByIdAndUpdate(id, data, { new: true });
+    const updatedOrder = await EventOrder.findByIdAndUpdate(id, data, { new: true });
+
+    // Status change notification
+    if (data.orderStatus && data.orderStatus !== existingOrder.orderStatus && updatedOrder.phone) {
+      try {
+        const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
+        const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
+        const normStatus = (data.orderStatus || "").toLowerCase();
+        let statusMsg = "";
+
+        if (normStatus === "preparing") {
+          statusMsg = `👨‍🍳 *Order Preparing - Bharati Sweets*\nHello *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is now being *PREPARED* by our chefs!\n\n📅 Delivery Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🙏`;
+        } else if (normStatus === "ready") {
+          statusMsg = `📦 *Order Ready - Bharati Sweets*\nGreat news *${updatedOrder.customerName}*! Your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is *READY FOR PICKUP / DELIVERY*!\n\n📅 Delivery Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🛵`;
+        } else if (normStatus === "delivered" || normStatus === "completed") {
+          statusMsg = `🎉 *Order Delivered - Bharati Sweets*\nDear *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* has been *DELIVERED & FULFILLED*!\n\nThank you for celebrating with Bharati Sweets! Have a wonderful event! 🙏`;
+        } else if (normStatus === "pending" || normStatus === "confirmed") {
+          statusMsg = `📋 *Order Confirmed - Bharati Sweets*\nHello *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is *CONFIRMED*.\n\n📅 Event Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🙏`;
+        }
+
+        if (statusMsg) {
+          await sendWhatsApp(updatedOrder.phone, statusMsg);
+        }
+      } catch (err) {
+        console.error("Failed to send status update WhatsApp in web-app:", err);
+      }
+    } else if (updatedOrder.phone) {
+      // General order update notification
+      try {
+        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
+        const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
+        const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
+        const updateTextMsg = `📝 *Updated Order Invoice - Bharati Sweets*\nHello *${updatedOrder.customerName}*, your Event Order #${shortId} has been updated.\n\n• Event: ${updatedOrder.purpose || "Event"} (${dateStr})\n• Total Amount: ₹${updatedOrder.totalAmount.toLocaleString("en-IN")}\n• Paid Amount: ₹${updatedOrder.paidAmount.toLocaleString("en-IN")}\n• Balance Due: ₹${balance.toLocaleString("en-IN")}\n\nThank you for choosing Bharati Sweets! 🙏`;
+
+        await sendWhatsApp(updatedOrder.phone, updateTextMsg);
+      } catch (err) {
+        console.error("Failed to send order update WhatsApp in web-app:", err);
+      }
+    }
+
+    return updatedOrder;
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Card, Input, Button, Select, DatePicker, message, Row, Col, Space , Typography, Modal } from "antd";
+import { Card, Input, Button, Select, DatePicker, message, Row, Col, Space, Typography, Modal } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -61,20 +61,20 @@ const DELIVERY_TIME_OPTIONS = ["6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:0
 const EventOrdersPage = () => {
   const { data: ordersData, loading, refetch } = useFetch("/event-orders/list");
   const { data: inventoryData } = useFetch("/inventory/list");
-  
+
   const orders = ordersData ?? [];
   const inventoryItems = inventoryData ?? [];
-  
+
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [occasionFilter, setOccasionFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
-  
+
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [isInvoiceModalVisible, setIsInvoiceModalVisible] = useState(false);
   const [isChefSlipModalVisible, setIsChefSlipModalVisible] = useState(false);
-  
+
   const [editingOrder, setEditingOrder] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
 
@@ -144,7 +144,7 @@ const EventOrdersPage = () => {
     try {
       const packets = values.packets || 1;
       const discount = values.discount || 0;
-      
+
       const items = values.items.map(item => ({
         ...item,
         name: inventoryItems.find(i => i._id === item.itemId)?.name || "Unknown",
@@ -180,22 +180,10 @@ const EventOrdersPage = () => {
 
       if (editingOrder) {
         await api.put(`/event-orders/${editingOrder._id}/update`, orderData);
-        message.success("Order updated successfully");
-        const currentPaid = orderData.paidAmount || 0;
-        const currentDue = Math.max(0, totalAmount - currentPaid);
-        Modal.confirm({
-          title: "Resend Bill?",
-          content: "Would you like to resend the updated bill to the customer via WhatsApp?",
-          okText: "Yes, Send",
-          cancelText: "No",
-          onOk: () => {
-             const text = `Namaste! Your order #${editingOrder._id.slice(-6).toUpperCase()} has been updated.\nTotal Amount: ₹${totalAmount}.\nAdvance Paid: ₹${currentPaid}\nBalance Due: ₹${currentDue}`;
-             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-          }
-        });
+        message.success("Order updated — WhatsApp invoice sent to customer automatically!");
       } else {
         await api.post("/event-orders/create", orderData);
-        message.success("Order created successfully");
+        message.success("Order created — WhatsApp booking receipt sent to customer automatically!");
       }
 
       // Handle Smart CRM Reminder
@@ -230,28 +218,9 @@ const EventOrdersPage = () => {
 
   const handlePaymentSave = async (paymentData) => {
     try {
-      const res = await api.post(`/event-orders/${currentOrder._id}/payments`, paymentData);
-      message.success("Payment recorded successfully");
+      await api.post(`/event-orders/${currentOrder._id}/payments`, paymentData);
+      message.success("Payment recorded — WhatsApp invoice sent to customer automatically!");
       setIsPaymentModalVisible(false);
-      
-      const updated = res.data || res;
-      const total = updated.totalAmount || currentOrder.totalAmount;
-      const paid = updated.paidAmount || ((currentOrder.paidAmount || 0) + Number(paymentData.amount));
-      const balance = total - paid;
-      
-      Modal.confirm({
-        title: "Send WhatsApp Payment Update?",
-        content: `Payment of ₹${paymentData.amount} recorded.\nTotal Paid: ₹${paid}\nBalance Due: ₹${balance > 0 ? balance : 0}`,
-        okText: "Open WhatsApp",
-        cancelText: "Close",
-        onOk: () => {
-          const text = `Namaste ${currentOrder.customerName}! Payment of ₹${paymentData.amount} received for order #${currentOrder._id.slice(-6).toUpperCase()}.\nTotal Paid So Far: ₹${paid}\nRemaining Balance: ₹${balance > 0 ? balance : 0}\nThank you! - Bharati Sweets`;
-          const formattedPhone = formatWhatsAppPhone(currentOrder.phone);
-          const url = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
-          window.open(url, "_blank");
-        }
-      });
-      
       refetch();
     } catch (error) {
       console.error(error);
@@ -279,10 +248,10 @@ const EventOrdersPage = () => {
           </Col>
           <Col xs={24} lg={12} className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <PreparationReportModal />
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               size="large"
-              icon={<PlusOutlined />} 
+              icon={<PlusOutlined />}
               onClick={() => handleAddEdit()}
               className="new-booking-btn"
               style={{ borderRadius: 10, height: 45, padding: "0 24px", flex: "0 0 auto" }}
@@ -305,9 +274,9 @@ const EventOrdersPage = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={5}>
-            <Select 
-              value={statusFilter} 
-              onChange={setStatusFilter} 
+            <Select
+              value={statusFilter}
+              onChange={setStatusFilter}
               style={{ width: "100%", height: 45 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
@@ -316,9 +285,9 @@ const EventOrdersPage = () => {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={5}>
-            <Select 
-              value={occasionFilter} 
-              onChange={setOccasionFilter} 
+            <Select
+              value={occasionFilter}
+              onChange={setOccasionFilter}
               style={{ width: "100%", height: 45 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
@@ -327,9 +296,9 @@ const EventOrdersPage = () => {
             </Select>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <RangePicker 
-              onChange={setDateRange} 
-              style={{ width: "100%", height: 45, borderRadius: 12 }} 
+            <RangePicker
+              onChange={setDateRange}
+              style={{ width: "100%", height: 45, borderRadius: 12 }}
             />
           </Col>
         </Row>

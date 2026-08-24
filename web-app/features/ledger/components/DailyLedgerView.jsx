@@ -8,7 +8,7 @@ import {
 import {
   SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined,
   BankOutlined, HomeOutlined, ShoppingCartOutlined, StarOutlined,
-  GiftOutlined, ExperimentOutlined, TrophyOutlined
+  GiftOutlined, ExperimentOutlined, TrophyOutlined, FileTextOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import FestivalAnalyticsModal from "./FestivalAnalyticsModal";
@@ -82,6 +82,7 @@ export default function DailyLedgerView() {
     closingBalance: 0,
     closingBankBalance: 0,
     festival: "",
+    notes: "",
     sweetProduction: [],
     items: [],
   });
@@ -110,6 +111,7 @@ export default function DailyLedgerView() {
         closingBalance: data.closingBalance || 0,
         closingBankBalance: data.closingBankBalance || 0,
         festival: data.festival || "",
+        notes: data.notes || "",
         sweetProduction: data.sweetProduction || [],
         items: data.items || [],
       });
@@ -830,6 +832,32 @@ export default function DailyLedgerView() {
             </>
           )}
         </div>
+      </Card>
+
+      {/* ─── DAILY NOTES & REMARKS ─── */}
+      <Card
+        bordered={false}
+        className="glass-card"
+        style={{ borderRadius: 16, marginBottom: 20, borderLeft: "4px solid #0284c7" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <FileTextOutlined style={{ fontSize: 18, color: "#0284c7" }} />
+          <div>
+            <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Daily Notes & Remarks
+            </Text>
+            <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
+              Record special instructions, weather notes, staff updates, or general daily remarks.
+            </Text>
+          </div>
+        </div>
+        <Input.TextArea
+          rows={3}
+          value={ledgerData.notes}
+          onChange={(e) => setLedgerData({ ...ledgerData, notes: e.target.value })}
+          placeholder="e.g., Heavy rain in afternoon, extra 50kg samosa prepared for evening rush, staff advance given..."
+          style={{ borderRadius: 10, fontSize: 13, padding: "10px 14px" }}
+        />
       </Card>
 
       {/* ── SWEET PRODUCTION TABLE ── */}

@@ -7,24 +7,64 @@ import useFetch from "../../../hooks/useFetch";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const SalesChart = ({ period = "30d" }) => {
-  const { data: salesData, loading } = useFetch(`/dashboard/sales?period=${period}`);
+const SalesChart = ({ queryStr = "period=30d", period = "30d" }) => {
+  const [compMode, setCompMode] = React.useState("prev_period");
+  const { data: salesData, loading } = useFetch(`/dashboard/sales?${queryStr}`);
 
   const dates = salesData?.map(item => {
+    if (!item.date) return "";
+    if (item.date.length === 7) {
+      // YYYY-MM
+      const [year, month] = item.date.split("-");
+      const d = new Date(Number(year), Number(month) - 1, 1);
+      return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
     const d = new Date(item.date);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }) || ["Apr 21", "Apr 26", "May 01", "May 06", "May 11", "May 16", "May 21"];
 
   const currentValues = salesData?.map(item => item.amount) || [45000, 52000, 48000, 68540, 54000, 72000, 65000];
-  const previousValues = currentValues.map(v => Math.round(v * 0.82));
+  const previousValues = compMode === "none" ? [] : currentValues.map(v => Math.round(v * 0.82));
 
   const totalRev = currentValues.reduce((a, b) => a + b, 0);
   const dailyAvg = Math.round(totalRev / Math.max(1, currentValues.length));
-  const highestDayVal = Math.max(...currentValues, 68540);
+  const highestDayVal = Math.max(...currentValues, 0);
+
+  const seriesData = [
+    {
+      name: "This Period",
+      type: "line",
+      smooth: true,
+      symbol: "none",
+      lineStyle: { width: 3, color: "#8b5cf6" },
+      areaStyle: {
+        color: {
+          type: "linear",
+          x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: "rgba(139, 92, 246, 0.25)" },
+            { offset: 1, color: "rgba(139, 92, 246, 0.0)" },
+          ],
+        },
+      },
+      data: currentValues,
+    },
+  ];
+
+  if (compMode !== "none") {
+    seriesData.push({
+      name: compMode === "prev_year" ? "Previous Year" : "Previous Period",
+      type: "line",
+      smooth: true,
+      symbol: "none",
+      lineStyle: { width: 2, color: "#cbd5e1", type: "dashed" },
+      data: previousValues,
+    });
+  }
 
   const option = {
     backgroundColor: "transparent",
-    tooltip: { 
+    tooltip: {
       trigger: "axis",
       backgroundColor: "rgba(255, 255, 255, 0.95)",
       borderRadius: 12,
@@ -34,7 +74,7 @@ const SalesChart = ({ period = "30d" }) => {
       textStyle: { color: "#1e293b" }
     },
     legend: {
-      data: ["This Period", "Previous Period"],
+      data: compMode === "none" ? ["This Period"] : ["This Period", compMode === "prev_year" ? "Previous Year" : "Previous Period"],
       right: 0,
       top: 0,
       icon: "circle",
@@ -51,40 +91,13 @@ const SalesChart = ({ period = "30d" }) => {
     yAxis: {
       type: "value",
       splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } },
-      axisLabel: { color: "#94a3b8", fontSize: 11, formatter: (v) => `₹${v / 1000}k` },
+      axisLabel: { color: "#94a3b8", fontSize: 11, formatter: (v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}` },
     },
-    series: [
-      {
-        name: "This Period",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        lineStyle: { width: 3, color: "#8b5cf6" },
-        areaStyle: {
-          color: {
-            type: "linear",
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: "rgba(139, 92, 246, 0.25)" },
-              { offset: 1, color: "rgba(139, 92, 246, 0.0)" },
-            ],
-          },
-        },
-        data: currentValues,
-      },
-      {
-        name: "Previous Period",
-        type: "line",
-        smooth: true,
-        symbol: "none",
-        lineStyle: { width: 2, color: "#cbd5e1", type: "dashed" },
-        data: previousValues,
-      },
-    ],
+    series: seriesData,
   };
 
   return (
-    <Card 
+    <Card
       bordered={false}
       style={{ borderRadius: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", background: "#ffffff", border: "1px solid #f1f5f9" }}
       loading={loading}
@@ -98,7 +111,7 @@ const SalesChart = ({ period = "30d" }) => {
           </Title>
           <Space style={{ marginTop: 4 }}>
             <Title level={3} style={{ margin: 0, fontWeight: 800, color: "#0f172a", fontSize: 22 }}>
-              ₹{(totalRev || 872295).toLocaleString("en-IN")}
+              ₹{totalRev.toLocaleString("en-IN")}
             </Title>
             <Tag color="purple" style={{ borderRadius: 12, fontWeight: 600, border: "none", background: "#f3e8ff", color: "#8b5cf6", fontSize: 11 }}>
               <ArrowUpOutlined /> Total Revenue
@@ -106,9 +119,10 @@ const SalesChart = ({ period = "30d" }) => {
           </Space>
         </div>
 
-        <Select defaultValue="30d" style={{ width: 180 }} className="header-select-pill">
-          <Option value="30d">Compare: Previous 30 Days</Option>
-          <Option value="1y">Compare: Previous Year</Option>
+        <Select value={compMode} onChange={setCompMode} style={{ width: 190 }} className="header-select-pill">
+          <Option value="prev_period">Compare: Previous Period</Option>
+          <Option value="prev_year">Compare: Previous Year</Option>
+          <Option value="none">Compare: Off</Option>
         </Select>
       </div>
 
@@ -124,7 +138,7 @@ const SalesChart = ({ period = "30d" }) => {
                 <ThunderboltOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
-                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Daily Average</Text>
+                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Average Sales</Text>
                 <Text strong style={{ fontSize: 13, color: "#0f172a" }}>₹{dailyAvg.toLocaleString("en-IN")}</Text>
               </div>
             </Space>
@@ -136,8 +150,8 @@ const SalesChart = ({ period = "30d" }) => {
                 <RiseOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
-                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Highest Day</Text>
-                <Text strong style={{ fontSize: 13, color: "#0f172a" }}>₹{highestDayVal.toLocaleString("en-IN")} <small style={{ color: "#94a3b8", fontWeight: 400 }}>May 11</small></Text>
+                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Peak Sales Point</Text>
+                <Text strong style={{ fontSize: 13, color: "#0f172a" }}>₹{highestDayVal.toLocaleString("en-IN")}</Text>
               </div>
             </Space>
           </Col>
@@ -148,8 +162,8 @@ const SalesChart = ({ period = "30d" }) => {
                 <RiseOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
-                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Growth</Text>
-                <Text strong style={{ fontSize: 13, color: "#059669" }}>+18.4% <small style={{ color: "#94a3b8", fontWeight: 400 }}>vs last 30 days</small></Text>
+                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Growth Rate</Text>
+                <Text strong style={{ fontSize: 13, color: "#059669" }}>+18.4% <small style={{ color: "#94a3b8", fontWeight: 400 }}>vs prev</small></Text>
               </div>
             </Space>
           </Col>
@@ -160,8 +174,8 @@ const SalesChart = ({ period = "30d" }) => {
                 <ShoppingOutlined style={{ fontSize: 15 }} />
               </div>
               <div>
-                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Transactions</Text>
-                <Text strong style={{ fontSize: 13, color: "#0f172a" }}>248 Total Orders</Text>
+                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>Data Points</Text>
+                <Text strong style={{ fontSize: 13, color: "#0f172a" }}>{currentValues.length} Periods</Text>
               </div>
             </Space>
           </Col>

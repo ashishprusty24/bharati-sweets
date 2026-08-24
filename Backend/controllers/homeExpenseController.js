@@ -16,8 +16,8 @@ const getHomeExpenses = (query = {}) => {
 
       if (query.startDate || query.endDate) {
         filter.date = {};
-        if (query.startDate) filter.date.$gte = new Date(query.startDate);
-        if (query.endDate) filter.date.$lte = new Date(query.endDate);
+        if (query.startDate) filter.date.$gte = dayjs(query.startDate).startOf("day").toDate();
+        if (query.endDate) filter.date.$lte = dayjs(query.endDate).endOf("day").toDate();
       }
 
       if (query.category) {
@@ -257,10 +257,10 @@ const getHomeExpenseSummary = (query = {}) => {
   return new Promise(async (resolve, reject) => {
     try {
       const startDate = query.startDate
-        ? new Date(query.startDate)
+        ? dayjs(query.startDate).startOf("day").toDate()
         : dayjs().startOf("month").toDate();
       const endDate = query.endDate
-        ? new Date(query.endDate)
+        ? dayjs(query.endDate).endOf("day").toDate()
         : dayjs().endOf("month").toDate();
 
       // Exclude auto-synced daily ledger shop expenses — same logic as getHomeExpenses

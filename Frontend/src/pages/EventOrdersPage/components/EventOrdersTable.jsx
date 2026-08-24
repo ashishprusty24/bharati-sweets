@@ -13,9 +13,9 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
   const getStatusTag = (status, options) => {
     const statusInfo = options.find((opt) => opt.value === status);
     return (
-      <Tag 
-        style={{ 
-          color: statusInfo?.color || "#64748b", 
+      <Tag
+        style={{
+          color: statusInfo?.color || "#64748b",
           background: statusInfo?.color ? `${statusInfo.color}1a` : "#f1f5f9",
           border: statusInfo?.color ? `1px solid ${statusInfo.color}33` : "1px solid #e2e8f0",
           borderRadius: 6,
@@ -87,7 +87,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                     <Text strong style={{ fontSize: 15, color: "#1e293b" }}>{record.customerName}</Text>
                     <Text className="order-amount-highlight">₹{record.totalAmount?.toLocaleString()}</Text>
                   </div>
-                  
+
                   <div className="order-info-row">
                     <div className="order-info-item">
                       <PhoneOutlined style={{ color: "#94a3b8", fontSize: 12 }} />
@@ -106,7 +106,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   {/* Payment progress bar */}
                   <div className="payment-progress-container">
                     <div className="payment-progress-bar">
-                      <div 
+                      <div
                         className="payment-progress-fill"
                         style={{ width: `${Math.min(100, ((record.paidAmount || 0) / record.totalAmount) * 100)}%` }}
                       />
@@ -132,8 +132,8 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   <button className="order-action-btn order-action-kot" onClick={() => onGenerateChefSlip(record)}>
                     <PrinterOutlined /> KOT
                   </button>
-                  <button 
-                    className="order-action-btn order-action-delete" 
+                  <button
+                    className="order-action-btn order-action-delete"
                     onClick={() => {
                       Modal.confirm({
                         title: "Delete this order?",
@@ -284,7 +284,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
               style={{ background: "#eff6ff", borderRadius: 8 }}
             />
           </Tooltip>
-          
+
           <Dropdown
             menu={{
               items: [

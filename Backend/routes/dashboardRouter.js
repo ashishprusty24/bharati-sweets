@@ -4,8 +4,8 @@ const dashboardController = require("../controllers/dashboard-controller");
 
 router.get("/summary", async (req, res) => {
   try {
-    const { period } = req.query;
-    const data = await dashboardController.getSummaryData(period);
+    const { period, startDate, endDate } = req.query;
+    const data = await dashboardController.getSummaryData(period, startDate, endDate);
     res.json(data);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
@@ -14,8 +14,8 @@ router.get("/summary", async (req, res) => {
 
 router.get("/sales", async (req, res) => {
   try {
-    const { period } = req.query;
-    const data = await dashboardController.getSalesData(period);
+    const { period, startDate, endDate } = req.query;
+    const data = await dashboardController.getSalesData(period, startDate, endDate);
     res.json(data);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
@@ -25,7 +25,8 @@ router.get("/sales", async (req, res) => {
 
 router.get("/expenses", async (req, res) => {
   try {
-    const data = await dashboardController.getExpensesData();
+    const { period, startDate, endDate } = req.query;
+    const data = await dashboardController.getExpensesData(period, startDate, endDate);
     res.json(data);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });

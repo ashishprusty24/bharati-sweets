@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSummary from "./components/DashboardSummary";
 import SalesChart from "./components/SalesChart";
@@ -12,22 +12,32 @@ import "./DashboardPage.css";
 
 const DashboardPage = () => {
   const [period, setPeriod] = useState("30d");
+  const [customRange, setCustomRange] = useState(null);
+
+  const queryStr = useMemo(() => {
+    if (period === "custom" && customRange?.startDate) {
+      const startParam = encodeURIComponent(customRange.startDate);
+      const endParam = customRange.endDate ? `&endDate=${encodeURIComponent(customRange.endDate)}` : "";
+      return `period=custom&startDate=${startParam}${endParam}`;
+    }
+    return `period=${period}`;
+  }, [period, customRange]);
 
   return (
     <div className="dashboard-container" style={{ background: "#f8fafc", minHeight: "100vh", padding: "16px 24px 40px" }}>
       {/* Top Header */}
-      <DashboardHeader period={period} setPeriod={setPeriod} />
+      <DashboardHeader period={period} setPeriod={setPeriod} setCustomRange={setCustomRange} />
 
       {/* Row 1: 6 Executive KPI Cards */}
-      <DashboardSummary period={period} />
+      <DashboardSummary queryStr={queryStr} />
 
       {/* Row 2: Revenue Performance & Expense Mix */}
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} xl={15}>
-          <SalesChart period={period} />
+          <SalesChart queryStr={queryStr} period={period} />
         </Col>
         <Col xs={24} xl={9}>
-          <ExpenseChart />
+          <ExpenseChart queryStr={queryStr} />
         </Col>
       </Row>
 
