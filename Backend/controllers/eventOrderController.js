@@ -133,8 +133,12 @@ const addPayment = (orderId, paymentData) => {
 
       if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
         // ── FULL PAYMENT: Generate & send Final Invoice ──
-        await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+        let invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+        try {
+          await generateFinalInvoice(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Final invoice PDF generation failed (WhatsApp will still be attempted):", pdfErr.message);
+        }
 
         if (updatedOrder.phone) {
           try {
@@ -186,8 +190,12 @@ const addPayment = (orderId, paymentData) => {
         }
       } else {
         // ── PARTIAL PAYMENT: Generate & send Partial Invoice ──
-        await generatePartialInvoice(updatedOrder);
-        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+        let partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+        try {
+          await generatePartialInvoice(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Partial invoice PDF generation failed (WhatsApp will still be attempted):", pdfErr.message);
+        }
         const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
 
         if (updatedOrder.phone) {
@@ -216,17 +224,6 @@ const addPayment = (orderId, paymentData) => {
                   { type: "text", text: `${balance}` },
                 ],
               },
-              {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-                parameters: [
-                  {
-                    type: "text",
-                    text: `receipts/partial_${updatedOrder._id}.pdf`,
-                  },
-                ],
-              },
             ];
 
             const sent = await sendWhatsAppTemplate(updatedOrder.phone, "partial_payment_invoice", components);
@@ -242,7 +239,11 @@ const addPayment = (orderId, paymentData) => {
       }
 
       // Also regenerate the booking receipt to reflect current balance
-      await generateBookingReceipt(updatedOrder);
+      try {
+        await generateBookingReceipt(updatedOrder);
+      } catch (pdfErr) {
+        console.error("⚠️ Booking receipt regeneration failed:", pdfErr.message);
+      }
       resolve(updatedOrder);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -372,15 +373,27 @@ const updateEventOrder = (orderId, updateData) => {
         let templateName = "";
 
         if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-          await generateFinalInvoice(updatedOrder);
           invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
           templateName = "final_invoice";
+          try {
+            await generateFinalInvoice(updatedOrder);
+          } catch (pdfErr) {
+            console.error("⚠️ Final invoice PDF generation failed on update:", pdfErr.message);
+          }
         } else {
-          await generatePartialInvoice(updatedOrder);
           invoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
           templateName = "partial_payment_invoice";
+          try {
+            await generatePartialInvoice(updatedOrder);
+          } catch (pdfErr) {
+            console.error("⚠️ Partial invoice PDF generation failed on update:", pdfErr.message);
+          }
         }
-        await generateBookingReceipt(updatedOrder);
+        try {
+          await generateBookingReceipt(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Booking receipt regeneration failed on update:", pdfErr.message);
+        }
 
         if (updatedOrder.phone) {
           try {
@@ -408,7 +421,8 @@ const updateEventOrder = (orderId, updateData) => {
                   ...(templateName === "partial_payment_invoice" ? [{ type: "text", text: `${balance}` }] : []),
                 ],
               },
-              {
+              // Only include button for templates that have a URL button (final_invoice has one, partial_payment_invoice does not)
+              ...(templateName !== "partial_payment_invoice" ? [{
                 type: "button",
                 sub_type: "url",
                 index: "0",
@@ -418,7 +432,7 @@ const updateEventOrder = (orderId, updateData) => {
                     text: `receipts/${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
                   },
                 ],
-              },
+              }] : []),
             ];
 
             const sent = await sendWhatsAppTemplate(updatedOrder.phone, templateName, components);
@@ -431,8 +445,8 @@ const updateEventOrder = (orderId, updateData) => {
             console.error("❌ Failed to send updated invoice WhatsApp:", waErr);
           }
         }
-      } catch (pdfErr) {
-        console.error("PDF generation warning on order update:", pdfErr);
+      } catch (err) {
+        console.error("❌ Error in order update invoice/WhatsApp flow:", err);
       }
 
       resolve(updatedOrder);

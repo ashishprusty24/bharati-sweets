@@ -148,6 +148,7 @@ const sendWhatsAppTemplate = async (to, templateName, components, languageCode =
     };
 
     console.log("📤 Sending WhatsApp template:", templateName, "to:", formattedTo);
+    console.log("📋 Template payload:", JSON.stringify(payload, null, 2));
 
     const response = await fetch(
       `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
@@ -164,14 +165,15 @@ const sendWhatsAppTemplate = async (to, templateName, components, languageCode =
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("❌ WhatsApp template API error:", response.status, JSON.stringify(data, null, 2));
+      console.error(`❌ WhatsApp template "${templateName}" API error:`, response.status, JSON.stringify(data, null, 2));
+      console.error(`💡 If error is "template not found", create template "${templateName}" in Meta Business Suite → WhatsApp Manager → Message Templates`);
       return false;
     }
 
-    console.log("✅ WhatsApp template sent successfully:", data.messages?.[0]?.id);
+    console.log(`✅ WhatsApp template "${templateName}" sent successfully:`, data.messages?.[0]?.id);
     return true;
   } catch (err) {
-    console.error("❌ WhatsApp template send failed:", err.message);
+    console.error(`❌ WhatsApp template "${templateName}" send failed:`, err.message);
     return false;
   }
 };
