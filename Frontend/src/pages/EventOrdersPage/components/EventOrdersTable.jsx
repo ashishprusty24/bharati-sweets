@@ -1,12 +1,12 @@
 import React, { memo, useState } from "react";
-import { Table, Button, Tag, Typography, Space, Tooltip, Dropdown, Modal, Grid, Card } from "antd";
-import { EditOutlined, DeleteOutlined, DollarOutlined, FileTextOutlined, PrinterOutlined, MoreOutlined, CalendarOutlined, PhoneOutlined } from "@ant-design/icons";
+import { Table, Button, Tag, Typography, Space, Tooltip, Dropdown, Modal, Grid, Card, Popconfirm } from "antd";
+import { EditOutlined, DeleteOutlined, DollarOutlined, FileTextOutlined, PrinterOutlined, MoreOutlined, CalendarOutlined, PhoneOutlined, DownOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatusOptions, onEdit, onDelete, onPay, onGenerateInvoice, onGenerateChefSlip, expandedRowRender }) => {
+const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatusOptions, onEdit, onDelete, onPay, onStatusChange, onGenerateInvoice, onGenerateChefSlip, expandedRowRender }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -30,10 +30,65 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
     );
   };
 
-  const getPaymentStatus = (paidAmount, totalAmount) => {
-    if (paidAmount >= totalAmount) return "paid";
-    if (paidAmount > 0) return "partial";
+  const getPaymentStatus = (paidAmount, totalAmount, adminWaiver = 0) => {
+    const totalSettled = (paidAmount || 0) + (adminWaiver || 0);
+    if (totalSettled >= totalAmount) return "paid";
+    if (totalSettled > 0) return "partial";
     return "pending";
+  };
+
+  const renderStatusSelector = (record) => {
+    const currentOpt = orderStatusOptions.find((opt) => opt.value === record.orderStatus) || {
+      value: record.orderStatus || "pending",
+      label: record.orderStatus || "Pending",
+      color: "#f59e0b",
+    };
+
+    const statusMenuItems = orderStatusOptions.map((opt) => ({
+      key: opt.value,
+      label: (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 4px" }}>
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              backgroundColor: opt.color,
+              display: "inline-block",
+            }}
+          />
+          <span style={{ fontWeight: 600, color: opt.color, fontSize: 12 }}>
+            {opt.label}
+          </span>
+        </div>
+      ),
+      onClick: () => onStatusChange && onStatusChange(record._id, opt.value),
+    }));
+
+    return (
+      <Dropdown menu={{ items: statusMenuItems }} trigger={["click"]} placement="bottomLeft">
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            cursor: "pointer",
+            color: currentOpt.color,
+            background: `${currentOpt.color}15`,
+            border: `1px solid ${currentOpt.color}33`,
+            borderRadius: 6,
+            padding: "3px 8px",
+            fontSize: 11,
+            fontWeight: 600,
+            userSelect: "none",
+            transition: "all 0.2s ease",
+          }}
+        >
+          <span>{currentOpt.label}</span>
+          <DownOutlined style={{ fontSize: 9, color: currentOpt.color, opacity: 0.8 }} />
+        </div>
+      </Dropdown>
+    );
   };
 
   // ─── MOBILE CARD LAYOUT ───────────────────────────────────────────
@@ -68,15 +123,15 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
             </div>
           )}
           {!loading && mobileData.map((record) => {
-            const payStatus = getPaymentStatus(record.paidAmount, record.totalAmount);
-            const balanceDue = record.totalAmount - (record.paidAmount || 0);
+            const payStatus = getPaymentStatus(record.paidAmount, record.totalAmount, record.adminWaiver);
+            const balanceDue = Math.max(0, record.totalAmount - (record.paidAmount || 0) - (record.adminWaiver || 0));
             return (
               <div key={record._id} className="event-order-card">
                 {/* Card Header */}
                 <div className="event-order-card-header">
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span className="order-id-badge">#{record._id?.substring(record._id.length - 5).toUpperCase()}</span>
-                    {getStatusTag(record.orderStatus, orderStatusOptions)}
+                    {renderStatusSelector(record)}
                   </div>
                   {getStatusTag(payStatus, paymentStatusOptions)}
                 </div>
@@ -132,21 +187,18 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   <button className="order-action-btn order-action-kot" onClick={() => onGenerateChefSlip(record)}>
                     <PrinterOutlined /> KOT
                   </button>
-                  <button
-                    className="order-action-btn order-action-delete"
-                    onClick={() => {
-                      Modal.confirm({
-                        title: "Delete this order?",
-                        content: "This action cannot be undone.",
-                        okText: "Delete",
-                        okType: "danger",
-                        cancelText: "Cancel",
-                        onOk: () => onDelete(record._id),
-                      });
-                    }}
+                  <Popconfirm
+                    title="Delete this order?"
+                    description="This action cannot be undone."
+                    onConfirm={() => onDelete(record._id)}
+                    okText="Delete"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
                   >
-                    <DeleteOutlined />
-                  </button>
+                    <button className="order-action-btn order-action-delete">
+                      <DeleteOutlined />
+                    </button>
+                  </Popconfirm>
                 </div>
               </div>
             );
@@ -248,11 +300,13 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       key: "amount",
       width: 140,
       render: (_, record) => {
-        const balance = record.totalAmount - (record.paidAmount || 0);
+        const adminWaiver = record.adminWaiver || 0;
+        const totalSettled = (record.paidAmount || 0) + adminWaiver;
+        const balance = Math.max(0, record.totalAmount - totalSettled);
         return (
           <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: 14 }}>₹{record.totalAmount?.toLocaleString()}</Text>
-            <Text style={{ fontSize: 11, color: "#10b981" }}>Paid: ₹{(record.paidAmount || 0).toLocaleString()}</Text>
+            <Text style={{ fontSize: 11, color: "#10b981" }}>Paid: ₹{totalSettled.toLocaleString()}</Text>
             {balance > 0 && <Text style={{ fontSize: 11, color: "#ef4444" }}>Due: ₹{balance.toLocaleString()}</Text>}
           </Space>
         );
@@ -261,11 +315,11 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
     {
       title: "Status",
       key: "status",
-      width: 120,
+      width: 140,
       render: (_, record) => (
         <Space direction="vertical" size={4}>
-          {getStatusTag(record.orderStatus, orderStatusOptions)}
-          {getStatusTag(getPaymentStatus(record.paidAmount, record.totalAmount), paymentStatusOptions)}
+          {renderStatusSelector(record)}
+          {getStatusTag(getPaymentStatus(record.paidAmount, record.totalAmount, record.adminWaiver), paymentStatusOptions)}
         </Space>
       ),
     },
@@ -284,6 +338,24 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
               style={{ background: "#eff6ff", borderRadius: 8 }}
             />
           </Tooltip>
+
+          <Popconfirm
+            title="Delete this order?"
+            description="This action cannot be undone."
+            onConfirm={() => onDelete(record._id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete Order">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                style={{ background: "#fef2f2", borderRadius: 8 }}
+              />
+            </Tooltip>
+          </Popconfirm>
 
           <Dropdown
             menu={{
@@ -310,20 +382,18 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   type: "divider",
                 },
                 {
-                  key: "delete",
-                  label: "Delete Order",
-                  danger: true,
-                  icon: <DeleteOutlined />,
-                  onClick: () => {
-                    Modal.confirm({
-                      title: "Delete this order?",
-                      content: "This action cannot be undone.",
-                      okText: "Delete",
-                      okType: "danger",
-                      cancelText: "Cancel",
-                      onOk: () => onDelete(record._id),
-                    });
-                  },
+                  key: "status_submenu",
+                  label: "Change Status",
+                  icon: <CalendarOutlined style={{ color: "#6366f1" }} />,
+                  children: orderStatusOptions.map((opt) => ({
+                    key: `status_${opt.value}`,
+                    label: (
+                      <Tag style={{ color: opt.color, background: `${opt.color}1a`, border: `1px solid ${opt.color}33`, borderRadius: 4, margin: 0, fontWeight: 600 }}>
+                        {opt.label}
+                      </Tag>
+                    ),
+                    onClick: () => onStatusChange && onStatusChange(record._id, opt.value),
+                  })),
                 },
               ],
             }}

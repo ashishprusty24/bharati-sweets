@@ -55,6 +55,17 @@ const EventOrderDetails = ({ record }) => {
       {renderOrderItems(record.items)}
       
       {record.payments?.length > 0 && renderPayments(record.payments)}
+
+      {record.adminWaiver > 0 && (
+        <Card size="small" style={{ marginBottom: 16, background: "#fffbeb", borderColor: "#fde68a" }}>
+          <Text strong style={{ color: "#b45309" }}>🛡️ Owner Shortage / Admin Waiver Audit Record:</Text>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <Tag color="green" style={{ borderRadius: 6, fontWeight: 600 }}>💵 Customer Paid: ₹{(record.paidAmount || 0).toLocaleString()}</Tag>
+            <Tag color="orange" style={{ borderRadius: 6, fontWeight: 600 }}>🛡️ Admin Waived: ₹{record.adminWaiver.toLocaleString()}</Tag>
+            <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600 }}>📊 Total Settled: ₹{((record.paidAmount || 0) + record.adminWaiver).toLocaleString()}</Tag>
+          </div>
+        </Card>
+      )}
       
       {record.notes && (
         <div style={{ marginTop: 16 }}>

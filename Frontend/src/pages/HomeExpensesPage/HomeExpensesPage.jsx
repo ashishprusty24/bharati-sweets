@@ -432,19 +432,19 @@ const HomeExpensesPage = () => {
               <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>HOME INTAKE BALANCE</Text>
               <div style={{ marginTop: 2 }}>
                 <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
-                  ₹{(summary?.homeIntakeSummary?.remaining?.total || 1000).toLocaleString("en-IN")}
+                  ₹{(summary?.homeIntakeSummary?.remaining?.total || 0).toLocaleString("en-IN")}
                 </Title>
                 <Text style={{ color: "#94a3b8", fontSize: 10, display: "block" }}>Remaining Balance</Text>
               </div>
             </div>
             <div style={{ borderTop: "1px dashed #f1f5f9", marginTop: 8, paddingTop: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginBottom: 2 }}>
-                <span style={{ color: "#10b981", fontWeight: 700 }}>📥 Received: ₹{(summary?.homeIntakeSummary?.totalReceived || 164000).toLocaleString("en-IN")}</span>
-                <span style={{ color: "#ef4444", fontWeight: 700 }}>📤 Spent: ₹{(summary?.homeIntakeSummary?.totalSpent || 163000).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#10b981", fontWeight: 700 }}>📥 Received: ₹{(summary?.homeIntakeSummary?.totalReceived || 0).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#ef4444", fontWeight: 700 }}>📤 Spent: ₹{(summary?.homeIntakeSummary?.totalSpent || 0).toLocaleString("en-IN")}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
-                <span style={{ color: "#10b981", fontWeight: 600 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.remaining?.cash || 500).toLocaleString("en-IN")}</span>
-                <span style={{ color: "#3b82f6", fontWeight: 600 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.remaining?.bank || 500).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#10b981", fontWeight: 600 }}>💵 Cash: ₹{(summary?.homeIntakeSummary?.remaining?.cash || 0).toLocaleString("en-IN")}</span>
+                <span style={{ color: "#3b82f6", fontWeight: 600 }}>🏦 Bank: ₹{(summary?.homeIntakeSummary?.remaining?.bank || 0).toLocaleString("en-IN")}</span>
               </div>
             </div>
           </Card>
@@ -509,14 +509,14 @@ const HomeExpensesPage = () => {
               <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>SUPPLIER PAYMENT</Text>
               <div style={{ marginTop: 2 }}>
                 <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
-                  ₹{(supplierPaySum || 7000).toLocaleString("en-IN")}
+                  ₹{(supplierPaySum || 0).toLocaleString("en-IN")}
                 </Title>
               </div>
             </div>
             <div style={{ marginTop: 14 }}>
               <Progress percent={supplierPct || 4} strokeColor="#f97316" size="small" showInfo={false} />
               <Text style={{ color: "#94a3b8", fontSize: 10, marginTop: 4, display: "block" }}>
-                {supplierPct || 4}% of total expenses
+                {supplierPct || 0}% of total expenses
               </Text>
             </div>
           </Card>

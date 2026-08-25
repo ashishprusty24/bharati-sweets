@@ -39,6 +39,7 @@ const eventOrderSchema = new mongoose.Schema(
     packets: { type: Number, default: 1 },
     totalAmount: { type: Number, required: true },
     paidAmount: { type: Number, default: 0 },
+    adminWaiver: { type: Number, default: 0 },
     paymentStatus: {
       type: String,
       enum: ["pending", "partial", "paid"],
@@ -64,13 +65,15 @@ const eventOrderSchema = new mongoose.Schema(
 // Pre-save hook to calculate paid amount
 eventOrderSchema.pre("save", function (next) {
   this.paidAmount = (this.payments || []).reduce(
-    (sum, payment) => sum + payment.amount,
+    (sum, payment) => sum + (payment.amount || 0),
     0
   );
 
-  if (this.paidAmount >= this.totalAmount) {
+  const totalSettled = this.paidAmount + (this.adminWaiver || 0);
+
+  if (totalSettled >= this.totalAmount) {
     this.paymentStatus = "paid";
-  } else if (this.paidAmount > 0) {
+  } else if (totalSettled > 0) {
     this.paymentStatus = "partial";
   } else {
     this.paymentStatus = "pending";

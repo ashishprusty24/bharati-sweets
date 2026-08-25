@@ -56,8 +56,12 @@ const invoiceTemplate = (order, title, status) => {
     ? order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
     : Number(order.paidAmount || order.advancePaid || order.advancePayment || 0);
 
-  const totalPaid = totalPaidNumber.toFixed(2);
-  const balance = Math.max(0, calculatedTotalNum - totalPaidNumber).toFixed(2);
+  const adminWaiverNumber = Number(order.adminWaiver || 0);
+  const totalSettledNumber = totalPaidNumber + adminWaiverNumber;
+
+  const totalPaidDisplay = (totalSettledNumber >= calculatedTotalNum) ? calculatedTotalNum : totalSettledNumber;
+  const totalPaid = totalPaidDisplay.toFixed(2);
+  const balance = Math.max(0, calculatedTotalNum - totalSettledNumber).toFixed(2);
 
   const dayjs = require("dayjs");
   const utcPlugin = require("dayjs/plugin/utc");
@@ -383,6 +387,7 @@ const invoiceTemplate = (order, title, status) => {
           <div style="display: table-cell; vertical-align: middle;">
             <h1 class="brand-title">Bharati Sweets</h1>
             <div class="brand-tagline">— Taste of Tradition, Made with Love —</div>
+            <div style="font-size: 9px; font-weight: 700; color: #78350f; margin-top: 2px; letter-spacing: 0.3px;">FSSAI Lic. No. 22022013000110</div>
           </div>
         </div>
       </td>

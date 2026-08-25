@@ -105,6 +105,9 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
               <div style={{ fontSize: 11, color: "#b45309", fontStyle: "italic", marginTop: 2 }}>
                 — Taste of Tradition, Made with Love —
               </div>
+              <div style={{ fontSize: 10, color: "#78350f", fontWeight: 700, marginTop: 2 }}>
+                FSSAI Lic. No. 22022013000110
+              </div>
             </div>
           </div>
 

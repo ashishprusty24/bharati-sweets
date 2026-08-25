@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Card, Input, Button, Select, DatePicker, message, Row, Col, Space, Typography, Modal } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -228,15 +228,27 @@ const EventOrdersPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleStatusChange = useCallback(async (id, newStatus) => {
+    try {
+      await api.put(`/event-orders/${id}/status`, { status: newStatus });
+      message.success(`Order status updated to "${newStatus.toUpperCase()}" — WhatsApp notification sent!`);
+      refetch();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to update order status");
+    }
+  }, [refetch]);
+
+  const handleDelete = useCallback(async (id) => {
     try {
       await api.delete(`/event-orders/${id}/delete`);
       message.success("Order deleted successfully");
       refetch();
     } catch (error) {
-      console.error(error);
+      console.error("Delete order error:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to delete order");
     }
-  };
+  }, [refetch]);
 
   return (
     <div style={{ padding: "0 8px" }}>
@@ -312,6 +324,7 @@ const EventOrdersPage = () => {
             onEdit={handleAddEdit}
             onDelete={handleDelete}
             onPay={handlePay}
+            onStatusChange={handleStatusChange}
             onGenerateInvoice={handleInvoice}
             onGenerateChefSlip={handleChefSlip}
             expandedRowRender={(record) => <EventOrderDetails record={record} />}

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const EventOrder = require("../models/EventOrder");
 const inventoryController = require("./inventoryController");
 const {
@@ -122,19 +123,30 @@ const addPayment = (orderId, paymentData) => {
       const order = await EventOrder.findById(orderId);
       if (!order) return reject({ status: 404, message: "Order not found" });
 
+      if (paymentData.adminWaiver !== undefined && paymentData.adminWaiver !== null) {
+        order.adminWaiver = (order.adminWaiver || 0) + Number(paymentData.adminWaiver || 0);
+      }
+
       order.payments.push({
-        ...paymentData,
-        date: paymentData.date || new Date(),
+        amount: Number(paymentData.amount || 0),
+        method: paymentData.method || "cash",
+        cardId: paymentData.cardId,
+        timestamp: paymentData.date || new Date(),
       });
       order.paidAmount = order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
       const updatedOrder = await order.save();
 
       const timestamp = Date.now();
+      const totalSettled = updatedOrder.paidAmount + (updatedOrder.adminWaiver || 0);
 
-      if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
+      if (totalSettled >= updatedOrder.totalAmount) {
         // ── FULL PAYMENT: Generate & send Final Invoice ──
-        await generateFinalInvoice(updatedOrder);
-        const invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+        let invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
+        try {
+          await generateFinalInvoice(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Final invoice PDF generation failed (WhatsApp will still be attempted):", pdfErr.message);
+        }
 
         if (updatedOrder.phone) {
           try {
@@ -158,7 +170,7 @@ const addPayment = (orderId, paymentData) => {
                   { type: "text", text: `${updatedOrder._id}` },
                   { type: "text", text: updatedOrder.purpose || "Event" },
                   { type: "text", text: `${updatedOrder.totalAmount}` },
-                  { type: "text", text: `${updatedOrder.paidAmount}` },
+                  { type: "text", text: `${updatedOrder.totalAmount}` },
                 ],
               },
               {
@@ -186,9 +198,13 @@ const addPayment = (orderId, paymentData) => {
         }
       } else {
         // ── PARTIAL PAYMENT: Generate & send Partial Invoice ──
-        await generatePartialInvoice(updatedOrder);
-        const partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
-        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
+        let partialInvoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
+        try {
+          await generatePartialInvoice(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Partial invoice PDF generation failed (WhatsApp will still be attempted):", pdfErr.message);
+        }
+        const balance = Math.max(0, updatedOrder.totalAmount - totalSettled);
 
         if (updatedOrder.phone) {
           try {
@@ -216,17 +232,6 @@ const addPayment = (orderId, paymentData) => {
                   { type: "text", text: `${balance}` },
                 ],
               },
-              {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-                parameters: [
-                  {
-                    type: "text",
-                    text: `receipts/partial_${updatedOrder._id}.pdf`,
-                  },
-                ],
-              },
             ];
 
             const sent = await sendWhatsAppTemplate(updatedOrder.phone, "partial_payment_invoice", components);
@@ -242,7 +247,11 @@ const addPayment = (orderId, paymentData) => {
       }
 
       // Also regenerate the booking receipt to reflect current balance
-      await generateBookingReceipt(updatedOrder);
+      try {
+        await generateBookingReceipt(updatedOrder);
+      } catch (pdfErr) {
+        console.error("⚠️ Booking receipt regeneration failed:", pdfErr.message);
+      }
       resolve(updatedOrder);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -261,27 +270,33 @@ const updateStatus = (orderId, status) => {
       );
       if (!updatedOrder) return reject({ status: 404, message: "Order not found" });
 
-      // Send real-time status update notification to customer via WhatsApp
+      // Send real-time status update notification to customer via WhatsApp Template
       if (updatedOrder.phone) {
         try {
           const dateStr = dayjs(updatedOrder.deliveryDate).format("DD MMM YYYY");
           const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
-          const normalizedStatus = (status || "").toLowerCase();
-          let statusMsg = "";
+          const displayStatus = (status || "").toUpperCase();
 
-          if (normalizedStatus === "preparing") {
-            statusMsg = `👨‍🍳 *Order Preparing - Bharati Sweets*\nHello *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is now being *PREPARED* by our chefs!\n\n📅 Delivery Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🙏`;
-          } else if (normalizedStatus === "ready") {
-            statusMsg = `📦 *Order Ready - Bharati Sweets*\nGreat news *${updatedOrder.customerName}*! Your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is *READY FOR PICKUP / DELIVERY*!\n\n📅 Delivery Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🛵`;
-          } else if (normalizedStatus === "delivered" || normalizedStatus === "completed") {
-            statusMsg = `🎉 *Order Delivered - Bharati Sweets*\nDear *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* has been *DELIVERED & FULFILLED*!\n\nThank you for celebrating with Bharati Sweets! Have a wonderful event! 🙏`;
-          } else if (normalizedStatus === "pending" || normalizedStatus === "confirmed") {
-            statusMsg = `📋 *Order Confirmed - Bharati Sweets*\nHello *${updatedOrder.customerName}*, your Order #${shortId} for *${updatedOrder.purpose || "Event"}* is *CONFIRMED*.\n\n📅 Event Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🙏`;
-          }
+          const components = [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: updatedOrder.customerName },
+                { type: "text", text: shortId },
+                { type: "text", text: updatedOrder.purpose || "Event" },
+                { type: "text", text: displayStatus },
+                { type: "text", text: dateStr },
+              ],
+            },
+          ];
 
-          if (statusMsg) {
+          const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_status_update", components);
+          if (!sent) {
+            console.log("⚠️ order_status_update template send failed, attempting direct text message fallback...");
+            const statusMsg = `📋 *Order Status Update - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*!\nYour Order #${shortId} for *${updatedOrder.purpose || "Event"}* status has been updated to: *${displayStatus}*\n\n📅 Delivery Date: ${dateStr}\nThank you for choosing Bharati Sweets! 🙏`;
             await sendWhatsApp(updatedOrder.phone, statusMsg);
-            console.log(`✅ WhatsApp status notification (${status}) sent to ${updatedOrder.phone}`);
+          } else {
+            console.log(`✅ WhatsApp status template (${displayStatus}) sent to ${updatedOrder.phone}`);
           }
         } catch (waErr) {
           console.error("❌ Failed to send status update WhatsApp message:", waErr);
@@ -345,17 +360,24 @@ const updateEventOrder = (orderId, updateData) => {
         }
       }
 
-      // Calculate paidAmount accurately
+      // Calculate paidAmount and adminWaiver accurately
       const paidAmount = (updateData.payments || []).reduce(
         (sum, p) => sum + Number(p.amount || 0),
         0
       ) || Number(updateData.paidAmount || updateData.advancePaid || existingOrder.paidAmount || 0);
 
+      const adminWaiver = updateData.adminWaiver !== undefined
+        ? Number(updateData.adminWaiver || 0)
+        : Number(existingOrder.adminWaiver || 0);
+
       updateData.paidAmount = paidAmount;
+      updateData.adminWaiver = adminWaiver;
+
       const targetTotal = updateData.totalAmount !== undefined ? updateData.totalAmount : existingOrder.totalAmount;
-      updateData.paymentStatus = (paidAmount >= targetTotal
+      const totalSettled = paidAmount + adminWaiver;
+      updateData.paymentStatus = (totalSettled >= targetTotal
         ? "paid"
-        : paidAmount > 0
+        : totalSettled > 0
           ? "partial"
           : "pending");
 
@@ -367,36 +389,33 @@ const updateEventOrder = (orderId, updateData) => {
       // Regenerate appropriate invoice/receipt after update & send via WhatsApp
       try {
         const timestamp = Date.now();
-        const balance = updatedOrder.totalAmount - updatedOrder.paidAmount;
-        let invoiceUrl = "";
-        let templateName = "";
+        const settledAmount = updatedOrder.paidAmount + (updatedOrder.adminWaiver || 0);
+        const balance = Math.max(0, updatedOrder.totalAmount - settledAmount);
+        let invoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
 
-        if (updatedOrder.paidAmount >= updatedOrder.totalAmount) {
-          await generateFinalInvoice(updatedOrder);
+        if (settledAmount >= updatedOrder.totalAmount) {
           invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
-          templateName = "final_invoice";
+          try {
+            await generateFinalInvoice(updatedOrder);
+          } catch (pdfErr) {
+            console.error("⚠️ Final invoice PDF generation failed on update:", pdfErr.message);
+          }
         } else {
-          await generatePartialInvoice(updatedOrder);
-          invoiceUrl = `${API_BASE_URL}/receipts/partial_${updatedOrder._id}.pdf?t=${timestamp}`;
-          templateName = "partial_payment_invoice";
+          try {
+            await generatePartialInvoice(updatedOrder);
+          } catch (pdfErr) {
+            console.error("⚠️ Partial invoice PDF generation failed on update:", pdfErr.message);
+          }
         }
-        await generateBookingReceipt(updatedOrder);
+        try {
+          await generateBookingReceipt(updatedOrder);
+        } catch (pdfErr) {
+          console.error("⚠️ Booking receipt regeneration failed on update:", pdfErr.message);
+        }
 
         if (updatedOrder.phone) {
           try {
             const components = [
-              {
-                type: "header",
-                parameters: [
-                  {
-                    type: "document",
-                    document: {
-                      link: invoiceUrl,
-                      filename: `${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
-                    },
-                  },
-                ],
-              },
               {
                 type: "body",
                 parameters: [
@@ -404,35 +423,24 @@ const updateEventOrder = (orderId, updateData) => {
                   { type: "text", text: `${updatedOrder._id}` },
                   { type: "text", text: updatedOrder.purpose || "Event" },
                   { type: "text", text: `${updatedOrder.totalAmount}` },
-                  { type: "text", text: `${updatedOrder.paidAmount}` },
-                  ...(templateName === "partial_payment_invoice" ? [{ type: "text", text: `${balance}` }] : []),
-                ],
-              },
-              {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-                parameters: [
-                  {
-                    type: "text",
-                    text: `receipts/${templateName === "final_invoice" ? "final" : "partial"}_${updatedOrder._id}.pdf`,
-                  },
+                  { type: "text", text: `${settledAmount}` },
+                  { type: "text", text: `${balance}` },
                 ],
               },
             ];
 
-            const sent = await sendWhatsAppTemplate(updatedOrder.phone, templateName, components);
+            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en");
             if (!sent) {
               const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
-              const caption = `📝 *Updated Order Invoice - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} has been updated.`;
-              await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `${templateName}_${updatedOrder._id}.pdf`, caption);
+              const caption = `📝 *Updated Order - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} has been updated.`;
+              await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `updated_invoice_${updatedOrder._id}.pdf`, caption);
             }
           } catch (waErr) {
             console.error("❌ Failed to send updated invoice WhatsApp:", waErr);
           }
         }
-      } catch (pdfErr) {
-        console.error("PDF generation warning on order update:", pdfErr);
+      } catch (err) {
+        console.error("❌ Error in order update invoice/WhatsApp flow:", err);
       }
 
       resolve(updatedOrder);
@@ -446,13 +454,25 @@ const updateEventOrder = (orderId, updateData) => {
 const deleteEventOrder = (orderId) => {
   return new Promise(async (resolve, reject) => {
     try {
+      if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+        return reject({ status: 400, message: "Invalid Order ID" });
+      }
+
       const order = await EventOrder.findById(orderId);
       if (!order) return reject({ status: 404, message: "Order not found" });
 
-      await inventoryController.revertInventory(order.items);
+      try {
+        if (order.items && order.items.length > 0) {
+          await inventoryController.revertInventory(order.items);
+        }
+      } catch (invErr) {
+        console.warn("⚠️ Warning: Revert inventory failed during order deletion:", invErr.message);
+      }
+
       await EventOrder.findByIdAndDelete(orderId);
       resolve({ message: "Event order deleted successfully" });
     } catch (err) {
+      console.error("❌ Delete order error:", err);
       reject({ status: 500, message: err.message });
     }
   });
