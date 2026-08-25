@@ -109,13 +109,16 @@ router.put("/:id/update", async (req, res) => {
   }
 });
 
-router.delete("/:id/delete", async (req, res) => {
+const deleteHandler = async (req, res) => {
   try {
     const result = await eventOrderController.deleteEventOrder(req.params.id);
     res.json(result);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
   }
-});
+};
+
+router.delete("/:id/delete", deleteHandler);
+router.delete("/:id", deleteHandler);
 
 module.exports = router;

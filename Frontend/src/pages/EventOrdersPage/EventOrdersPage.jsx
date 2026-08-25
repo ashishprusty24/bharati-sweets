@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Card, Input, Button, Select, DatePicker, message, Row, Col, Space, Typography, Modal } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -228,15 +228,16 @@ const EventOrdersPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
       await api.delete(`/event-orders/${id}/delete`);
       message.success("Order deleted successfully");
       refetch();
     } catch (error) {
-      console.error(error);
+      console.error("Delete order error:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to delete order");
     }
-  };
+  }, [refetch]);
 
   return (
     <div style={{ padding: "0 8px" }}>

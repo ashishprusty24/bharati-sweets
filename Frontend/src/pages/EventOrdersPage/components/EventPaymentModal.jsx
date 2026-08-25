@@ -13,9 +13,11 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
 
   useEffect(() => {
     if (visible && order) {
+      const remainingDue = Math.max(0, order.totalAmount - (order.paidAmount || 0) - (order.adminWaiver || 0));
       form.resetFields();
       form.setFieldsValue({
-        amount: order.totalAmount - (order.paidAmount || 0),
+        amount: remainingDue,
+        adminWaiver: 0,
         method: "cash",
       });
     }
@@ -33,15 +35,15 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
       onOk={handleSubmit}
       onCancel={onCancel}
       confirmLoading={loading}
-      width={isMobile ? "95vw" : 520}
+      width={isMobile ? "95vw" : 540}
       centered
       className="responsive-modal"
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="amount" label="Payment Amount (₹)" rules={[{ required: true }]}>
-              <InputNumber min={0.01} style={{ width: "100%" }} />
+            <Form.Item name="amount" label="Customer Payment (₹)" rules={[{ required: true, message: "Enter payment amount" }]}>
+              <InputNumber min={0} style={{ width: "100%" }} placeholder="0.00" />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12}>
@@ -49,6 +51,17 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
               <Select placeholder="Select method">
                 {paymentMethods.map(m => <Option key={m.value} value={m.value}>{m.label}</Option>)}
               </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
+              name="adminWaiver"
+              label="Admin Waiver / Owner Shortage (₹)"
+              extra="Amount absorbed from your own pocket (e.g. ₹50 waived for customer). This marks order as Paid in Full while keeping audit records."
+            >
+              <InputNumber min={0} style={{ width: "100%" }} placeholder="0.00" />
             </Form.Item>
           </Col>
         </Row>

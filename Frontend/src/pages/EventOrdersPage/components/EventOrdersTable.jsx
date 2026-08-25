@@ -1,5 +1,5 @@
 import React, { memo, useState } from "react";
-import { Table, Button, Tag, Typography, Space, Tooltip, Dropdown, Modal, Grid, Card } from "antd";
+import { Table, Button, Tag, Typography, Space, Tooltip, Dropdown, Modal, Grid, Card, Popconfirm } from "antd";
 import { EditOutlined, DeleteOutlined, DollarOutlined, FileTextOutlined, PrinterOutlined, MoreOutlined, CalendarOutlined, PhoneOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -30,9 +30,10 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
     );
   };
 
-  const getPaymentStatus = (paidAmount, totalAmount) => {
-    if (paidAmount >= totalAmount) return "paid";
-    if (paidAmount > 0) return "partial";
+  const getPaymentStatus = (paidAmount, totalAmount, adminWaiver = 0) => {
+    const totalSettled = (paidAmount || 0) + (adminWaiver || 0);
+    if (totalSettled >= totalAmount) return "paid";
+    if (totalSettled > 0) return "partial";
     return "pending";
   };
 
@@ -68,8 +69,8 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
             </div>
           )}
           {!loading && mobileData.map((record) => {
-            const payStatus = getPaymentStatus(record.paidAmount, record.totalAmount);
-            const balanceDue = record.totalAmount - (record.paidAmount || 0);
+            const payStatus = getPaymentStatus(record.paidAmount, record.totalAmount, record.adminWaiver);
+            const balanceDue = Math.max(0, record.totalAmount - (record.paidAmount || 0) - (record.adminWaiver || 0));
             return (
               <div key={record._id} className="event-order-card">
                 {/* Card Header */}
@@ -132,21 +133,18 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   <button className="order-action-btn order-action-kot" onClick={() => onGenerateChefSlip(record)}>
                     <PrinterOutlined /> KOT
                   </button>
-                  <button
-                    className="order-action-btn order-action-delete"
-                    onClick={() => {
-                      Modal.confirm({
-                        title: "Delete this order?",
-                        content: "This action cannot be undone.",
-                        okText: "Delete",
-                        okType: "danger",
-                        cancelText: "Cancel",
-                        onOk: () => onDelete(record._id),
-                      });
-                    }}
+                  <Popconfirm
+                    title="Delete this order?"
+                    description="This action cannot be undone."
+                    onConfirm={() => onDelete(record._id)}
+                    okText="Delete"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
                   >
-                    <DeleteOutlined />
-                  </button>
+                    <button className="order-action-btn order-action-delete">
+                      <DeleteOutlined />
+                    </button>
+                  </Popconfirm>
                 </div>
               </div>
             );
@@ -248,11 +246,14 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       key: "amount",
       width: 140,
       render: (_, record) => {
-        const balance = record.totalAmount - (record.paidAmount || 0);
+        const adminWaiver = record.adminWaiver || 0;
+        const totalSettled = (record.paidAmount || 0) + adminWaiver;
+        const balance = Math.max(0, record.totalAmount - totalSettled);
         return (
           <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: 14 }}>₹{record.totalAmount?.toLocaleString()}</Text>
             <Text style={{ fontSize: 11, color: "#10b981" }}>Paid: ₹{(record.paidAmount || 0).toLocaleString()}</Text>
+            {adminWaiver > 0 && <Text style={{ fontSize: 11, color: "#f59e0b" }}>Waived: ₹{adminWaiver.toLocaleString()}</Text>}
             {balance > 0 && <Text style={{ fontSize: 11, color: "#ef4444" }}>Due: ₹{balance.toLocaleString()}</Text>}
           </Space>
         );
@@ -265,7 +266,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       render: (_, record) => (
         <Space direction="vertical" size={4}>
           {getStatusTag(record.orderStatus, orderStatusOptions)}
-          {getStatusTag(getPaymentStatus(record.paidAmount, record.totalAmount), paymentStatusOptions)}
+          {getStatusTag(getPaymentStatus(record.paidAmount, record.totalAmount, record.adminWaiver), paymentStatusOptions)}
         </Space>
       ),
     },
@@ -284,6 +285,24 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
               style={{ background: "#eff6ff", borderRadius: 8 }}
             />
           </Tooltip>
+
+          <Popconfirm
+            title="Delete this order?"
+            description="This action cannot be undone."
+            onConfirm={() => onDelete(record._id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete Order">
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                style={{ background: "#fef2f2", borderRadius: 8 }}
+              />
+            </Tooltip>
+          </Popconfirm>
 
           <Dropdown
             menu={{
@@ -305,25 +324,6 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   label: "Print KOT",
                   icon: <PrinterOutlined style={{ color: "#f97316" }} />,
                   onClick: () => onGenerateChefSlip(record),
-                },
-                {
-                  type: "divider",
-                },
-                {
-                  key: "delete",
-                  label: "Delete Order",
-                  danger: true,
-                  icon: <DeleteOutlined />,
-                  onClick: () => {
-                    Modal.confirm({
-                      title: "Delete this order?",
-                      content: "This action cannot be undone.",
-                      okText: "Delete",
-                      okType: "danger",
-                      cancelText: "Cancel",
-                      onOk: () => onDelete(record._id),
-                    });
-                  },
                 },
               ],
             }}

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Inventory = require("../models/Inventory");
 
 const getAllInventory = () => {
@@ -102,10 +103,37 @@ const updateInventoryFromOrder = async (orderItems) => {
 };
 
 const revertInventory = async (orderItems) => {
+  if (!Array.isArray(orderItems)) return;
   for (const item of orderItems) {
-    await Inventory.findByIdAndUpdate(item.itemId, {
-      $inc: { quantity: item.quantity },
-    });
+    try {
+      if (!item || !item.itemId) continue;
+      const qty = Number(item.finalQuantity || item.quantity || 0);
+      if (qty > 0 && mongoose.Types.ObjectId.isValid(item.itemId)) {
+        const updatedItem = await Inventory.findByIdAndUpdate(
+          item.itemId,
+          { $inc: { quantity: qty } },
+          { new: true }
+        );
+
+        if (updatedItem) {
+          let newStatus = "in-stock";
+          if (updatedItem.quantity <= 0) {
+            newStatus = "out-of-stock";
+          } else if (updatedItem.quantity <= updatedItem.minStock) {
+            newStatus = "low-stock";
+          }
+
+          if (updatedItem.status !== newStatus) {
+            await Inventory.findByIdAndUpdate(updatedItem._id, {
+              status: newStatus,
+              lastUpdated: new Date(),
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("⚠️ Warning: Could not revert inventory for item:", item, e.message);
+    }
   }
 };
 
