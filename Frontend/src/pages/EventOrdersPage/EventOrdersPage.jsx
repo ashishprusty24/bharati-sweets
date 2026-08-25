@@ -228,6 +228,17 @@ const EventOrdersPage = () => {
     }
   };
 
+  const handleStatusChange = useCallback(async (id, newStatus) => {
+    try {
+      await api.put(`/event-orders/${id}/status`, { status: newStatus });
+      message.success(`Order status updated to "${newStatus.toUpperCase()}" — WhatsApp notification sent!`);
+      refetch();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      message.error(error.response?.data?.message || error.message || "Failed to update order status");
+    }
+  }, [refetch]);
+
   const handleDelete = useCallback(async (id) => {
     try {
       await api.delete(`/event-orders/${id}/delete`);
@@ -313,6 +324,7 @@ const EventOrdersPage = () => {
             onEdit={handleAddEdit}
             onDelete={handleDelete}
             onPay={handlePay}
+            onStatusChange={handleStatusChange}
             onGenerateInvoice={handleInvoice}
             onGenerateChefSlip={handleChefSlip}
             expandedRowRender={(record) => <EventOrderDetails record={record} />}
