@@ -38,6 +38,11 @@ const Sidebar = ({
       icon: <CalendarOutlined />,
       name: "Event Orders",
     },
+    {
+      key: "/customer-credit",
+      icon: <UserOutlined />,
+      name: "Customer Bakki",
+    },
     { key: "/inventory", icon: <InboxOutlined />, name: "Inventory" },
     { key: "/expenses", icon: <ShopOutlined />, name: "Expenses" },
     { key: "/accounting", icon: <DollarOutlined />, name: "Accounting" },

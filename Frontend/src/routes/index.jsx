@@ -16,6 +16,7 @@ import DashboardPage from "../pages/DashboardPage/DashboardPage";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
 import AuthPage from "../pages/LoginPage/LoginPage";
 import WorkingOnItPage from "../pages/WorkingOnItPage/WorkingOnItPage";
+import CustomerCreditPage from "../pages/CustomerCreditPage/CustomerCreditPage";
 import { ConfigProvider } from "antd";
 import { themeConfig } from "../theme";
 
@@ -29,6 +30,7 @@ const AppRouter = () => (
       <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
         <Route path="event-orders" element={<EventOrdersPage />} />
+        <Route path="customer-credit" element={<CustomerCreditPage />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="accounting" element={<AccountingPage />} />
         <Route path="ledger" element={<DailyLedgerPage />} />

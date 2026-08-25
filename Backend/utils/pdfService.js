@@ -387,6 +387,7 @@ const invoiceTemplate = (order, title, status) => {
           <div style="display: table-cell; vertical-align: middle;">
             <h1 class="brand-title">Bharati Sweets</h1>
             <div class="brand-tagline">— Taste of Tradition, Made with Love —</div>
+            <div style="font-size: 9px; font-weight: 700; color: #78350f; margin-top: 2px; letter-spacing: 0.3px;">FSSAI Lic. No. 22022013000110</div>
           </div>
         </div>
       </td>

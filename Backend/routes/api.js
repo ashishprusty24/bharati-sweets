@@ -17,6 +17,7 @@ const reminderRoutes = require("./reminderRouter");
 const homeExpenseRoutes = require("./homeExpenseRoutes");
 const festivalRoutes = require("./festivalRoutes");
 const ccLoanRoutes = require("./ccLoanRoutes");
+const customerCreditRoutes = require("./customerCreditRoutes");
 
 
 router.use("/inventory", inventoryRoutes);
@@ -35,6 +36,7 @@ router.use("/reminders", reminderRoutes);
 router.use("/home-expenses", homeExpenseRoutes);
 router.use("/festivals", festivalRoutes);
 router.use("/cc-loans", ccLoanRoutes);
+router.use("/customer-credit", customerCreditRoutes);
 
 
 // Status check for /api/status
