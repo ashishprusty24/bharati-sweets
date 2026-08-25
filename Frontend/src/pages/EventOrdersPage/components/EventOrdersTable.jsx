@@ -252,8 +252,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
         return (
           <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: 14 }}>₹{record.totalAmount?.toLocaleString()}</Text>
-            <Text style={{ fontSize: 11, color: "#10b981" }}>Paid: ₹{(record.paidAmount || 0).toLocaleString()}</Text>
-            {adminWaiver > 0 && <Text style={{ fontSize: 11, color: "#f59e0b" }}>Waived: ₹{adminWaiver.toLocaleString()}</Text>}
+            <Text style={{ fontSize: 11, color: "#10b981" }}>Paid: ₹{totalSettled.toLocaleString()}</Text>
             {balance > 0 && <Text style={{ fontSize: 11, color: "#ef4444" }}>Due: ₹{balance.toLocaleString()}</Text>}
           </Space>
         );

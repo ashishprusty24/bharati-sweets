@@ -417,31 +417,19 @@ const updateEventOrder = (orderId, updateData) => {
           try {
             const components = [
               {
-                type: "header",
-                parameters: [
-                  {
-                    type: "document",
-                    document: {
-                      link: invoiceUrl,
-                      filename: `updated_invoice_${updatedOrder._id}.pdf`,
-                    },
-                  },
-                ],
-              },
-              {
                 type: "body",
                 parameters: [
                   { type: "text", text: updatedOrder.customerName },
                   { type: "text", text: `${updatedOrder._id}` },
                   { type: "text", text: updatedOrder.purpose || "Event" },
                   { type: "text", text: `${updatedOrder.totalAmount}` },
-                  { type: "text", text: `${updatedOrder.paidAmount}` },
+                  { type: "text", text: `${settledAmount}` },
                   { type: "text", text: `${balance}` },
                 ],
               },
             ];
 
-            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components);
+            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en");
             if (!sent) {
               const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
               const caption = `📝 *Updated Order - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} has been updated.`;
