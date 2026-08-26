@@ -247,7 +247,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
                     <span style={{ display: "inline-block", background: "#00BAF2", color: "#fff", fontWeight: 800, fontSize: 12, padding: "3px 10px", borderRadius: 4, letterSpacing: 0.5 }}>
                       pay<span style={{ fontWeight: 400 }}>tm</span>
                     </span>
-                    <div style={{ fontSize: 9, color: "#44403c", fontWeight: 600, marginTop: 2 }}>BHARATI SWEETS<br />+91 70089 14416</div>
+                    <div style={{ fontSize: 9, color: "#44403c", fontWeight: 600, marginTop: 2 }}>BHARATI SWEETS<br />+91 70080 84419</div>
                   </div>
                 </div>
                 <img
@@ -263,10 +263,10 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
           <div style={{ fontFamily: "Georgia, serif", fontSize: 14, color: "#4a151b", fontStyle: "italic", margin: "8px 0 6px 0" }}>
             Thank you for your business! ♡
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 9, color: "#78350f", padding: "0 4px" }}>
-            <span style={{ textAlign: "left" }}>📍 Bharati Sweets, By Pass, Dala,<br />&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</span>
-            <span style={{ textAlign: "center" }}>📞 +91 70089 14416 / +91 70080 84419</span>
-            <span style={{ textAlign: "right" }}>✉️ bharatisweets@gmail.com</span>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", fontSize: 9, color: "#78350f", padding: "0 4px", gap: 8 }}>
+            <span style={{ textAlign: "left", flex: "1 1 30%", minWidth: "130px" }}>📍 Bharati Sweets, By Pass, Dala,<br />&nbsp;&nbsp;&nbsp;&nbsp;Bysannagar, Odisha 755019</span>
+            <span style={{ textAlign: "center", flex: "1 1 30%", minWidth: "130px" }}>📞 +91 70080 84419 / +91 70084 49590</span>
+            <span style={{ textAlign: "right", flex: "1 1 30%", minWidth: "130px" }}>✉️ bharatisweets@gmail.com</span>
           </div>
           <div style={{ height: 6, background: "repeating-linear-gradient(45deg, #4a151b, #4a151b 8px, #d97706 8px, #d97706 16px)", borderRadius: "0 0 10px 10px", marginTop: 10 }}></div>
         </div>

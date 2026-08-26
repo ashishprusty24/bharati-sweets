@@ -41,7 +41,7 @@ const Sidebar = ({
     {
       key: "/customer-credit",
       icon: <UserOutlined />,
-      name: "Customer Bakki",
+      name: "Customer Credit",
     },
     { key: "/inventory", icon: <InboxOutlined />, name: "Inventory" },
     { key: "/expenses", icon: <ShopOutlined />, name: "Expenses" },
