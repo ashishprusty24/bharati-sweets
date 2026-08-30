@@ -38,7 +38,7 @@ try {
 // Fallback Logo SVG Crest
 const crestLogoSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="%234a151b" stroke="%23d97706" stroke-width="2"/><circle cx="30" cy="30" r="24" fill="none" stroke="%23fef3c7" stroke-width="1" stroke-dasharray="2 2"/><text x="30" y="38" font-family="Georgia, serif" font-size="26" font-weight="bold" fill="%23fef3c7" text-anchor="middle" font-style="italic">B</text></svg>`;
 
-const invoiceTemplate = (order, title, status) => {
+const invoiceTemplate = (order, title, status, isUpdate = false) => {
   const packets = order.packets || 1;
   const items = order.items || [];
   const discountPerPacket = Number(order.discount || 0);
@@ -392,7 +392,8 @@ const invoiceTemplate = (order, title, status) => {
         </div>
       </td>
       <td style="text-align: right;">
-        <div class="doc-badge">${title}</div>
+        <div class="doc-badge" style="${isUpdate ? 'background: #2563eb;' : ''}">${isUpdate && !title.includes('REVISED') ? 'REVISED ' + title : title}</div>
+        ${isUpdate ? '<div class="meta-text" style="color: #2563eb; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">⚡ REVISED COPY</div>' : ''}
         <div class="meta-text">Invoice No: <strong>${order._id ? order._id.toString().substring(order._id.toString().length - 8) : "N/A"}</strong></div>
         <div class="meta-text">Date: <strong>${formatDate(order.invoiceDate || new Date())}</strong></div>
       </td>
@@ -571,7 +572,7 @@ function createPdfFromHtml(htmlContent, filePath) {
   });
 }
 
-function generateBookingReceipt(order) {
+function generateBookingReceipt(order, isUpdate = false) {
   return new Promise((resolve, reject) => {
     try {
       const dir = path.join(process.cwd(), "receipts");
@@ -581,8 +582,9 @@ function generateBookingReceipt(order) {
       const filePath = path.join(dir, fileName);
       const htmlContent = invoiceTemplate(
         order,
-        "INVOICE",
-        "BOOKING RECEIPT"
+        isUpdate ? "REVISED BOOKING RECEIPT" : "INVOICE",
+        "BOOKING RECEIPT",
+        isUpdate
       );
 
       createPdfFromHtml(htmlContent, filePath).then(resolve).catch(reject);
@@ -592,7 +594,7 @@ function generateBookingReceipt(order) {
   });
 }
 
-function generateFinalInvoice(order) {
+function generateFinalInvoice(order, isUpdate = false) {
   return new Promise((resolve, reject) => {
     try {
       const dir = path.join(process.cwd(), "receipts");
@@ -602,8 +604,9 @@ function generateFinalInvoice(order) {
       const filePath = path.join(dir, fileName);
       const htmlContent = invoiceTemplate(
         order,
-        "FINAL INVOICE",
-        "PAID IN FULL"
+        isUpdate ? "REVISED FINAL INVOICE" : "FINAL INVOICE",
+        "PAID IN FULL",
+        isUpdate
       );
 
       createPdfFromHtml(htmlContent, filePath).then(resolve).catch(reject);
@@ -613,7 +616,7 @@ function generateFinalInvoice(order) {
   });
 }
 
-function generatePartialInvoice(order) {
+function generatePartialInvoice(order, isUpdate = false) {
   return new Promise((resolve, reject) => {
     try {
       const dir = path.join(process.cwd(), "receipts");
@@ -623,8 +626,9 @@ function generatePartialInvoice(order) {
       const filePath = path.join(dir, fileName);
       const htmlContent = invoiceTemplate(
         order,
-        "PARTIAL INVOICE",
-        "PARTIALLY PAID"
+        isUpdate ? "REVISED PARTIAL INVOICE" : "PARTIAL INVOICE",
+        "PARTIALLY PAID",
+        isUpdate
       );
 
       createPdfFromHtml(htmlContent, filePath).then(resolve).catch(reject);

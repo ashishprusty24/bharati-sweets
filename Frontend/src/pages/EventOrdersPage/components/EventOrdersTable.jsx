@@ -146,7 +146,29 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                   <div className="order-info-row">
                     <div className="order-info-item">
                       <PhoneOutlined style={{ color: "#94a3b8", fontSize: 12 }} />
-                      <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{record.phone || "N/A"}</Text>
+                      {record.phone && (
+                        <a
+                          href={`tel:${record.phone}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#0284c7",
+                            backgroundColor: "#e0f2fe",
+                            padding: "2px 8px",
+                            borderRadius: 12,
+                            border: "1px solid #bae6fd",
+                            textDecoration: "none",
+                            marginLeft: 4,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <PhoneOutlined style={{ fontSize: 10 }} /> Call
+                        </a>
+                      )}
                     </div>
                     <div className="order-info-item">
                       <CalendarOutlined style={{ color: "#94a3b8", fontSize: 12 }} />
@@ -273,7 +295,44 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       render: (name, record) => (
         <Space direction="vertical" size={0}>
           <Text strong style={{ fontSize: 14 }}>{name}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
+          {record.phone ? (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+              <a
+                href={`tel:${record.phone}`}
+                style={{
+                  color: "#475569",
+                  fontSize: 12,
+                  textDecoration: "none",
+                }}
+              >
+                {record.phone}
+              </a>
+              <Tooltip title={`Call ${record.phone}`}>
+                <a
+                  href={`tel:${record.phone}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#0284c7",
+                    backgroundColor: "#e0f2fe",
+                    padding: "1px 7px",
+                    borderRadius: 12,
+                    border: "1px solid #bae6fd",
+                    textDecoration: "none",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <PhoneOutlined style={{ fontSize: 10 }} /> Call
+                </a>
+              </Tooltip>
+            </div>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 12 }}>N/A</Text>
+          )}
         </Space>
       ),
     },

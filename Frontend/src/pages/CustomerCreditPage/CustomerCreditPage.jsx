@@ -58,7 +58,8 @@ const CustomerCreditPage = () => {
     setLoading(true);
     try {
       const res = await api.get("/customer-credit/list");
-      setData(res.data || { summary: {}, entries: [] });
+      const payload = res && res.summary ? res : (res?.data || { summary: {}, entries: [] });
+      setData(payload);
     } catch (err) {
       console.error("Failed to load customer credit data:", err);
       message.error("Failed to load customer credit ledger");

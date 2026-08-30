@@ -6,9 +6,9 @@ const { Text } = Typography;
 
 const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
   const getStatusTag = (quantity, minStock) => {
-    if (quantity <= 0) return <Tag color="#ef4444" style={{ borderRadius: 6, fontWeight: 600 }}>Out of Stock</Tag>;
-    if (quantity <= minStock) return <Tag color="#f59e0b" style={{ borderRadius: 6, fontWeight: 600 }}>Low Stock</Tag>;
-    return <Tag color="#10b981" style={{ borderRadius: 6, fontWeight: 600 }}>In Stock</Tag>;
+    if (quantity <= 0) return <Tag color="#ef4444" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>Out of Stock</Tag>;
+    if (quantity <= minStock) return <Tag color="#f59e0b" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>Low Stock</Tag>;
+    return <Tag color="#10b981" style={{ borderRadius: 6, fontWeight: 600, margin: 0 }}>In Stock</Tag>;
   };
 
   const columns = [
@@ -16,16 +16,22 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       title: "Item Name",
       dataIndex: "name",
       key: "name",
-      render: (text) => <Text strong style={{ fontSize: 15, color: "var(--primary-color)" }}>{text}</Text>,
+      width: 160,
+      render: (text) => (
+        <Text strong style={{ fontSize: 14, color: "var(--primary-color)", whiteSpace: "nowrap" }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: "Category",
       dataIndex: "category",
       key: "category",
       responsive: ["md"],
+      width: 120,
       render: (cat, record) => (
-        <Space size={4}>
-          <Tag style={{ borderRadius: 4 }}>{cat}</Tag>
+        <Space size={4} style={{ whiteSpace: "nowrap" }}>
+          <Tag style={{ borderRadius: 4, margin: 0 }}>{cat}</Tag>
           {record.subCategory && (
             <Text type="secondary" style={{ fontSize: 12 }}>({record.subCategory})</Text>
           )}
@@ -37,6 +43,7 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       dataIndex: "kitchenSection",
       key: "kitchenSection",
       responsive: ["lg"],
+      width: 140,
       render: (sec) => {
         const colorMap = {
           "Sweets": "magenta",
@@ -44,38 +51,46 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
           "Bara Section": "cyan",
           "Namkeen Section": "purple"
         };
-        return <Tag color={colorMap[sec] || "default"} style={{ borderRadius: 4 }}>{sec || "Uncategorized"}</Tag>;
+        return <Tag color={colorMap[sec] || "default"} style={{ borderRadius: 4, margin: 0 }}>{sec || "Uncategorized"}</Tag>;
       }
     },
     {
       title: "In Stock",
       dataIndex: "quantity",
       key: "quantity",
+      width: 140,
       render: (qty, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong style={{ fontSize: 16 }}>{qty} {record.unit}</Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>Min: {record.minStock} {record.unit}</Text>
-        </Space>
+        <div style={{ whiteSpace: "nowrap" }}>
+          <Text strong style={{ fontSize: 15, display: "block", lineHeight: 1.2 }}>
+            {qty} {record.unit}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }}>
+            Min: {record.minStock} {record.unit}
+          </Text>
+        </div>
       ),
     },
     {
       title: "Cost",
       dataIndex: "costPerUnit",
       key: "cost",
-      render: (cost) => <Text strong>₹{cost}</Text>,
+      width: 90,
+      render: (cost) => <Text strong style={{ whiteSpace: "nowrap" }}>₹{cost}</Text>,
       responsive: ["md"],
     },
     {
       title: "Status",
       key: "status",
-      render: (_, record) => getStatusTag(record.quantity, record.minStock),
+      width: 115,
+      render: (_, record) => <div style={{ whiteSpace: "nowrap" }}>{getStatusTag(record.quantity, record.minStock)}</div>,
     },
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 100,
+      fixed: "right",
       render: (_, record) => (
-        <Space size="middle">
+        <Space size="small" style={{ whiteSpace: "nowrap" }}>
           <Tooltip title="Edit Item">
             <Button
               type="text"
@@ -112,7 +127,7 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       dataSource={data}
       rowKey="_id"
       loading={loading}
-      scroll={{ x: true }}
+      scroll={{ x: 650 }}
       size="middle"
       pagination={{ 
         pageSize: 8,

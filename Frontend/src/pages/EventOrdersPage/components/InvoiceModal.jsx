@@ -135,7 +135,26 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             <div style={{ fontSize: 14, fontWeight: 700, color: "#1c1917", marginBottom: 2 }}>
               {order.customerName || "Customer"}
             </div>
-            <div style={{ fontSize: 11, color: "#44403c" }}>{order.phone || order.customerPhone || "N/A"}</div>
+            <div style={{ fontSize: 11, color: "#44403c", display: "flex", alignItems: "center", gap: 6 }}>
+              <span>📞 {order.phone || order.customerPhone || "N/A"}</span>
+              {(order.phone || order.customerPhone) && (
+                <a
+                  href={`tel:${order.phone || order.customerPhone}`}
+                  style={{
+                    color: "#0284c7",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    backgroundColor: "#e0f2fe",
+                    padding: "1px 6px",
+                    borderRadius: 10,
+                    textDecoration: "none",
+                    border: "1px solid #bae6fd",
+                  }}
+                >
+                  Call
+                </a>
+              )}
+            </div>
             <div style={{ fontSize: 11, color: "#44403c" }}>📍 {order.address || order.deliveryAddress || "N/A"}</div>
           </div>
 

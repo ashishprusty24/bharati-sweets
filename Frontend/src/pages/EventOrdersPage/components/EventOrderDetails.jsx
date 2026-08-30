@@ -1,5 +1,6 @@
 import React from "react";
 import { Row, Col, Typography, Card, Table, Tag } from "antd";
+import { PhoneOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
@@ -44,6 +45,35 @@ const EventOrderDetails = ({ record }) => {
   return (
     <div style={{ padding: "10px" }}>
       <Row gutter={[16, 8]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={8}>
+          <Text strong>Customer:</Text> {record.customerName}
+        </Col>
+        <Col xs={24} sm={8}>
+          <Text strong>Phone:</Text>{" "}
+          {record.phone ? (
+            <a
+              href={`tel:${record.phone}`}
+              style={{
+                color: "#0284c7",
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                textDecoration: "none",
+                marginLeft: 4,
+                backgroundColor: "#e0f2fe",
+                padding: "2px 8px",
+                borderRadius: 12,
+                border: "1px solid #bae6fd",
+                fontSize: 12,
+              }}
+            >
+              <PhoneOutlined /> {record.phone} (Call)
+            </a>
+          ) : (
+            "N/A"
+          )}
+        </Col>
         <Col xs={24} sm={8}><Text strong>Purpose:</Text> {record.purpose}</Col>
         <Col xs={12} sm={8}><Text strong>Packets:</Text> {record.packets || 1}</Col>
         <Col xs={12} sm={8}><Text strong>Discount/Pkt:</Text> ₹{record.discount || 0}</Col>

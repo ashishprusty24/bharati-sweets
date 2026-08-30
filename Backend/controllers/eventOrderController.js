@@ -396,26 +396,39 @@ const updateEventOrder = (orderId, updateData) => {
         if (settledAmount >= updatedOrder.totalAmount) {
           invoiceUrl = `${API_BASE_URL}/receipts/final_${updatedOrder._id}.pdf?t=${timestamp}`;
           try {
-            await generateFinalInvoice(updatedOrder);
+            await generateFinalInvoice(updatedOrder, true);
           } catch (pdfErr) {
             console.error("⚠️ Final invoice PDF generation failed on update:", pdfErr.message);
           }
         } else {
           try {
-            await generatePartialInvoice(updatedOrder);
+            await generatePartialInvoice(updatedOrder, true);
           } catch (pdfErr) {
             console.error("⚠️ Partial invoice PDF generation failed on update:", pdfErr.message);
           }
         }
         try {
-          await generateBookingReceipt(updatedOrder);
+          await generateBookingReceipt(updatedOrder, true);
         } catch (pdfErr) {
           console.error("⚠️ Booking receipt regeneration failed on update:", pdfErr.message);
         }
 
         if (updatedOrder.phone) {
           try {
+            const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
             const components = [
+              {
+                type: "header",
+                parameters: [
+                  {
+                    type: "document",
+                    document: {
+                      link: invoiceUrl,
+                      filename: `updated_invoice_${updatedOrder._id}.pdf`,
+                    },
+                  },
+                ],
+              },
               {
                 type: "body",
                 parameters: [
@@ -427,12 +440,22 @@ const updateEventOrder = (orderId, updateData) => {
                   { type: "text", text: `${balance}` },
                 ],
               },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  {
+                    type: "text",
+                    text: `receipts/${settledAmount >= updatedOrder.totalAmount ? "final" : "partial"}_${updatedOrder._id}.pdf`,
+                  },
+                ],
+              },
             ];
 
             const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en");
             if (!sent) {
-              const shortId = updatedOrder._id.toString().slice(-6).toUpperCase();
-              const caption = `📝 *Updated Order - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*! Order #${shortId} has been updated.`;
+              const caption = `📝 *Updated Order - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*!\nYour Order #${shortId} (*${updatedOrder.purpose || "Event"}*) has been updated.\n\n*Updated Total:* ₹${updatedOrder.totalAmount?.toLocaleString()}\n*Paid/Settled:* ₹${settledAmount.toLocaleString()}\n*Balance Due:* ₹${balance.toLocaleString()}\n\nPlease find your revised PDF bill attached.`;
               await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `updated_invoice_${updatedOrder._id}.pdf`, caption);
             }
           } catch (waErr) {
