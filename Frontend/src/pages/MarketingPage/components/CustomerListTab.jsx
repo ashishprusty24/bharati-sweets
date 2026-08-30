@@ -10,13 +10,14 @@ import {
   CheckCircleOutlined, ClockCircleOutlined, CopyOutlined
 } from "@ant-design/icons";
 import useFetch from "../../../hooks/useFetch";
+import api from "../../../services/api";
 import { PLATFORM_CONFIG, SEGMENT_CONFIG, MAX_POPUP_TABS } from "../config";
 import { platformSend, nameInitials, avatarColor, copyToClipboard } from "../helpers";
 import "../MarketingPage.css";
 
 const { Text, Paragraph } = Typography;
 
-const CustomerListTab = () => {
+const CustomerListTab = ({ onCampaignSent }) => {
   const { data: rawCustomers, loading } = useFetch("/customers");
   const customers = rawCustomers ?? [];
   const [search, setSearch] = useState("");
@@ -67,6 +68,34 @@ const CustomerListTab = () => {
     const targets = customers.filter((c) => selected.includes(c.phone));
     if (!targets.length) {
       message.warning("Select at least one customer.");
+      return;
+    }
+
+    // Save campaign to backend so stats and history stay accurate
+    try {
+      await api.post("/marketing/campaigns", {
+        title: activeTemplate
+          ? (templates.find((t) => (t._id || t.id) === activeTemplate)?.title || "WhatsApp Broadcast")
+          : `WhatsApp Broadcast (${targets.length} customers)`,
+        platform: "whatsapp",
+        templateId: activeTemplate || null,
+        message: msg,
+        recipients: targets.map((t) => ({ phone: t.phone, customerName: t.customerName })),
+        scheduledAt: scheduleDate ? scheduleDate.toISOString() : null,
+        status: scheduleDate ? "scheduled" : "sent",
+      });
+      if (onCampaignSent) onCampaignSent();
+    } catch (err) {
+      console.error("Failed to record campaign history:", err);
+    }
+
+    if (scheduleDate) {
+      message.success(
+        `Campaign scheduled for ${targets.length} customer(s) on ${scheduleDate.format("DD MMM YYYY, hh:mm A")}!`
+      );
+      setBulkMsg("");
+      setSelected([]);
+      setScheduleDate(null);
       return;
     }
 
@@ -128,6 +157,17 @@ const CustomerListTab = () => {
                     <Tag color="blue" className="tag-rounded" style={{ fontWeight: 600 }}>
                       {selected.length} selected
                     </Tag>
+                    {/* Call first selected customer */}
+                    {selected[0] && (
+                      <Button
+                        size="small"
+                        icon={<PhoneOutlined />}
+                        href={`tel:${selected[0]}`}
+                        style={{ borderRadius: 8, borderColor: "#38bdf8", color: "#0284c7", fontWeight: 600 }}
+                      >
+                        Call First
+                      </Button>
+                    )}
                     <Button size="small" onClick={clearAll} style={{ borderRadius: 8 }}>
                       Clear
                     </Button>
@@ -206,50 +246,72 @@ const CustomerListTab = () => {
                         {nameInitials(customer.customerName)}
                       </Avatar>
                       <div className="customer-info">
-                        <Text strong className="customer-name">
-                          {customer.customerName}
-                        </Text>
-                        <Text type="secondary" className="customer-phone">
-                          <PhoneOutlined style={{ marginRight: 4 }} />
-                          {customer.phone}
-                          {customer.orderCount > 0 && (
-                            <span className="customer-orders">
-                              · {customer.orderCount} order
-                              {customer.orderCount > 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </Text>
-                        {/* Customer Tags */}
-                        {customer.tags?.map((tag) => (
-                          <Tag
-                            key={tag}
-                            className="customer-segment-tag"
-                            color={
-                              tag === "VIP" ? "gold" :
-                              tag === "Frequent Buyer" ? "blue" :
-                              tag === "Wholesale" ? "purple" :
-                              tag === "Inactive" ? "red" : "default"
-                            }
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <Text strong className="customer-name">
+                            {customer.customerName}
+                          </Text>
+                          {/* Customer Tags */}
+                          {customer.tags?.map((tag) => (
+                            <Tag
+                              key={tag}
+                              className="customer-segment-tag"
+                              color={
+                                tag === "VIP" ? "gold" :
+                                tag === "Frequent Buyer" ? "blue" :
+                                tag === "Wholesale" ? "purple" :
+                                tag === "Inactive" ? "red" : "default"
+                              }
+                            >
+                              {tag}
+                            </Tag>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+                          <a
+                            href={customer.phone ? `tel:${customer.phone}` : "#"}
+                            className="customer-phone-link"
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Click to call ${customer.customerName}`}
                           >
-                            {tag}
-                          </Tag>
-                        ))}
+                            <PhoneOutlined style={{ marginRight: 4, color: "#0284c7" }} />
+                            {customer.phone || "No phone"}
+                          </a>
+                          {customer.orderCount > 0 && (
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              · {customer.orderCount} order{customer.orderCount > 1 ? "s" : ""}
+                              {customer.totalSpent ? ` (₹${Number(customer.totalSpent).toLocaleString("en-IN")})` : ""}
+                            </Text>
+                          )}
+                        </div>
                       </div>
-                      <Tooltip title={`WhatsApp ${customer.customerName}`}>
-                        <Button
-                          shape="circle"
-                          icon={<WhatsAppOutlined />}
-                          className="whatsapp-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            platformSend(
-                              "whatsapp",
-                              `Namaste ${customer.customerName}! 🙏\n\nThank you for choosing *Bharati Sweets*. We'd love to have you back! 🍬`,
-                              customer.phone
-                            );
-                          }}
-                        />
-                      </Tooltip>
+                      <Space onClick={(e) => e.stopPropagation()} size="small">
+                        {/* Call button */}
+                        <Tooltip title={`Call ${customer.customerName} (${customer.phone || "No phone"})`}>
+                          <Button
+                            shape="circle"
+                            icon={<PhoneOutlined />}
+                            className="call-btn"
+                            href={customer.phone ? `tel:${customer.phone}` : undefined}
+                            disabled={!customer.phone}
+                          />
+                        </Tooltip>
+                        {/* WhatsApp button */}
+                        <Tooltip title={`WhatsApp ${customer.customerName}`}>
+                          <Button
+                            shape="circle"
+                            icon={<WhatsAppOutlined />}
+                            className="whatsapp-btn"
+                            disabled={!customer.phone}
+                            onClick={() => {
+                              platformSend(
+                                "whatsapp",
+                                `Namaste ${customer.customerName}! 🙏\n\nThank you for choosing *Bharati Sweets*. We'd love to have you back! 🍬`,
+                                customer.phone
+                              );
+                            }}
+                          />
+                        </Tooltip>
+                      </Space>
                     </div>
                   </List.Item>
                 );

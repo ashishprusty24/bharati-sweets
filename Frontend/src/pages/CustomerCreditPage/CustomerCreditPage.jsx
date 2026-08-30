@@ -194,15 +194,15 @@ const CustomerCreditPage = () => {
       ),
     },
     {
-      title: "Type",
-      key: "source",
-      width: 130,
+      title: "Status",
+      key: "status",
+      width: 110,
       render: (_, record) => (
         <Tag
-          color={record.source === "event_order" ? "purple" : "blue"}
+          color={record.status === "paid" ? "green" : record.status === "partial" ? "orange" : "red"}
           style={{ borderRadius: 6, fontWeight: 600 }}
         >
-          {record.source === "event_order" ? "📅 Event Order" : "🏬 Store Credit"}
+          {record.status === "paid" ? "✅ Paid" : record.status === "partial" ? "⏳ Partial" : "🔴 Pending"}
         </Tag>
       ),
     },
@@ -404,7 +404,7 @@ const CustomerCreditPage = () => {
         <Table
           dataSource={filteredEntries}
           columns={columns}
-          rowKey={(r) => `${r.source}_${r._id}`}
+          rowKey={(r) => r._id}
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: true }}
           scroll={{ x: 800 }}

@@ -141,6 +141,42 @@
     background: #dcfce7;
     color: #166534;
     border: none;
+    transition: all 0.2s ease;
+}
+
+.whatsapp-btn:hover {
+    background: #bbf7d0 !important;
+    color: #15803d !important;
+    transform: scale(1.06);
+}
+
+.call-btn {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+    border: 1px solid #bae6fd !important;
+    transition: all 0.2s ease !important;
+}
+
+.call-btn:hover {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+    transform: scale(1.06);
+}
+
+.customer-phone-link {
+    color: #0284c7 !important;
+    font-weight: 600;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.customer-phone-link:hover {
+    color: #0369a1 !important;
+    text-decoration: underline !important;
 }
 
 /* ── Bulk Send ── */

@@ -24,7 +24,7 @@ const STAT_ICONS = [
 ];
 
 const MarketingPage = () => {
-  const { data: stats, loading: statsLoading } = useFetch("/marketing/stats", { silent: true });
+  const { data: stats, loading: statsLoading, refetch: refetchStats } = useFetch("/marketing/stats", { silent: true });
 
   return (
     <div className="marketing-page">
@@ -32,7 +32,7 @@ const MarketingPage = () => {
       <div className="marketing-header">
         <Title level={1} className="marketing-title">Marketing Hub</Title>
         <Text className="marketing-subtitle">
-          Message customers, run local ads, and grow Bharati Sweets' digital presence.
+          Message and call customers, run local ads, and grow Bharati Sweets' digital presence.
         </Text>
       </div>
 
@@ -66,11 +66,12 @@ const MarketingPage = () => {
         defaultActiveKey="customers"
         size="large"
         style={{ fontWeight: 600 }}
+        onChange={() => refetchStats && refetchStats()}
         items={[
           {
             key: "customers",
-            label: <Space><TeamOutlined />Customer WhatsApp</Space>,
-            children: <CustomerListTab />,
+            label: <Space><TeamOutlined />Customers (WhatsApp & Call)</Space>,
+            children: <CustomerListTab onCampaignSent={refetchStats} />,
           },
           {
             key: "reminders",
@@ -85,7 +86,7 @@ const MarketingPage = () => {
           {
             key: "templates",
             label: <Space><MessageOutlined />Templates & Broadcast</Space>,
-            children: <TemplatesTab />,
+            children: <TemplatesTab onCampaignSent={refetchStats} />,
           },
         ]}
       />

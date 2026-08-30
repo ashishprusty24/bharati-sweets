@@ -7,7 +7,7 @@ import {
   FacebookOutlined, InstagramOutlined, CheckCircleOutlined,
   EditOutlined, EnvironmentOutlined, AimOutlined,
   ThunderboltOutlined, DollarOutlined, SendOutlined,
-  ExclamationCircleOutlined, BarChartOutlined
+  ExclamationCircleOutlined, BarChartOutlined, PhoneOutlined
 } from "@ant-design/icons";
 import { AD_OBJECTIVES } from "../config";
 import { copyToClipboard } from "../helpers";
@@ -29,6 +29,15 @@ const SocialAdsTab = () => {
 
   // Estimated reach (rough approximation)
   const estimatedReach = Math.round(radius * radius * 3.14 * 8);
+
+  const appendPhoneCTA = () => {
+    if (adCaption.includes("📞 Call to Order:")) {
+      message.info("Contact CTA is already present in your ad caption.");
+      return;
+    }
+    setAdCaption((prev) => `${prev.trim()}\n\n📞 Call to Order: +91 98765 43210\n💬 WhatsApp Orders Welcome!\n📍 Bharati Sweets, Odisha`);
+    message.success("Call & contact info added to ad caption!");
+  };
 
   const openMetaAdsManager = async () => {
     if (!adCaption.trim() || !location.trim()) {
@@ -113,18 +122,28 @@ const SocialAdsTab = () => {
               showCount
               maxLength={2200}
             />
-            <div style={{ marginTop: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Quick fill: </Text>
-              {quickFillTemplates.map((t) => (
-                <Button
-                  key={t.id}
-                  size="small"
-                  className="quick-fill-btn"
-                  onClick={() => setAdCaption(t.content)}
-                >
-                  {t.title}
-                </Button>
-              ))}
+            <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>Quick fill: </Text>
+                {quickFillTemplates.map((t) => (
+                  <Button
+                    key={t.id}
+                    size="small"
+                    className="quick-fill-btn"
+                    onClick={() => setAdCaption(t.content)}
+                  >
+                    {t.title}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                size="small"
+                icon={<PhoneOutlined />}
+                style={{ borderRadius: 6, color: "#0284c7", borderColor: "#38bdf8", fontWeight: 600 }}
+                onClick={appendPhoneCTA}
+              >
+                + Add Call / Contact CTA
+              </Button>
             </div>
           </div>
 

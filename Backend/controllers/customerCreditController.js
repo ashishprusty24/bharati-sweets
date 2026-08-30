@@ -1,41 +1,11 @@
 const CustomerCredit = require("../models/CustomerCredit");
-const EventOrder = require("../models/EventOrder");
 const { sendWhatsApp } = require("../utils/whatsappService");
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
 const getAllBakkiEntries = async () => {
-  // 1. Fetch standalone credit entries
-  const standaloneCredits = await CustomerCredit.find().sort({ createdAt: -1 });
+  const credits = await CustomerCredit.find().sort({ createdAt: -1 });
 
-  // 2. Fetch event orders with pending dues (where totalSettled < totalAmount)
-  const eventOrders = await EventOrder.find().sort({ createdAt: -1 });
-
-  const eventBakkiList = eventOrders
-    .filter((order) => {
-      const settled = (order.paidAmount || 0) + (order.adminWaiver || 0);
-      return (order.totalAmount || 0) - settled > 0;
-    })
-    .map((order) => {
-      const settled = (order.paidAmount || 0) + (order.adminWaiver || 0);
-      const balance = Math.max(0, (order.totalAmount || 0) - settled);
-      return {
-        _id: order._id.toString(),
-        source: "event_order",
-        customerName: order.customerName,
-        phone: order.phone,
-        totalAmount: order.totalAmount,
-        paidAmount: order.paidAmount || 0,
-        adminWaiver: order.adminWaiver || 0,
-        balance: balance,
-        notes: `Event Order: ${order.purpose || "Event"}`,
-        dueDate: order.deliveryDate,
-        autoReminderEnabled: order.autoReminderEnabled !== false,
-        status: order.paymentStatus || "pending",
-        createdAt: order.createdAt,
-      };
-    });
-
-  const standaloneBakkiList = standaloneCredits.map((c) => ({
+  const entries = credits.map((c) => ({
     _id: c._id.toString(),
     source: "customer_credit",
     customerName: c.customerName,
@@ -50,10 +20,8 @@ const getAllBakkiEntries = async () => {
     createdAt: c.createdAt,
   }));
 
-  const allEntries = [...standaloneBakkiList, ...eventBakkiList];
-
-  const totalDues = allEntries.reduce((sum, item) => sum + item.balance, 0);
-  const totalCustomers = allEntries.length;
+  const totalDues = entries.reduce((sum, item) => sum + item.balance, 0);
+  const totalCustomers = entries.length;
 
   return {
     summary: {
@@ -61,11 +29,11 @@ const getAllBakkiEntries = async () => {
       totalCustomers,
       weeklyAutoReminderActive: true,
     },
-    entries: allEntries,
+    entries,
   };
 };
 
-// ─── CREATE NEW STANDALONE BAKKI ENTRY ───────────────────────
+// ─── CREATE NEW BAKKI ENTRY ──────────────────────────────────
 const createBakkiEntry = async (data) => {
   const newCredit = new CustomerCredit({
     customerName: data.customerName,
@@ -92,61 +60,34 @@ const createBakkiEntry = async (data) => {
 const recordBakkiPayment = async (id, source, paymentData) => {
   const amount = Number(paymentData.amount || 0);
 
-  if (source === "event_order") {
-    const eventOrderController = require("./eventOrderController");
-    return await eventOrderController.addPayment(id, paymentData);
-  } else {
-    const credit = await CustomerCredit.findById(id);
-    if (!credit) throw new Error("Bakki entry not found");
+  const credit = await CustomerCredit.findById(id);
+  if (!credit) throw new Error("Bakki entry not found");
 
-    credit.payments.push({
-      amount,
-      method: paymentData.method || "cash",
-      date: paymentData.date || new Date(),
-    });
+  credit.payments.push({
+    amount,
+    method: paymentData.method || "cash",
+    date: paymentData.date || new Date(),
+  });
 
-    return await credit.save();
-  }
+  return await credit.save();
 };
 
 // ─── TOGGLE AUTO REMINDER ───────────────────────────────────
 const toggleAutoReminder = async (id, source, enabled) => {
-  if (source === "event_order") {
-    return await EventOrder.findByIdAndUpdate(
-      id,
-      { autoReminderEnabled: enabled },
-      { new: true }
-    );
-  } else {
-    return await CustomerCredit.findByIdAndUpdate(
-      id,
-      { autoReminderEnabled: enabled },
-      { new: true }
-    );
-  }
+  return await CustomerCredit.findByIdAndUpdate(
+    id,
+    { autoReminderEnabled: enabled },
+    { new: true }
+  );
 };
 
 // ─── SEND INDIVIDUAL WHATSAPP REMINDER ────────────────────────
 const sendBakkiReminder = async (id, source) => {
-  let customerName, phone, balance, orderInfo;
+  const credit = await CustomerCredit.findById(id);
+  if (!credit) throw new Error("Bakki entry not found");
 
-  if (source === "event_order") {
-    const order = await EventOrder.findById(id);
-    if (!order) throw new Error("Order not found");
-    const settled = (order.paidAmount || 0) + (order.adminWaiver || 0);
-    balance = Math.max(0, (order.totalAmount || 0) - settled);
-    customerName = order.customerName;
-    phone = order.phone;
-    const shortId = order._id.toString().slice(-6).toUpperCase();
-    orderInfo = `Event Order #${shortId} (${order.purpose || "Event"})`;
-  } else {
-    const credit = await CustomerCredit.findById(id);
-    if (!credit) throw new Error("Bakki entry not found");
-    balance = credit.balance;
-    customerName = credit.customerName;
-    phone = credit.phone;
-    orderInfo = credit.notes || "Store Account (Bakki)";
-  }
+  const { customerName, phone, balance } = credit;
+  const orderInfo = credit.notes || "Store Account (Bakki)";
 
   if (!phone) throw new Error("Customer phone number missing");
 
