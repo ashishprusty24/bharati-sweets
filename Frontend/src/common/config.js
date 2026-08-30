@@ -1,4 +1,4 @@
-const env = "qa";
+const env = "prod";
 
 export const API_BASE_URL =
   env === "dev"
