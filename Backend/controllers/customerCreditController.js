@@ -1,5 +1,5 @@
 const CustomerCredit = require("../models/CustomerCredit");
-const { sendWhatsApp } = require("../utils/whatsappService");
+const { sendWhatsApp, sendWhatsAppTemplate } = require("../utils/whatsappService");
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
 const getAllBakkiEntries = async () => {
@@ -86,14 +86,36 @@ const sendBakkiReminder = async (id, source) => {
   const credit = await CustomerCredit.findById(id);
   if (!credit) throw new Error("Bakki entry not found");
 
-  const { customerName, phone, balance } = credit;
-  const orderInfo = credit.notes || "Store Account (Bakki)";
+  const { customerName, phone, totalAmount = 0, paidAmount = 0, balance = 0 } = credit;
+  const orderInfo = credit.notes || "Bakki Account";
 
   if (!phone) throw new Error("Customer phone number missing");
 
-  const messageText = `🔔 *Payment Reminder - Bharati Sweets*\nNamaste *${customerName}*! 🙏\n\nThis is a polite reminder regarding your pending balance amount for *${orderInfo}*.\n\n💰 *Pending Bakki Amount: ₹${balance.toLocaleString()}*\n\nPlease settle your payment at your earliest convenience or via UPI/Cash.\nThank you for choosing Bharati Sweets! 🍬`;
+  // Attempt 1: Send via Meta Template "payment_reminder" (English US - 5 parameters matching Meta Manager)
+  const components = [
+    {
+      type: "body",
+      parameters: [
+        { type: "text", text: customerName || "Customer" },
+        { type: "text", text: orderInfo || "Bakki" },
+        { type: "text", text: `${totalAmount}` },
+        { type: "text", text: `${paidAmount}` },
+        { type: "text", text: `${balance}` },
+      ],
+    },
+  ];
 
-  await sendWhatsApp(phone, messageText);
+  let templateSent = await sendWhatsAppTemplate(phone, "payment_reminder", components, "en_US");
+  if (!templateSent) {
+    templateSent = await sendWhatsAppTemplate(phone, "payment_reminder", components, "en");
+  }
+
+  if (!templateSent) {
+    // Attempt 2: Fallback to direct text message
+    const messageText = `🔔 *Payment Reminder - Bharati Sweets*\nNamaste *${customerName}*! 🙏\n\nThis is a polite reminder regarding your pending balance amount for *${orderInfo}*.\n\n💰 *Total Amount: ₹${totalAmount.toLocaleString()}*\n💵 *Amount Paid: ₹${paidAmount.toLocaleString()}*\n⏳ *Pending Balance: ₹${balance.toLocaleString()}*\n\nPlease settle your payment at your earliest convenience. Thank you! 🍬`;
+    await sendWhatsApp(phone, messageText);
+  }
+
   return { success: true, phone, message: "WhatsApp reminder sent successfully" };
 };
 
