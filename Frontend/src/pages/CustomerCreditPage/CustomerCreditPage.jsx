@@ -295,19 +295,19 @@ const CustomerCreditPage = () => {
   ];
 
   return (
-    <div style={{ padding: "16px 24px", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: "12px 16px", maxWidth: 1400, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <Title level={2} style={{ margin: 0, color: "#1e293b", fontWeight: 700 }}>
+          <Title level={2} style={{ margin: 0, color: "#1e293b", fontWeight: 700, fontSize: "calc(1.2rem + 0.6vw)" }}>
             Customer Credit (Bakki Ledger)
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ fontSize: 13 }}>
             Manage customer pending dues, record payments, and send weekly WhatsApp payment reminders.
           </Text>
         </div>
 
-        <Space wrap>
+        <Space wrap style={{ width: "100%", justifyContent: "flex-end" }}>
           <Button
             icon={<SyncOutlined />}
             onClick={fetchBakkiData}
@@ -336,28 +336,28 @@ const CustomerCreditPage = () => {
 
       {/* Summary Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12} md={8}>
           <Card style={{ borderRadius: 12, borderColor: "#fecaca", background: "#fff5f5" }}>
             <Statistic
               title={<Text strong style={{ color: "#991b1b" }}>💳 Total Pending Bakki Dues</Text>}
               value={data.summary?.totalDues || 0}
               prefix="₹"
-              valueStyle={{ color: "#dc2626", fontWeight: 800, fontSize: 28 }}
+              valueStyle={{ color: "#dc2626", fontWeight: 800, fontSize: 26 }}
             />
           </Card>
         </Col>
 
-        <Col xs={12} sm={8}>
+        <Col xs={24} sm={12} md={8}>
           <Card style={{ borderRadius: 12, borderColor: "#fed7aa", background: "#fff7ed" }}>
             <Statistic
               title={<Text strong style={{ color: "#9a3412" }}>👥 Customers with Pending Dues</Text>}
               value={data.summary?.totalCustomers || 0}
-              valueStyle={{ color: "#ea580c", fontWeight: 800, fontSize: 28 }}
+              valueStyle={{ color: "#ea580c", fontWeight: 800, fontSize: 26 }}
             />
           </Card>
         </Col>
 
-        <Col xs={12} sm={8}>
+        <Col xs={24} sm={24} md={8}>
           <Card style={{ borderRadius: 12, borderColor: "#bbf7d0", background: "#f0fdf4" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
@@ -368,16 +368,16 @@ const CustomerCreditPage = () => {
                   </Tag>
                 </div>
               </div>
-              <ClockCircleOutlined style={{ fontSize: 32, color: "#16a34a", opacity: 0.8 }} />
+              <ClockCircleOutlined style={{ fontSize: 28, color: "#16a34a", opacity: 0.8 }} />
             </div>
           </Card>
         </Col>
       </Row>
 
       {/* Filters & Table */}
-      <Card style={{ borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+      <Card style={{ borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }} bodyStyle={{ padding: "16px" }}>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={14} md={8}>
             <Input
               placeholder="Search by customer name, phone, or notes..."
               prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
@@ -388,7 +388,7 @@ const CustomerCreditPage = () => {
             />
           </Col>
 
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={10} md={6}>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
@@ -408,7 +408,8 @@ const CustomerCreditPage = () => {
           rowKey={(r) => r._id}
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: true }}
-          scroll={{ x: 800 }}
+          scroll={{ x: 850 }}
+          size="middle"
         />
       </Card>
 
@@ -419,6 +420,8 @@ const CustomerCreditPage = () => {
         onCancel={() => setIsAddModalOpen(false)}
         footer={null}
         destroyOnClose
+        width="92%"
+        style={{ maxWidth: 520, top: 20 }}
       >
         <Form form={addForm} layout="vertical" onFinish={handleAddSubmit}>
           <Form.Item
@@ -438,7 +441,7 @@ const CustomerCreditPage = () => {
           </Form.Item>
 
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="totalAmount"
                 label="Total Credit Amount (₹)"
@@ -447,7 +450,7 @@ const CustomerCreditPage = () => {
                 <InputNumber min={1} style={{ width: "100%" }} placeholder="1000" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="paidAmount" label="Advance / Initial Paid (₹)">
                 <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
               </Form.Item>
@@ -481,6 +484,8 @@ const CustomerCreditPage = () => {
         }}
         footer={null}
         destroyOnClose
+        width="92%"
+        style={{ maxWidth: 480, top: 20 }}
       >
         {selectedEntry && (
           <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginBottom: 16 }}>
