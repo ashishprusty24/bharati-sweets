@@ -17,6 +17,7 @@ import {
   MailOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../common/config";
 
 const { Title, Text } = Typography;
 
@@ -29,8 +30,8 @@ export default function AuthPage({ mode = "login" }) {
     try {
       const url =
         mode === "login"
-          ? "http://localhost:5000/api/auth/login"
-          : "http://localhost:5000/api/auth/signup";
+          ? `${API_BASE_URL}/auth/login`
+          : `${API_BASE_URL}/auth/signup`;
 
       const response = await fetch(url, {
         method: "POST",
