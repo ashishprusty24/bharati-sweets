@@ -3,6 +3,16 @@
  * Sends text messages, documents, and templates via Meta Graph API
  */
 
+const formatPhone = (to) => {
+  if (!to) return "";
+  let formattedTo = String(to).replace(/\D/g, "");
+  formattedTo = formattedTo.replace(/^0+/, "");
+  if (formattedTo.length === 10) {
+    formattedTo = "91" + formattedTo;
+  }
+  return formattedTo;
+};
+
 const sendWhatsApp = async (to, message) => {
   try {
     const token = process.env.WHATSAPP_API_TOKEN;
@@ -13,10 +23,7 @@ const sendWhatsApp = async (to, message) => {
       return false;
     }
 
-    let formattedTo = to.replace(/\D/g, "");
-    if (formattedTo.length === 10) {
-      formattedTo = "91" + formattedTo;
-    }
+    let formattedTo = formatPhone(to);
 
     const payload = {
       messaging_product: "whatsapp",
@@ -67,10 +74,7 @@ const sendWhatsAppDocument = async (to, documentUrl, filename, caption) => {
       return false;
     }
 
-    let formattedTo = to.replace(/\D/g, "");
-    if (formattedTo.length === 10) {
-      formattedTo = "91" + formattedTo;
-    }
+    let formattedTo = formatPhone(to);
 
     const payload = {
       messaging_product: "whatsapp",
@@ -131,10 +135,7 @@ const sendWhatsAppTemplate = async (to, templateName, components, languageCode =
       return false;
     }
 
-    let formattedTo = to.replace(/\D/g, "");
-    if (formattedTo.length === 10) {
-      formattedTo = "91" + formattedTo;
-    }
+    let formattedTo = formatPhone(to);
 
     const payload = {
       messaging_product: "whatsapp",
