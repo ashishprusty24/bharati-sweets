@@ -74,6 +74,8 @@ const HomeExpensesView = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [selectedPaymentSource, setSelectedPaymentSource] = useState("home_cash");
+  const [ccLoanAccounts, setCcLoanAccounts] = useState([]);
+  const [creditCards, setCreditCards] = useState([]);
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -133,6 +135,25 @@ const HomeExpensesView = () => {
     fetchSummary();
   }, [dateRange, filterCategory]);
 
+  // Fetch CC Loan accounts and Credit Cards for payment source dropdowns
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const [loanRes, cardRes] = await Promise.all([
+          fetch("/api/cc-loans"),
+          fetch("/api/credit-cards"),
+        ]);
+        const loanData = await loanRes.json();
+        const cardData = await cardRes.json();
+        setCcLoanAccounts(loanData || []);
+        setCreditCards(cardData || []);
+      } catch (err) {
+        console.error("Failed to fetch CC Loan / Credit Card accounts:", err);
+      }
+    };
+    fetchAccounts();
+  }, []);
+
   const filteredExpenses = useMemo(() => {
     if (!searchText) return expenses;
     const lower = searchText.toLowerCase();
@@ -165,6 +186,8 @@ const HomeExpensesView = () => {
         ...values,
         category: values.category || (editingExpense && editingExpense.category) || "other",
         date: values.date.format("YYYY-MM-DD"),
+        ccLoanId: values.ccLoanId || undefined,
+        creditCardId: values.creditCardId || undefined,
       };
 
       if (editingExpense) {
@@ -732,6 +755,38 @@ const HomeExpensesView = () => {
                   {selectedPaymentSource === "cc_loan" && "🏦 Withdraws from CC Loan Account"}
                 </Text>
               </div>
+
+              {/* CC Loan Account Selector */}
+              {selectedPaymentSource === "cc_loan" && (
+                <Form.Item name="ccLoanId" label="Select CC Loan Account" rules={[{ required: true, message: "Please select a CC Loan account" }]}>
+                  <Select placeholder="Choose CC Loan account" style={{ height: 42 }}>
+                    {ccLoanAccounts.map((acc) => (
+                      <Option key={acc._id} value={acc._id}>
+                        <Space>
+                          <BankOutlined />
+                          <span>{acc.accountName} — {acc.bankName} ({acc.accountNumber})</span>
+                        </Space>
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
+
+              {/* Credit Card Selector */}
+              {selectedPaymentSource === "credit_card" && (
+                <Form.Item name="creditCardId" label="Select Credit Card" rules={[{ required: true, message: "Please select a Credit Card" }]}>
+                  <Select placeholder="Choose Credit Card" style={{ height: 42 }}>
+                    {creditCards.map((card) => (
+                      <Option key={card._id} value={card._id}>
+                        <Space>
+                          <CreditCardOutlined />
+                          <span>{card.cardName} •••• {card.last4Digits}</span>
+                        </Space>
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
             </Col>
           </Row>
 

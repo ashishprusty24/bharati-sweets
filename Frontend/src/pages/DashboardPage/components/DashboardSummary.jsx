@@ -61,7 +61,7 @@ const DashboardSummary = ({ queryStr = "period=30d" }) => {
     },
     { 
       title: "Total Revenue", 
-      value: `₹${(summary?.totalSales || 872295).toLocaleString("en-IN")}`, 
+      value: `₹${(summary?.totalSales || 0).toLocaleString("en-IN")}`, 
       subtitle: "Ledger Counter + Event Sales",
       icon: <DollarOutlined />, 
       boxBg: "#f3e8ff",
@@ -70,7 +70,7 @@ const DashboardSummary = ({ queryStr = "period=30d" }) => {
     },
     { 
       title: "Net Earnings", 
-      value: `₹${(summary?.netProfit || 715295).toLocaleString("en-IN")}`, 
+      value: `₹${(summary?.netProfit || 0).toLocaleString("en-IN")}`, 
       subtitle: "Revenue after all expenses",
       icon: <RiseOutlined />, 
       boxBg: "#e6f4ea",
@@ -79,7 +79,7 @@ const DashboardSummary = ({ queryStr = "period=30d" }) => {
     },
     { 
       title: "Total Expenses", 
-      value: `₹${(summary?.totalExpenses || 157000).toLocaleString("en-IN")}`, 
+      value: `₹${(summary?.totalExpenses || 0).toLocaleString("en-IN")}`, 
       subtitle: "Shop + Home Expenses",
       icon: <ArrowDownOutlined />, 
       boxBg: "#ffedd5",

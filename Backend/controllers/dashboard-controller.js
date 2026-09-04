@@ -24,24 +24,20 @@ const calculateLedgerSales = (ledger) => {
     .filter((i) => i.type === "income" && i.paymentMode === "bank")
     .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
-  const derivedCash = Math.max(
-    0,
+  const derivedCash =
     Number(ledgerObj.closingBalance || 0) +
       cashExpenseTotal +
       Number(ledgerObj.cashToHome || 0) -
       Number(ledgerObj.openingBalance || 0) -
       Number(ledgerObj.otherIncome || 0) -
-      cashIncomeTotal
-  );
+      cashIncomeTotal;
 
-  const derivedDigital = Math.max(
-    0,
+  const derivedDigital =
     Number(ledgerObj.closingBankBalance || 0) +
       bankExpenseTotal +
       Number(ledgerObj.digitalToHome || 0) -
       Number(ledgerObj.openingBankBalance || 0) -
-      bankIncomeTotal
-  );
+      bankIncomeTotal;
 
   const cashSales = ledgerObj.cashSales || derivedCash;
   const digitalSales = ledgerObj.digitalSales || derivedDigital;
@@ -103,9 +99,25 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
     ]);
     const shopExpenses = expenseData?.total || 0;
 
-    // Home Expenses
+    // Home Expenses — EXCLUDE non-expense categories:
+    // - home_intake: money transfers from shop to home (not an expense)
+    // - cc_loan: loan borrowings (not an operating expense)
+    // - cc_loan_repayment: debt repayments (not an operating expense)
+    // Also exclude daily_ledger auto-synced duplicates and ledgerItemId-linked records
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment"];
     const [homeExpenseData] = await HomeExpense.aggregate([
-      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate },
+          category: { $nin: EXCLUDED_CATEGORIES },
+          sourceTag: { $ne: "daily_ledger" },
+          $or: [
+            { ledgerItemId: null },
+            { ledgerItemId: { $exists: false } },
+            { ledgerItemId: "" }
+          ]
+        }
+      },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
     const totalHomeExpenses = homeExpenseData?.total || 0;
@@ -118,12 +130,12 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
     const cashInHand = latestLedger ? Number(latestLedger.closingBalance || latestLedger.cashToHome || 0) : 0;
     const bankBalance = latestLedger ? Number(latestLedger.closingBankBalance || latestLedger.digitalToHome || 0) : 0;
 
-    // Credit Card & CC Loan payables
+    // Credit Card & CC Loan payables — use correct virtual field names
     const creditCards = await CreditCard.find();
-    const cardPayables = creditCards.reduce((s, c) => s + Number(c.outstandingBalance || c.currentBalance || 0), 0);
+    const cardPayables = creditCards.reduce((s, c) => s + Number(c.currentOutstanding || 0), 0);
 
     const ccLoans = await CCLoan.find();
-    const loanPayables = ccLoans.reduce((s, l) => s + Number(l.outstandingPrincipal || l.currentDrawdown || 0), 0);
+    const loanPayables = ccLoans.reduce((s, l) => s + Number(l.currentUtilized || 0), 0);
 
     const totalPayables = cardPayables + loanPayables;
 
@@ -227,8 +239,20 @@ const getExpensesData = async (period = "30d", customStartDate, customEndDate) =
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
 
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment"];
     const homeExpenses = await HomeExpense.aggregate([
-      { $match: { date: { $gte: startDate, $lte: endDate } } },
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate },
+          category: { $nin: EXCLUDED_CATEGORIES },
+          sourceTag: { $ne: "daily_ledger" },
+          $or: [
+            { ledgerItemId: null },
+            { ledgerItemId: { $exists: false } },
+            { ledgerItemId: "" }
+          ]
+        }
+      },
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);

@@ -135,8 +135,8 @@ const createHomeExpense = (data) => {
         }
       }
 
-      // --- AUTO SYNC TO DAILY LEDGER (skip for CC Loan — CC Loan only syncs with Expenses) ---
-      if (data.paymentSource !== "cc_loan") {
+      // --- AUTO SYNC TO DAILY LEDGER ---
+      // CC Loan funded expenses also sync to the Daily Ledger so they appear in the daily view
       try {
         const txDate = data.date ? new Date(data.date) : new Date();
         const targetDate = dayjs(txDate).startOf("day").toDate();
@@ -165,13 +165,15 @@ const createHomeExpense = (data) => {
             ledger.digitalToHome = (Number(ledger.digitalToHome) || 0) + Number(data.amount || 0);
           }
         } else {
+          // Determine payment mode: cc_loan and credit_card go to "bank" column
+          const paymentMode = (data.paymentSource === "bank_account" || data.paymentSource === "cc_loan" || data.paymentSource === "credit_card") ? "bank" : "cash";
           ledger.items.push({
             description: data.description,
             amount: Number(data.amount) || 0,
             type: "expense",
             category: data.category || "other",
             vendorId: data.vendorId || null,
-            paymentMode: data.paymentSource === "bank_account" ? "bank" : "cash",
+            paymentMode,
           });
           ledger.totalExpenses = ledger.items
             .filter((i) => i.type === "expense")
@@ -181,7 +183,6 @@ const createHomeExpense = (data) => {
       } catch (ledgerSyncErr) {
         console.error("Daily Ledger sync error in homeExpense:", ledgerSyncErr);
       }
-      } // end: skip Daily Ledger for cc_loan
 
       const populated = await HomeExpense.findById(saved._id)
         .populate("staffId", "name")

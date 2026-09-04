@@ -453,7 +453,15 @@ const updateEventOrder = (orderId, updateData) => {
               },
             ];
 
-            const sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en");
+            // Attempt 1: Send via order_updated template (en_US)
+            let sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en_US");
+
+            // Attempt 2: Fallback to approved booking_receipt template if order_updated is not approved in Meta yet
+            if (!sent) {
+              sent = await sendWhatsAppTemplate(updatedOrder.phone, "booking_receipt", components, "en_US");
+            }
+
+            // Attempt 3: Direct WhatsApp Document / Text fallback
             if (!sent) {
               const caption = `📝 *Updated Order - Bharati Sweets*\nNamaste *${updatedOrder.customerName}*!\nYour Order #${shortId} (*${updatedOrder.purpose || "Event"}*) has been updated.\n\n*Updated Total:* ₹${updatedOrder.totalAmount?.toLocaleString()}\n*Paid/Settled:* ₹${settledAmount.toLocaleString()}\n*Balance Due:* ₹${balance.toLocaleString()}\n\nPlease find your revised PDF bill attached.`;
               await sendWhatsAppDocument(updatedOrder.phone, invoiceUrl, `updated_invoice_${updatedOrder._id}.pdf`, caption);

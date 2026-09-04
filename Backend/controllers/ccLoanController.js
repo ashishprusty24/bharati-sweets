@@ -1,5 +1,4 @@
 const CCLoan = require("../models/CCLoan");
-const HomeExpense = require("../models/HomeExpense");
 
 // ── ACCOUNT CRUD ──
 
@@ -91,23 +90,11 @@ const addWithdrawal = (accountId, withdrawalData) => {
         isRepaid: false,
       });
 
-      // --- AUTO SYNC TO HOME EXPENSE ---
-      try {
-        const homeExp = new HomeExpense({
-          date: txDate,
-          description: `CC Loan: ${description}`,
-          amount,
-          category: "cc_loan",
-          paymentSource: "cc_loan",
-          ccLoanId: account._id,
-          sourceTag: "direct",
-        });
-        await homeExp.save();
-      } catch (hErr) {
-        console.error("CC Loan withdrawal home expense sync error:", hErr);
-      }
-
-
+      // NOTE: HomeExpense is NOT created here for raw withdrawals.
+      // When an expense is paid via CC Loan from the Expenses page,
+      // homeExpenseController.createHomeExpense() handles both the
+      // HomeExpense record AND the CC Loan withdrawal sync.
+      // Creating a HomeExpense here would cause double-counting.
 
       await account.save();
       resolve(account);
@@ -150,23 +137,9 @@ const addRepayment = (accountId, repaymentData) => {
         notes,
       });
 
-      // --- AUTO SYNC TO HOME EXPENSE (as expense — repayment going out) ---
-      try {
-        const homeExp = new HomeExpense({
-          date: txDate,
-          description: `CC Loan Repayment${notes ? ": " + notes : ""}`,
-          amount: totalAmount,
-          category: "cc_loan_repayment",
-          paymentSource: "bank_account",
-          ccLoanId: account._id,
-          sourceTag: "direct",
-        });
-        await homeExp.save();
-      } catch (hErr) {
-        console.error("CC Loan repayment home expense sync error:", hErr);
-      }
-
-
+      // NOTE: HomeExpense is NOT created here for repayments.
+      // Loan repayments are balance sheet transactions (reducing a liability),
+      // not operating expenses. They should not inflate the expense totals.
 
       await account.save();
       resolve(account);
