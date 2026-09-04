@@ -136,52 +136,69 @@ const createHomeExpense = (data) => {
       }
 
       // --- AUTO SYNC TO DAILY LEDGER ---
-      // CC Loan funded expenses also sync to the Daily Ledger so they appear in the daily view
-      try {
-        const txDate = data.date ? new Date(data.date) : new Date();
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-        const prevLedger = await DailyLedger.findOne({ date: prevDay });
-        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+      // ONLY sync home intake or genuine shop expenses paid from home_cash or bank_account.
+      // CC Loan and Credit Card expenses must NEVER sync to Daily Ledger!
+      const isCCExpenseData = (d) => {
+        const cat = String(d.category || "").toLowerCase().trim();
+        const src = String(d.paymentSource || "").toLowerCase().trim();
+        const desc = String(d.description || "").toLowerCase().trim();
+        return (
+          src === "cc_loan" ||
+          src === "credit_card" ||
+          cat === "cc_loan" ||
+          cat === "cc_loan_repayment" ||
+          cat === "credit_card_bill" ||
+          desc.startsWith("cc loan:") ||
+          desc.startsWith("cc loan -")
+        );
+      };
 
-        if (!ledger) {
-          ledger = new DailyLedger({
-            date: targetDate,
-            openingBalance,
-            openingBankBalance,
-            items: [],
-          });
-        } else if (prevLedger) {
-          ledger.openingBalance = openingBalance;
-          ledger.openingBankBalance = openingBankBalance;
-        }
+      if (!isCCExpenseData(data)) {
+        try {
+          const txDate = data.date ? new Date(data.date) : new Date();
+          const targetDate = dayjs(txDate).startOf("day").toDate();
+          let ledger = await DailyLedger.findOne({ date: targetDate });
+          const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+          const prevLedger = await DailyLedger.findOne({ date: prevDay });
+          const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+          const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
 
-        if (isIntakeCategory(data.category)) {
-          if (data.paymentSource === "home_cash" || !data.paymentSource) {
-            ledger.cashToHome = (Number(ledger.cashToHome) || 0) + Number(data.amount || 0);
-          } else {
-            ledger.digitalToHome = (Number(ledger.digitalToHome) || 0) + Number(data.amount || 0);
+          if (!ledger) {
+            ledger = new DailyLedger({
+              date: targetDate,
+              openingBalance,
+              openingBankBalance,
+              items: [],
+            });
+          } else if (prevLedger) {
+            ledger.openingBalance = openingBalance;
+            ledger.openingBankBalance = openingBankBalance;
           }
-        } else {
-          // Determine payment mode: cc_loan and credit_card go to "bank" column
-          const paymentMode = (data.paymentSource === "bank_account" || data.paymentSource === "cc_loan" || data.paymentSource === "credit_card") ? "bank" : "cash";
-          ledger.items.push({
-            description: data.description,
-            amount: Number(data.amount) || 0,
-            type: "expense",
-            category: data.category || "other",
-            vendorId: data.vendorId || null,
-            paymentMode,
-          });
-          ledger.totalExpenses = ledger.items
-            .filter((i) => i.type === "expense")
-            .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+          if (isIntakeCategory(data.category)) {
+            if (data.paymentSource === "home_cash" || !data.paymentSource) {
+              ledger.cashToHome = (Number(ledger.cashToHome) || 0) + Number(data.amount || 0);
+            } else {
+              ledger.digitalToHome = (Number(ledger.digitalToHome) || 0) + Number(data.amount || 0);
+            }
+          } else {
+            const paymentMode = data.paymentSource === "bank_account" ? "bank" : "cash";
+            ledger.items.push({
+              description: data.description,
+              amount: Number(data.amount) || 0,
+              type: "expense",
+              category: data.category || "other",
+              vendorId: data.vendorId || null,
+              paymentMode,
+            });
+            ledger.totalExpenses = ledger.items
+              .filter((i) => i.type === "expense")
+              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+          }
+          await ledger.save();
+        } catch (ledgerSyncErr) {
+          console.error("Daily Ledger sync error in homeExpense:", ledgerSyncErr);
         }
-        await ledger.save();
-      } catch (ledgerSyncErr) {
-        console.error("Daily Ledger sync error in homeExpense:", ledgerSyncErr);
       }
 
       const populated = await HomeExpense.findById(saved._id)
@@ -211,24 +228,54 @@ const updateHomeExpense = (id, data) => {
 
       if (!updated) return reject({ status: 404, message: "Home expense not found" });
 
+      const isCCExpenseData = (d) => {
+        const cat = String(d.category || "").toLowerCase().trim();
+        const src = String(d.paymentSource || "").toLowerCase().trim();
+        const desc = String(d.description || "").toLowerCase().trim();
+        return (
+          src === "cc_loan" ||
+          src === "credit_card" ||
+          cat === "cc_loan" ||
+          cat === "cc_loan_repayment" ||
+          cat === "credit_card_bill" ||
+          desc.startsWith("cc loan:") ||
+          desc.startsWith("cc loan -")
+        );
+      };
+
       // Sync update to Daily Ledger
       try {
         const txDate = updated.date ? new Date(updated.date) : new Date();
         const targetDate = dayjs(txDate).startOf("day").toDate();
         let ledger = await DailyLedger.findOne({ date: targetDate });
         if (ledger && oldExp) {
-          const item = ledger.items.find(
-            (i) => i.description === oldExp.description || i.description === updated.description
-          );
-          if (item) {
-            item.description = updated.description;
-            item.amount = Number(updated.amount) || 0;
-            item.category = updated.category || "other";
-            item.paymentMode = updated.paymentSource === "bank_account" ? "bank" : "cash";
-            ledger.totalExpenses = ledger.items
-              .filter((i) => i.type === "expense")
-              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-            await ledger.save();
+          if (isCCExpenseData(updated)) {
+            // If expense was changed to CC loan/card, remove it from DailyLedger
+            const itemIdx = ledger.items.findIndex(
+              (i) => i.description === oldExp.description || i.description === updated.description
+            );
+            if (itemIdx > -1) {
+              ledger.items.splice(itemIdx, 1);
+              ledger.totalExpenses = ledger.items
+                .filter((i) => i.type === "expense")
+                .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+              await ledger.save();
+            }
+          } else {
+            // Update the item in DailyLedger
+            const item = ledger.items.find(
+              (i) => i.description === oldExp.description || i.description === updated.description
+            );
+            if (item) {
+              item.description = updated.description;
+              item.amount = Number(updated.amount) || 0;
+              item.category = updated.category || "other";
+              item.paymentMode = updated.paymentSource === "bank_account" ? "bank" : "cash";
+              ledger.totalExpenses = ledger.items
+                .filter((i) => i.type === "expense")
+                .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+              await ledger.save();
+            }
           }
         }
       } catch (lErr) {
@@ -245,8 +292,29 @@ const updateHomeExpense = (id, data) => {
 const deleteHomeExpense = (id) => {
   return new Promise(async (resolve, reject) => {
     try {
+      const exp = await HomeExpense.findById(id);
+      if (!exp) return reject({ status: 404, message: "Home expense not found" });
+
+      // If synced to ledger, remove from ledger
+      try {
+        const txDate = exp.date ? new Date(exp.date) : new Date();
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+        if (ledger) {
+          const itemIndex = ledger.items.findIndex((i) => i.description === exp.description);
+          if (itemIndex > -1) {
+            ledger.items.splice(itemIndex, 1);
+            ledger.totalExpenses = ledger.items
+              .filter((i) => i.type === "expense")
+              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+            await ledger.save();
+          }
+        }
+      } catch (lErr) {
+        console.error("Error removing expense from ledger on delete:", lErr);
+      }
+
       const result = await HomeExpense.findByIdAndDelete(id);
-      if (!result) return reject({ status: 404, message: "Home expense not found" });
       resolve(result);
     } catch (err) {
       reject({ status: 500, message: err.message });

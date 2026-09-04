@@ -80,15 +80,37 @@ const getLedgerByDate = (date) => {
       // Compute derived sell from the formula:
       // Sell = ClosingBalance + Expenses + CashToHome - OpeningBalance - OtherIncome
       const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
-      const items = ledgerObj.items || [];
+      // Helper to check if category or payment source is CC/Loan or Credit Card
+      const isCCExpense = (exp) => {
+        const cat = String(exp.category || "").toLowerCase().trim();
+        const src = String(exp.paymentSource || "").toLowerCase().trim();
+        const desc = String(exp.description || "").toLowerCase().trim();
+        return (
+          src === "cc_loan" ||
+          src === "credit_card" ||
+          cat === "cc_loan" ||
+          cat === "cc_loan_repayment" ||
+          cat === "credit_card_bill" ||
+          desc.startsWith("cc loan:") ||
+          desc.startsWith("cc loan -")
+        );
+      };
+
+      // Filter out any CC loan / credit card items that might have been saved in ledgerObj.items
+      const items = (ledgerObj.items || []).filter(
+        (i) => !isCCExpense(i)
+      );
 
       // Merge Home Expenses into ledger items if missing
+      // ONLY merge genuine shop/home expenses paid from shop/home cash or bank, NEVER cc_loan or credit_card!
       try {
         const homeExpenses = await HomeExpense.find({
           date: { $gte: targetDate, $lte: endOfDay },
+          paymentSource: { $in: ["home_cash", "bank_account"] },
+          category: { $nin: ["home_intake", "home intake", "personal", "intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"] }
         });
         homeExpenses.forEach((exp) => {
-          if (!isIntakeCategory(exp.category)) {
+          if (!isIntakeCategory(exp.category) && !isCCExpense(exp)) {
             const exists = items.some(
               (i) => i.description === exp.description && Number(i.amount) === Number(exp.amount)
             );
@@ -174,17 +196,34 @@ const saveLedger = (date, payload) => {
         closingBankBalance = 0,
       } = payload;
 
+      // Sanitize items: ensure no CC loan or credit card entries are persisted in DailyLedger.items
+      const isCCExpenseItem = (item) => {
+        const cat = String(item.category || "").toLowerCase().trim();
+        const desc = String(item.description || "").toLowerCase().trim();
+        const src = String(item.paymentSource || "").toLowerCase().trim();
+        return (
+          src === "cc_loan" ||
+          src === "credit_card" ||
+          cat === "cc_loan" ||
+          cat === "cc_loan_repayment" ||
+          cat === "credit_card_bill" ||
+          desc.startsWith("cc loan:") ||
+          desc.startsWith("cc loan -")
+        );
+      };
+      const sanitizedItems = (items || []).filter((item) => !isCCExpenseItem(item));
+
       // Compute derived sales to persist in MongoDB
-      const cashExpenseTotal = items
+      const cashExpenseTotal = sanitizedItems
         .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const bankExpenseTotal = items
+      const bankExpenseTotal = sanitizedItems
         .filter((i) => i.type === "expense" && i.paymentMode === "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const cashIncomeTotal = items
+      const cashIncomeTotal = sanitizedItems
         .filter((i) => i.type === "income" && i.paymentMode !== "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const bankIncomeTotal = items
+      const bankIncomeTotal = sanitizedItems
         .filter((i) => i.type === "income" && i.paymentMode === "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
@@ -227,7 +266,7 @@ const saveLedger = (date, payload) => {
           closingBalance: Number(closingBalance),
           closingBankBalance: Number(closingBankBalance),
           totalExpenses,
-          items,
+          items: sanitizedItems,
         },
         { upsert: true, new: true }
       );

@@ -125,10 +125,106 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
     const totalExpenses = shopExpenses + totalHomeExpenses;
     const netProfit = totalSales - totalExpenses;
 
-    // Latest Ledger balances for cash/bank status
+    // Active Shop Cash & Bank Balance
     const latestLedger = await DailyLedger.findOne().sort({ date: -1 });
-    const cashInHand = latestLedger ? Number(latestLedger.closingBalance || latestLedger.cashToHome || 0) : 0;
-    const bankBalance = latestLedger ? Number(latestLedger.closingBankBalance || latestLedger.digitalToHome || 0) : 0;
+    let shopCash = 0;
+    let shopBank = 0;
+
+    if (latestLedger) {
+      if (Number(latestLedger.closingBalance) > 0) {
+        shopCash = Number(latestLedger.closingBalance);
+      } else {
+        const items = (latestLedger.items || []).filter(
+          (i) => !/cc loan|cc_loan|credit_card/i.test(i.category || "") && !/cc loan:/i.test(i.description || "")
+        );
+        const cashExpenses = items
+          .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const cashIncome = items
+          .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const cashSales = Number(latestLedger.cashSales || 0);
+        const runningCash =
+          Number(latestLedger.openingBalance || 0) +
+          cashSales +
+          cashIncome -
+          cashExpenses -
+          Number(latestLedger.cashToHome || 0);
+
+        if (runningCash > 0) {
+          shopCash = runningCash;
+        } else if (Number(latestLedger.openingBalance) > 0) {
+          shopCash = Number(latestLedger.openingBalance);
+        } else {
+          const prev = await DailyLedger.findOne({ closingBalance: { $gt: 0 } }).sort({ date: -1 });
+          shopCash = prev ? Number(prev.closingBalance) : 0;
+        }
+      }
+
+      if (Number(latestLedger.closingBankBalance) > 0) {
+        shopBank = Number(latestLedger.closingBankBalance);
+      } else {
+        const items = (latestLedger.items || []).filter(
+          (i) => !/cc loan|cc_loan|credit_card/i.test(i.category || "") && !/cc loan:/i.test(i.description || "")
+        );
+        const bankExpenses = items
+          .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const bankIncome = items
+          .filter((i) => i.type === "income" && i.paymentMode === "bank")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+        const digitalSales = Number(latestLedger.digitalSales || 0);
+        const runningBank =
+          Number(latestLedger.openingBankBalance || 0) +
+          digitalSales +
+          bankIncome -
+          bankExpenses -
+          Number(latestLedger.digitalToHome || 0);
+
+        if (runningBank > 0) {
+          shopBank = runningBank;
+        } else if (Number(latestLedger.openingBankBalance) > 0) {
+          shopBank = Number(latestLedger.openingBankBalance);
+        } else {
+          const prev = await DailyLedger.findOne({ closingBankBalance: { $gt: 0 } }).sort({ date: -1 });
+          shopBank = prev ? Number(prev.closingBankBalance) : 0;
+        }
+      }
+    }
+
+    // Home Intake Cash & Bank Balance
+    const isIntakeCat = (cat = "") => {
+      const norm = String(cat).toLowerCase().trim();
+      return norm === "home_intake" || norm === "home intake" || norm === "personal" || norm === "intake";
+    };
+
+    const allHomeExpenses = await HomeExpense.find({
+      sourceTag: { $ne: "daily_ledger" },
+      $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+    });
+
+    const homeIntake = allHomeExpenses.filter((e) => isIntakeCat(e.category));
+    const homeReceivedCash = homeIntake
+      .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+      .reduce((s, e) => s + (e.amount || 0), 0);
+    const homeReceivedBank = homeIntake
+      .filter((e) => e.paymentSource === "bank_account")
+      .reduce((s, e) => s + (e.amount || 0), 0);
+
+    const homeSpent = allHomeExpenses.filter((e) => !isIntakeCat(e.category));
+    const homeSpentCash = homeSpent
+      .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+      .reduce((s, e) => s + (e.amount || 0), 0);
+    const homeSpentBank = homeSpent
+      .filter((e) => e.paymentSource === "bank_account")
+      .reduce((s, e) => s + (e.amount || 0), 0);
+
+    const homeRemainingCash = Math.max(0, homeReceivedCash - homeSpentCash);
+    const homeRemainingBank = Math.max(0, homeReceivedBank - homeSpentBank);
+
+    // Combined Cash In Hand & Bank Balance (Home + Shop)
+    const cashInHand = shopCash + homeRemainingCash;
+    const bankBalance = shopBank + homeRemainingBank;
 
     // Credit Card & CC Loan payables — use correct virtual field names
     const creditCards = await CreditCard.find();
