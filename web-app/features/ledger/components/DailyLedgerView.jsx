@@ -97,6 +97,21 @@ export default function DailyLedgerView() {
     }
   };
 
+  const isCCItem = (item) => {
+    const cat = String(item?.category || "").toLowerCase().trim();
+    const desc = String(item?.description || "").toLowerCase().trim();
+    const src = String(item?.paymentSource || "").toLowerCase().trim();
+    return (
+      src === "cc_loan" ||
+      src === "credit_card" ||
+      cat === "cc_loan" ||
+      cat === "cc_loan_repayment" ||
+      cat === "credit_card_bill" ||
+      desc.startsWith("cc loan:") ||
+      desc.startsWith("cc loan -")
+    );
+  };
+
   const fetchLedger = async (targetDate) => {
     setLoading(true);
     try {
@@ -113,7 +128,7 @@ export default function DailyLedgerView() {
         festival: data.festival || "",
         notes: data.notes || "",
         sweetProduction: data.sweetProduction || [],
-        items: data.items || [],
+        items: (data.items || []).filter((item) => !isCCItem(item)),
       });
     } catch (error) {
       console.error(error);
@@ -140,10 +155,14 @@ export default function DailyLedgerView() {
   const handleSave = async () => {
     setLoading(true);
     try {
+      const payload = {
+        ...ledgerData,
+        items: (ledgerData.items || []).filter((item) => !isCCItem(item)),
+      };
       await fetch(`/api/ledger/${date.format("YYYY-MM-DD")}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ledgerData),
+        body: JSON.stringify(payload),
       });
       message.success("Ledger & Vendor accounts synced successfully!");
       fetchLedger(date);

@@ -46,6 +46,21 @@ const DailyLedgerPage = () => {
     items: [],
   });
 
+  const isCCItem = (item) => {
+    const cat = String(item?.category || "").toLowerCase().trim();
+    const desc = String(item?.description || "").toLowerCase().trim();
+    const src = String(item?.paymentSource || "").toLowerCase().trim();
+    return (
+      src === "cc_loan" ||
+      src === "credit_card" ||
+      cat === "cc_loan" ||
+      cat === "cc_loan_repayment" ||
+      cat === "credit_card_bill" ||
+      desc.startsWith("cc loan:") ||
+      desc.startsWith("cc loan -")
+    );
+  };
+
   const fetchLedger = async (targetDate) => {
     setLoading(true);
     try {
@@ -61,7 +76,7 @@ const DailyLedgerPage = () => {
         festival: data.festival || "",
         notes: data.notes || "",
         sweetProduction: data.sweetProduction || [],
-        items: data.items || [],
+        items: (data.items || []).filter((item) => !isCCItem(item)),
       });
     } catch (error) {
       console.error(error);
@@ -78,7 +93,11 @@ const DailyLedgerPage = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await api.post(`/ledger/${date.format("YYYY-MM-DD")}`, ledgerData);
+      const payload = {
+        ...ledgerData,
+        items: (ledgerData.items || []).filter((item) => !isCCItem(item)),
+      };
+      await api.post(`/ledger/${date.format("YYYY-MM-DD")}`, payload);
       message.success("Ledger saved successfully");
       fetchLedger(date);
     } catch (error) {
