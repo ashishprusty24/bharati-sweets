@@ -1,4 +1,9 @@
 const HomeExpense = require("../models/HomeExpense");
+const DailyLedger = require("../models/DailyLedger");
+const Vendor = require("../models/Vendor");
+const Staff = require("../models/Staff");
+const CreditCard = require("../models/CreditCard");
+const CCLoan = require("../models/CCLoan");
 const dayjs = require("dayjs");
 
 const getHomeExpenses = (query = {}) => {
@@ -37,9 +42,6 @@ const getHomeExpenses = (query = {}) => {
     }
   });
 };
-
-const DailyLedger = require("../models/DailyLedger");
-const Vendor = require("../models/Vendor");
 
 const isIntakeCategory = (cat = "") => {
   const norm = String(cat).toLowerCase().trim();
@@ -403,7 +405,7 @@ const getHomeExpenseSummary = (query = {}) => {
         bySourceTag,
         homeIntakeSummary: {
           totalReceived: receivedCash + receivedBank,
-          totalSpent: spentCash + spentBank + spentCreditCard + spentCCLoan,
+          totalSpent: spentCash + spentBank,
           received: { cash: receivedCash, bank: receivedBank },
           spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
           remaining: {
