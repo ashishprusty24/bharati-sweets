@@ -99,17 +99,19 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
     ]);
     const shopExpenses = expenseData?.total || 0;
 
-    // Home Expenses — EXCLUDE non-expense categories:
+    // Home Expenses — EXCLUDE non-expense categories & CC/loan borrowings:
     // - home_intake: money transfers from shop to home (not an expense)
-    // - cc_loan: loan borrowings (not an operating expense)
-    // - cc_loan_repayment: debt repayments (not an operating expense)
+    // - cc_loan / cc_loan_repayment: CC Loan withdrawals/repayments (funded by loan, not shop profit)
+    // - credit_card_bill: CC bill payments
+    // - Any expense where paymentSource is cc_loan or credit_card
     // Also exclude daily_ledger auto-synced duplicates and ledgerItemId-linked records
-    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment"];
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"];
     const [homeExpenseData] = await HomeExpense.aggregate([
       {
         $match: {
           date: { $gte: startDate, $lte: endDate },
           category: { $nin: EXCLUDED_CATEGORIES },
+          paymentSource: { $nin: ["cc_loan", "credit_card"] },
           sourceTag: { $ne: "daily_ledger" },
           $or: [
             { ledgerItemId: null },
@@ -335,12 +337,13 @@ const getExpensesData = async (period = "30d", customStartDate, customEndDate) =
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
 
-    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment"];
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"];
     const homeExpenses = await HomeExpense.aggregate([
       {
         $match: {
           date: { $gte: startDate, $lte: endDate },
           category: { $nin: EXCLUDED_CATEGORIES },
+          paymentSource: { $nin: ["cc_loan", "credit_card"] },
           sourceTag: { $ne: "daily_ledger" },
           $or: [
             { ledgerItemId: null },

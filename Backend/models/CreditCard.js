@@ -41,7 +41,7 @@ const creditCardSchema = new mongoose.Schema(
 
 // Virtual: current outstanding = sum of unsettled transactions
 creditCardSchema.virtual("currentOutstanding").get(function () {
-  return this.transactions
+  return (this.transactions || [])
     .filter((t) => !t.isSettled)
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 });

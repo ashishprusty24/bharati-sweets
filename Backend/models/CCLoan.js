@@ -28,11 +28,11 @@ const ccLoanSchema = new mongoose.Schema(
 
 // Virtual: current utilized = total withdrawn - total repaid
 ccLoanSchema.virtual("currentUtilized").get(function () {
-  const totalWithdrawn = this.withdrawals.reduce(
+  const totalWithdrawn = (this.withdrawals || []).reduce(
     (sum, w) => sum + (w.amount || 0),
     0
   );
-  const totalRepaid = this.repayments.reduce(
+  const totalRepaid = (this.repayments || []).reduce(
     (sum, r) => sum + (r.amount || 0),
     0
   );
@@ -41,7 +41,7 @@ ccLoanSchema.virtual("currentUtilized").get(function () {
 
 // Virtual: available limit
 ccLoanSchema.virtual("availableLimit").get(function () {
-  return Math.max((this.sanctionedLimit || 0) - this.currentUtilized, 0);
+  return Math.max((this.sanctionedLimit || 0) - (this.currentUtilized || 0), 0);
 });
 
 // Ensure virtuals appear in JSON

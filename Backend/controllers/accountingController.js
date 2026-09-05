@@ -78,7 +78,7 @@ const getFinancialSummary = (startDate, endDate) => {
       // --- EXPENSES: Combine shop Expense + HomeExpense (excluding non-operating CC/intake) ---
       const shopExpenseTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
       const homeExpenseTotal = homeExpenses
-        .filter((e) => !isExcludedExpenseCategory(e.category))
+        .filter((e) => !isExcludedExpenseCategory(e.category) && e.paymentSource !== "cc_loan" && e.paymentSource !== "credit_card")
         .reduce((sum, e) => sum + (e.amount || 0), 0);
       const totalExpenses = shopExpenseTotal + homeExpenseTotal;
 

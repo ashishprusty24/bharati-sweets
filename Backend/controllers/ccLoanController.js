@@ -83,21 +83,47 @@ const addWithdrawal = (accountId, withdrawalData) => {
       const amount = Number(withdrawalData.amount) || 0;
       const description = (withdrawalData.description || "CC Loan Withdrawal").trim();
 
-      account.withdrawals.push({
+      const newWithdrawal = {
         date: txDate,
         amount,
         description,
         isRepaid: false,
-      });
+      };
 
-      // NOTE: HomeExpense is NOT created here for raw withdrawals.
-      // When an expense is paid via CC Loan from the Expenses page,
-      // homeExpenseController.createHomeExpense() handles both the
-      // HomeExpense record AND the CC Loan withdrawal sync.
-      // Creating a HomeExpense here would cause double-counting.
+      account.withdrawals.push(newWithdrawal);
+      const saved = await account.save();
 
-      await account.save();
-      resolve(account);
+      // Auto-sync to HomeExpense so it appears in the Expenses table
+      try {
+        const HomeExpense = require("../models/HomeExpense");
+        const formattedDesc = description.toLowerCase().startsWith("cc loan")
+          ? description
+          : `CC Loan: ${description}`;
+
+        const existing = await HomeExpense.findOne({
+          ccLoanId: account._id,
+          amount,
+          date: txDate,
+          description: formattedDesc,
+        });
+
+        if (!existing) {
+          await HomeExpense.create({
+            description: formattedDesc,
+            amount,
+            date: txDate,
+            category: "cc_loan",
+            paymentSource: "cc_loan",
+            ccLoanId: account._id,
+            sourceTag: "direct",
+            notes: `Auto-created from CC Loan (${account.accountName})`,
+          });
+        }
+      } catch (hErr) {
+        console.error("Failed to sync CC Loan withdrawal to HomeExpense:", hErr);
+      }
+
+      resolve(saved);
     } catch (err) {
       reject({ status: 400, message: err.message });
     }
@@ -110,7 +136,25 @@ const deleteWithdrawal = (accountId, withdrawalId) => {
       const account = await CCLoan.findById(accountId);
       if (!account) return reject({ status: 404, message: "CC Loan account not found" });
 
-      account.withdrawals.id(withdrawalId).deleteOne();
+      const item = account.withdrawals.id(withdrawalId);
+      if (item) {
+        // Also remove from HomeExpense
+        try {
+          const HomeExpense = require("../models/HomeExpense");
+          await HomeExpense.deleteMany({
+            ccLoanId: account._id,
+            amount: item.amount,
+            $or: [
+              { description: item.description },
+              { description: `CC Loan: ${item.description}` }
+            ]
+          });
+        } catch (hErr) {
+          console.error("Failed to delete matching HomeExpense for CC Loan withdrawal:", hErr);
+        }
+        item.deleteOne();
+      }
+
       await account.save();
       resolve(account);
     } catch (err) {
