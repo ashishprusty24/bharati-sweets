@@ -453,10 +453,15 @@ const updateEventOrder = (orderId, updateData) => {
               },
             ];
 
-            // Attempt 1: Send via order_updated template (en_US)
-            let sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en_US");
+            // Attempt 1: Send via order_updated template (en)
+            let sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en");
 
-            // Attempt 2: Fallback to approved booking_receipt template if order_updated is not approved in Meta yet
+            // Attempt 2: Fallback to en_US
+            if (!sent) {
+              sent = await sendWhatsAppTemplate(updatedOrder.phone, "order_updated", components, "en_US");
+            }
+
+            // Attempt 3: Fallback to approved booking_receipt template
             if (!sent) {
               sent = await sendWhatsAppTemplate(updatedOrder.phone, "booking_receipt", components, "en_US");
             }

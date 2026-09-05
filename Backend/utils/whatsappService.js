@@ -151,7 +151,7 @@ const sendWhatsAppTemplate = async (to, templateName, components, languageCode =
     console.log("📤 Sending WhatsApp template:", templateName, "to:", formattedTo);
     console.log("📋 Template payload:", JSON.stringify(payload, null, 2));
 
-    const response = await fetch(
+    let response = await fetch(
       `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
       {
         method: "POST",
@@ -163,7 +163,27 @@ const sendWhatsAppTemplate = async (to, templateName, components, languageCode =
       }
     );
 
-    const data = await response.json();
+    let data = await response.json();
+
+    // If template doesn't exist in specified language (code 132001), automatically retry with alternative English code
+    if (!response.ok && data.error?.code === 132001) {
+      const altLang = languageCode === "en_US" ? "en" : "en_US";
+      console.log(`🔄 Template "${templateName}" not found in "${languageCode}", retrying with "${altLang}"...`);
+      payload.template.language.code = altLang;
+
+      response = await fetch(
+        `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      data = await response.json();
+    }
 
     if (!response.ok) {
       console.error(`❌ WhatsApp template "${templateName}" API error:`, response.status, JSON.stringify(data, null, 2));
