@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Modal, Select, Table, Card, Row, Col, Typography, Space, Tag, Empty, Spin, Tooltip, Badge
+  Modal, Select, Table, Card, Row, Col, Typography, Space, Tag, Empty, Spin, Tooltip, Badge, Grid
 } from "antd";
 import {
   GiftOutlined, TrophyOutlined, ShoppingCartOutlined, ArrowUpOutlined,
@@ -10,6 +10,7 @@ import {
 import api from "../../../services/api";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const FESTIVALS_PRESETS = [
   "Rakhi Purnima",
@@ -32,6 +33,7 @@ const FESTIVALS_PRESETS = [
 ];
 
 export default function FestivalAnalyticsModal({ open, onClose, defaultFestival = "Rakhi Purnima" }) {
+  const screens = useBreakpoint();
   const [selectedFestival, setSelectedFestival] = useState(defaultFestival || "Rakhi Purnima");
   const [loading, setLoading] = useState(false);
   const [analytics, setAnalytics] = useState(null);
@@ -161,9 +163,9 @@ export default function FestivalAnalyticsModal({ open, onClose, defaultFestival 
       open={open}
       onCancel={onClose}
       footer={null}
-      width={900}
+      width={screens.md ? 900 : "95vw"}
       destroyOnClose
-      style={{ borderRadius: 20 }}
+      style={{ borderRadius: 20, maxWidth: "95vw", top: screens.md ? 100 : 20 }}
     >
       <div style={{ marginTop: 16 }}>
         {/* Festival Selector Header */}
@@ -257,6 +259,7 @@ export default function FestivalAnalyticsModal({ open, onClose, defaultFestival 
                 rowKey="sweetName"
                 pagination={false}
                 size="middle"
+                scroll={{ x: 650 }}
                 style={{ background: "#fff", borderRadius: 14, overflow: "hidden" }}
               />
             </div>
