@@ -174,18 +174,78 @@ const addRepayment = (accountId, repaymentData) => {
       const txDate = repaymentData.date ? new Date(repaymentData.date) : new Date();
       const totalAmount = Number(repaymentData.amount) || 0;
       const notes = (repaymentData.notes || "").trim();
+      const paidFrom = repaymentData.paidFrom || "bank_account";
 
       account.repayments.push({
         date: txDate,
         amount: totalAmount,
+        paidFrom,
         notes,
       });
 
-      // NOTE: HomeExpense is NOT created here for repayments.
-      // Loan repayments are balance sheet transactions (reducing a liability),
-      // not operating expenses. They should not inflate the expense totals.
-
       await account.save();
+
+      // Create HomeExpense with paymentSource = home_cash/bank_account
+      // This WILL affect net profit because real money leaves the shop/home
+      try {
+        const HomeExpense = require("../models/HomeExpense");
+        const desc = `CC Loan Repayment: ${account.accountName} (${account.bankName})`;
+
+        await HomeExpense.create({
+          description: desc,
+          amount: totalAmount,
+          date: txDate,
+          category: "cc_loan_repayment",
+          paymentSource: paidFrom,
+          ccLoanId: account._id,
+          sourceTag: "direct",
+          notes: notes || `Repayment from ${paidFrom === "home_cash" ? "Home Cash" : "Bank Account"}`,
+        });
+      } catch (hErr) {
+        console.error("Failed to sync CC Loan repayment to HomeExpense:", hErr);
+      }
+
+      // Sync to Daily Ledger (deducts from shop cash or bank balance)
+      try {
+        const dayjs = require("dayjs");
+        const DailyLedger = require("../models/DailyLedger");
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+        const prevLedger = await DailyLedger.findOne({ date: prevDay });
+        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+
+        if (!ledger) {
+          ledger = new DailyLedger({
+            date: targetDate,
+            openingBalance,
+            openingBankBalance,
+            items: [],
+          });
+        } else if (prevLedger) {
+          ledger.openingBalance = openingBalance;
+          ledger.openingBankBalance = openingBankBalance;
+        }
+
+        const paymentMode = paidFrom === "bank_account" ? "bank" : "cash";
+        ledger.items.push({
+          description: `CC Loan Repayment: ${account.accountName} (${account.bankName})`,
+          amount: totalAmount,
+          type: "expense",
+          category: "cc_loan_repayment",
+          paymentMode,
+        });
+
+        ledger.totalExpenses = ledger.items
+          .filter((i) => i.type === "expense")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+        await ledger.save();
+      } catch (lErr) {
+        console.error("Failed to sync CC Loan repayment to DailyLedger:", lErr);
+      }
+
       resolve(account);
     } catch (err) {
       reject({ status: 400, message: err.message });

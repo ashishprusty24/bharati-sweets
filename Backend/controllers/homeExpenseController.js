@@ -138,21 +138,20 @@ const createHomeExpense = (data) => {
       }
 
       // --- AUTO SYNC TO DAILY LEDGER ---
-      // ONLY sync home intake or genuine shop expenses paid from home_cash or bank_account.
-      // CC Loan and Credit Card expenses must NEVER sync to Daily Ledger!
+      // CC Loan withdrawals and Credit Card swiped spending (paymentSource = cc_loan/credit_card)
+      // must NEVER sync to Daily Ledger.
+      // But repayments paid from home_cash or bank_account DO deduct from cash/bank in Daily Ledger!
       const isCCExpenseData = (d) => {
         const cat = String(d.category || "").toLowerCase().trim();
         const src = String(d.paymentSource || "").toLowerCase().trim();
         const desc = String(d.description || "").toLowerCase().trim();
-        return (
-          src === "cc_loan" ||
-          src === "credit_card" ||
-          cat === "cc_loan" ||
-          cat === "cc_loan_repayment" ||
-          cat === "credit_card_bill" ||
-          desc.startsWith("cc loan:") ||
-          desc.startsWith("cc loan -")
-        );
+        if (src === "cc_loan" || src === "credit_card" || cat === "cc_loan") {
+          return true;
+        }
+        if ((desc.startsWith("cc loan:") || desc.startsWith("cc loan -")) && (src === "cc_loan" || !src)) {
+          return true;
+        }
+        return false;
       };
 
       if (!isCCExpenseData(data)) {

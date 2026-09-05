@@ -92,20 +92,31 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
 
     const totalSales = (eventSalesData?.total || 0) + ledgerSalesTotal;
 
-    // Shop Expenses
+    // Shop Expenses — from DailyLedger items (and legacy Expense model if any)
+    const isCCItem = (i) =>
+      /cc loan|cc_loan|credit_card/i.test(i.category || "") ||
+      /cc loan:/i.test(i.description || "");
+
+    const ledgerExpensesTotal = ledgers.reduce((sum, l) => {
+      const expItems = (l.items || []).filter((i) => i.type === "expense" && !isCCItem(i));
+      return sum + expItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    }, 0);
+
     const [expenseData] = await Expense.aggregate([
       { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]);
-    const shopExpenses = expenseData?.total || 0;
+    const shopExpenses = ledgerExpensesTotal + (expenseData?.total || 0);
 
     // Home Expenses — EXCLUDE non-expense categories & CC/loan borrowings:
     // - home_intake: money transfers from shop to home (not an expense)
-    // - cc_loan / cc_loan_repayment: CC Loan withdrawals/repayments (funded by loan, not shop profit)
-    // - credit_card_bill: CC bill payments
+    // - cc_loan: CC Loan withdrawals (funded by loan, not shop profit)
+    // - credit_card_bill: CC bill payments (funded by credit card)
     // - Any expense where paymentSource is cc_loan or credit_card
+    // NOTE: cc_loan_repayment IS included when paidFrom home_cash/bank_account
+    //       because real money leaves the shop — affects net profit!
     // Also exclude daily_ledger auto-synced duplicates and ledgerItemId-linked records
-    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"];
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan"];
     const [homeExpenseData] = await HomeExpense.aggregate([
       {
         $match: {
@@ -327,17 +338,53 @@ const getSalesData = async (period = "30d", customStartDate, customEndDate) => {
   }
 };
 
+const classifyExpenseCategory = (item) => {
+  const cat = String(item.category || "").toLowerCase().trim();
+  const desc = String(item.description || "").toLowerCase().trim();
+  if (cat && cat !== "other" && cat !== "general") return cat;
+  if (/milk|paneer|poda|khua|khajoor|almond|honey|gond|sugar|sweet|flour|oil|ghee|raw/i.test(desc)) return "raw_materials";
+  if (/staff|salary|bonus|wage|maheswar|maheshwar|patri|nana|subash|raju|pujak/i.test(desc)) return "staff_salary";
+  if (/gas|electric|current|power|water|pipeline|meter|utility|utilities/i.test(desc)) return "utilities";
+  if (/petrol|diesel|fuel|auto|vehicle|ferro|jupiter|transport|logistics|freight|delivery/i.test(desc)) return "logistics";
+  if (/vendor|supplier|pack|packet|box/i.test(desc)) return "supplier_payment";
+  return "other";
+};
+
 const getExpensesData = async (period = "30d", customStartDate, customEndDate) => {
   try {
     const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
 
+    const isCCItem = (i) =>
+      /cc loan|cc_loan|credit_card/i.test(i.category || "") ||
+      /cc loan:/i.test(i.description || "");
+
+    const catMap = {};
+
+    // 1. DailyLedger expenses
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate, $lte: endDate } });
+    ledgers.forEach(l => {
+      (l.items || []).forEach(i => {
+        if (i.type === "expense" && !isCCItem(i)) {
+          const cat = classifyExpenseCategory(i);
+          catMap[cat] = (catMap[cat] || 0) + (Number(i.amount) || 0);
+        }
+      });
+    });
+
+    // 2. Legacy Expense model (if any)
     const shopExpenses = await Expense.aggregate([
       { $match: { date: { $gte: startDate, $lte: endDate } } },
       { $group: { _id: "$category", amount: { $sum: "$amount" } } },
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
+    shopExpenses.forEach(item => {
+      if (!item.category) return;
+      const catKey = item.category.toLowerCase().replace(/\s+/g, "_");
+      catMap[catKey] = (catMap[catKey] || 0) + item.amount;
+    });
 
-    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"];
+    // 3. HomeExpense (excluding non-operating CC borrowings and intake)
+    const EXCLUDED_CATEGORIES = ["home_intake", "cc_loan"];
     const homeExpenses = await HomeExpense.aggregate([
       {
         $match: {
@@ -356,8 +403,7 @@ const getExpensesData = async (period = "30d", customStartDate, customEndDate) =
       { $project: { category: "$_id", amount: 1, _id: 0 } }
     ]);
 
-    const catMap = {};
-    [...shopExpenses, ...homeExpenses].forEach(item => {
+    homeExpenses.forEach(item => {
       if (!item.category) return;
       const catKey = item.category.toLowerCase().replace(/\s+/g, "_");
       catMap[catKey] = (catMap[catKey] || 0) + item.amount;

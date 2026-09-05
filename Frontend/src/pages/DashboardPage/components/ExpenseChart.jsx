@@ -9,13 +9,7 @@ const { Title, Text } = Typography;
 const ExpenseChart = ({ queryStr = "period=30d" }) => {
   const { data: expenseData, loading } = useFetch(`/dashboard/expenses?${queryStr}`);
 
-  const rawCategories = expenseData && expenseData.length > 0 ? expenseData : [
-    { category: "raw_materials", amount: 70650 },
-    { category: "staff_salary", amount: 31400 },
-    { category: "utilities", amount: 15700 },
-    { category: "logistics", amount: 15700 },
-    { category: "other", amount: 23550 },
-  ];
+  const rawCategories = expenseData && expenseData.length > 0 ? expenseData : [];
 
   const totalExpense = rawCategories.reduce((s, c) => s + c.amount, 0);
 

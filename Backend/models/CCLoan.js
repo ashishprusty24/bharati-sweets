@@ -10,6 +10,11 @@ const withdrawalSchema = new mongoose.Schema({
 const repaymentSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   amount: { type: Number, required: true },
+  paidFrom: {
+    type: String,
+    enum: ["home_cash", "bank_account"],
+    default: "bank_account",
+  },
   notes: { type: String, default: "" },
 });
 

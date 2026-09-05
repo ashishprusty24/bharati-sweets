@@ -174,7 +174,7 @@ const CCLoanPage = () => {
   const openRepaymentModal = (accountId) => {
     setRepaymentAccountId(accountId);
     repaymentForm.resetFields();
-    repaymentForm.setFieldsValue({ date: dayjs() });
+    repaymentForm.setFieldsValue({ date: dayjs(), paidFrom: "bank_account" });
     setRepaymentModalVisible(true);
   };
 
@@ -750,6 +750,17 @@ const CCLoanPage = () => {
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item
+            name="paidFrom"
+            label="Deduct / Repay From"
+            rules={[{ required: true, message: "Please select payment source" }]}
+            extra="Selecting Home Cash or Bank Account will deduct from that balance and track this expense in Net Profit"
+          >
+            <Select style={{ height: 42, borderRadius: 10 }}>
+              <Option value="bank_account">🏦 Bank Account (Deducts from Bank Balance)</Option>
+              <Option value="home_cash">🏠 Home Cash (Deducts from Home Cash Balance)</Option>
+            </Select>
+          </Form.Item>
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="e.g., Monthly CC repayment" style={{ borderRadius: 10 }} />
           </Form.Item>

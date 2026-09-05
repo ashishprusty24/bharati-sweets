@@ -57,10 +57,20 @@ const isExcludedExpenseCategory = (cat = "") => {
     norm === "home intake" ||
     norm === "personal" ||
     norm === "intake" ||
-    norm === "cc_loan" ||
-    norm === "cc_loan_repayment" ||
-    norm === "credit_card_bill"
+    norm === "cc_loan"
   );
+};
+
+const classifyExpenseCategory = (item) => {
+  const cat = String(item.category || "").toLowerCase().trim();
+  const desc = String(item.description || "").toLowerCase().trim();
+  if (cat && cat !== "other" && cat !== "general") return cat;
+  if (/milk|paneer|poda|khua|khajoor|almond|honey|gond|sugar|sweet|flour|oil|ghee|raw/i.test(desc)) return "raw_materials";
+  if (/staff|salary|bonus|wage|maheswar|maheshwar|patri|nana|subash|raju|pujak/i.test(desc)) return "staff_salary";
+  if (/gas|electric|current|power|water|pipeline|meter|utility|utilities/i.test(desc)) return "utilities";
+  if (/petrol|diesel|fuel|auto|vehicle|ferro|jupiter|transport|logistics|freight|delivery/i.test(desc)) return "logistics";
+  if (/vendor|supplier|pack|packet|box/i.test(desc)) return "supplier_payment";
+  return "other";
 };
 
 const getFinancialSummary = (startDate, endDate) => {
@@ -68,15 +78,24 @@ const getFinancialSummary = (startDate, endDate) => {
     try {
       const [expenses, homeExpenses, eventOrders, ledgers] = await Promise.all([
         Expense.find({ date: { $gte: startDate, $lte: endDate } }),
-        // Exclude daily_ledger auto-synced records — those shop expenses are already
-        // counted via the Expense model to avoid double-counting
         HomeExpense.find({ date: { $gte: startDate, $lte: endDate }, sourceTag: { $ne: "daily_ledger" } }),
         EventOrder.find({ createdAt: { $gte: startDate, $lte: endDate } }),
         DailyLedger.find({ date: { $gte: startDate, $lte: endDate } }),
       ]);
 
-      // --- EXPENSES: Combine shop Expense + HomeExpense (excluding non-operating CC/intake) ---
-      const shopExpenseTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+      const isCCItem = (i) =>
+        /cc loan|cc_loan|credit_card/i.test(i.category || "") ||
+        /cc loan:/i.test(i.description || "");
+
+      // --- EXPENSES: Combine DailyLedger + shop Expense + HomeExpense ---
+      const ledgerExpenseTotal = ledgers.reduce((sum, l) => {
+        const expItems = (l.items || []).filter((i) => i.type === "expense" && !isCCItem(i));
+        return sum + expItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+      }, 0);
+
+      const legacyShopExpenseTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+      const shopExpenseTotal = ledgerExpenseTotal + legacyShopExpenseTotal;
+
       const homeExpenseTotal = homeExpenses
         .filter((e) => !isExcludedExpenseCategory(e.category) && e.paymentSource !== "cc_loan" && e.paymentSource !== "credit_card")
         .reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -98,13 +117,21 @@ const getFinancialSummary = (startDate, endDate) => {
       const netProfit = totalRevenue - totalExpenses;
       const profitMargin = totalRevenue > 0 ? parseFloat(((netProfit / totalRevenue) * 100).toFixed(2)) : 0;
 
-      // Expense distribution combining both models
+      // Expense distribution combining DailyLedger, Expense and HomeExpense
       const expenseDistribution = {};
+      ledgers.forEach(l => {
+        (l.items || []).forEach(i => {
+          if (i.type === "expense" && !isCCItem(i)) {
+            const cat = classifyExpenseCategory(i);
+            expenseDistribution[cat] = (expenseDistribution[cat] || 0) + (Number(i.amount) || 0);
+          }
+        });
+      });
       expenses.forEach((exp) => {
         expenseDistribution[exp.category] = (expenseDistribution[exp.category] || 0) + (exp.amount || 0);
       });
       homeExpenses
-        .filter((e) => !isExcludedExpenseCategory(e.category))
+        .filter((e) => !isExcludedExpenseCategory(e.category) && e.paymentSource !== "cc_loan" && e.paymentSource !== "credit_card")
         .forEach((exp) => {
           expenseDistribution[exp.category] = (expenseDistribution[exp.category] || 0) + (exp.amount || 0);
         });
@@ -117,8 +144,15 @@ const getFinancialSummary = (startDate, endDate) => {
         const weekEnd = new Date(current);
         weekEnd.setDate(weekEnd.getDate() + 6);
 
-        const weekExpenses = expenses.filter(e => e.date >= weekStart && e.date <= weekEnd).reduce((sum, e) => sum + (e.amount || 0), 0);
-        const weekHomeExpenses = homeExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd && !isExcludedExpenseCategory(e.category)).reduce((sum, e) => sum + (e.amount || 0), 0);
+        const weekLedgerExpenses = ledgers
+          .filter(l => l.date >= weekStart && l.date <= weekEnd)
+          .reduce((sum, l) => {
+            const expItems = (l.items || []).filter((i) => i.type === "expense" && !isCCItem(i));
+            return sum + expItems.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+          }, 0);
+
+        const weekExpenses = expenses.filter(e => e.date >= weekStart && e.date <= weekEnd).reduce((sum, e) => sum + (e.amount || 0), 0) + weekLedgerExpenses;
+        const weekHomeExpenses = homeExpenses.filter(e => e.date >= weekStart && e.date <= weekEnd && !isExcludedExpenseCategory(e.category) && e.paymentSource !== "cc_loan" && e.paymentSource !== "credit_card").reduce((sum, e) => sum + (e.amount || 0), 0);
         const weekEventRevenue = eventOrders.filter(o => o.createdAt >= weekStart && o.createdAt <= weekEnd).reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
         const weekLedgerSales = ledgers.filter(l => l.date >= weekStart && l.date <= weekEnd).reduce((sum, l) => sum + calculateLedgerSales(l).totalSales, 0);
 

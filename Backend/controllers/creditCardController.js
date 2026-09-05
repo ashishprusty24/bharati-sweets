@@ -108,58 +108,21 @@ const addTransaction = (cardId, txnData) => {
         }
       }
 
-      // Sync to HomeExpense
+      // Sync to HomeExpense with paymentSource = "credit_card"
+      // Visible in expenses table, but excluded from net profit & daily ledger until bill is paid!
       try {
+        const desc = merchantName ? `CC: ${merchantName}` : (txnData.description || "Credit Card Transaction");
         const homeExp = new HomeExpense({
           date: txDate,
-          description: merchantName ? `CC Payment: ${merchantName}` : "Credit Card Transaction",
+          description: desc,
           amount: Number(txnData.amount) || 0,
-          category: "credit_card_bill",
-          paymentSource: "bank_account",
+          category: txnData.category === "vendor_payment" ? "supplier_payment" : (txnData.category || "credit_card"),
+          paymentSource: "credit_card",
           creditCardId: card._id,
         });
         await homeExp.save();
       } catch (hErr) {
         console.error("CC txn home expense sync error:", hErr);
-      }
-
-      // Sync to Daily Ledger
-      try {
-        const dayjs = require("dayjs");
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-        const prevLedger = await DailyLedger.findOne({ date: prevDay });
-        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
-
-        if (!ledger) {
-          ledger = new DailyLedger({
-            date: targetDate,
-            openingBalance,
-            openingBankBalance,
-            items: [],
-          });
-        } else if (prevLedger) {
-          ledger.openingBalance = openingBalance;
-          ledger.openingBankBalance = openingBankBalance;
-        }
-
-        ledger.items.push({
-          description: merchantName ? `CC Payment: ${merchantName}` : "Credit Card Transaction",
-          amount: Number(txnData.amount) || 0,
-          type: "expense",
-          category: "credit_card_bill",
-          paymentMode: "bank",
-        });
-
-        ledger.totalExpenses = ledger.items
-          .filter((i) => i.type === "expense")
-          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-
-        await ledger.save();
-      } catch (lErr) {
-        console.error("CC txn daily ledger sync error:", lErr);
       }
 
       card.transactions.push(txnData);
@@ -235,10 +198,20 @@ const addBillPayment = (cardId, paymentData) => {
       const card = await CreditCard.findById(cardId);
       if (!card) return reject({ status: 404, message: "Card not found" });
 
-      card.billPayments.push(paymentData);
+      const txDate = paymentData.date ? new Date(paymentData.date) : new Date();
+      const totalAmount = Number(paymentData.amount) || 0;
+      const paidFrom = paymentData.paidFrom || "bank_account";
+      const notes = (paymentData.notes || "").trim();
+
+      card.billPayments.push({
+        date: txDate,
+        amount: totalAmount,
+        paidFrom,
+        notes,
+      });
 
       // Mark unsettled transactions up to the payment amount as settled
-      let remaining = paymentData.amount;
+      let remaining = totalAmount;
       for (const txn of card.transactions) {
         if (!txn.isSettled && remaining > 0) {
           if (remaining >= txn.amount) {
@@ -251,6 +224,64 @@ const addBillPayment = (cardId, paymentData) => {
       }
 
       await card.save();
+
+      // Sync to HomeExpense: Bill payment is paid from home_cash or bank_account, so it DOES affect net profit!
+      try {
+        const HomeExpense = require("../models/HomeExpense");
+        await HomeExpense.create({
+          description: `Credit Card Bill: ${card.cardName} (Ending ${card.last4Digits})`,
+          amount: totalAmount,
+          date: txDate,
+          category: "credit_card_bill",
+          paymentSource: paidFrom,
+          creditCardId: card._id,
+          sourceTag: "direct",
+          notes: notes || `Bill payment from ${paidFrom === "home_cash" ? "Home Cash" : "Bank Account"}`,
+        });
+      } catch (hErr) {
+        console.error("Failed to sync CC bill payment to HomeExpense:", hErr);
+      }
+
+      // Sync to Daily Ledger (deducts from shop cash or bank balance)
+      try {
+        const dayjs = require("dayjs");
+        const DailyLedger = require("../models/DailyLedger");
+        const targetDate = dayjs(txDate).startOf("day").toDate();
+        let ledger = await DailyLedger.findOne({ date: targetDate });
+        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
+        const prevLedger = await DailyLedger.findOne({ date: prevDay });
+        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
+        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
+
+        if (!ledger) {
+          ledger = new DailyLedger({
+            date: targetDate,
+            openingBalance,
+            openingBankBalance,
+            items: [],
+          });
+        } else if (prevLedger) {
+          ledger.openingBalance = openingBalance;
+          ledger.openingBankBalance = openingBankBalance;
+        }
+
+        const paymentMode = paidFrom === "bank_account" ? "bank" : "cash";
+        ledger.items.push({
+          description: `Credit Card Bill: ${card.cardName} (Ending ${card.last4Digits})`,
+          amount: totalAmount,
+          type: "expense",
+          category: "credit_card_bill",
+          paymentMode,
+        });
+
+        ledger.totalExpenses = ledger.items
+          .filter((i) => i.type === "expense")
+          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+
+        await ledger.save();
+      } catch (lErr) {
+        console.error("Failed to sync CC bill payment to DailyLedger:", lErr);
+      }
       resolve(card);
     } catch (err) {
       reject({ status: 400, message: err.message });
