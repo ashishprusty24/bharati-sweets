@@ -108,6 +108,9 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
               <div style={{ fontSize: 10, color: "#78350f", fontWeight: 700, marginTop: 2 }}>
                 FSSAI Lic. No. 22022013000110
               </div>
+              <div style={{ fontSize: 10, color: "#78350f", fontWeight: 700, marginTop: 1 }}>
+                GST No. 21BQPP9883R1ZQ
+              </div>
             </div>
           </div>
 

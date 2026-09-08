@@ -391,11 +391,11 @@ router.get("/migrate-ledger-categories", async (req, res) => {
       if (!desc) return "other";
       const d = desc.toLowerCase().trim();
       if (/milk|paneer|poda|almond|honey|gond|khajoor|tentuli|cherry|dana|egg|vegetables|bread|sugar|flour|ghee|oil|khua|sweet|zero water/i.test(d)) return "raw_materials";
-      if (/maheswar|maheshwar|patri|nana|pujak|pujari|staff|subash|raju|bahadur|bisaa|wage|salary|bonus/i.test(d)) return "staff_payment";
+      if (/wage|salary|bonus/i.test(d)) return "staff_payment";
       if (/bharat gas|hp tank|gas cylinder|lpg/i.test(d)) return "gas_utilities";
       if (/petrol|diesel|ferro|jupiter|auto|transport|pickup|tata|freight|delivery|vehicle/i.test(d)) return "transport";
       if (/^sip$|home loan|emi|pmfme|lic|mutual fund/i.test(d)) return "emi_loan";
-      if (/satya.*kaju|ranjan.*tent|pravash|pradip.*alu|^alu$|vendor|supplier/i.test(d)) return "supplier_payment";
+      if (/maheswar|maheshwar|patri|pujak|pujari|subash|raju|bahadur|bisaa|satya|kaju|ranjan|tent|pravash|pradip|umakanta|nakul|staff|^alu$|vendor|supplier/i.test(d)) return "supplier_payment";
       if (/repair|grinder|motor|scooty|bike|toto/i.test(d)) return "repairs";
       if (/^home$|recharge|calcutta|personal|laxmipuja|puja exp|stamp/i.test(d)) return "home_personal";
       if (/misc|factory|shop|workshop|cement|sand|pipeline|elect exp|bleach|newspaper|dustbin|lighter|clamp|bit spoon|weight machine/i.test(d)) return "shop_workshop";
@@ -446,6 +446,66 @@ router.get("/migrate-ledger-categories", async (req, res) => {
     });
   } catch (err) {
     console.error("Ledger category migration error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/fix-vendor-categories
+// ONE-TIME fix: Changes all staff_payment entries to supplier_payment since
+// all human names in the ledger are vendors/suppliers, not staff.
+// Call via browser: https://bharati-sweets-prod.onrender.com/api/home-expenses/fix-vendor-categories
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/fix-vendor-categories", async (req, res) => {
+  try {
+    const DailyLedger = require("../models/DailyLedger");
+
+    const ledgers = await DailyLedger.find({}).lean();
+    let updatedItems = 0;
+    let updatedLedgers = 0;
+    const details = [];
+
+    for (const ledger of ledgers) {
+      const updates = {};
+      let hasUpdate = false;
+
+      for (let i = 0; i < (ledger.items || []).length; i++) {
+        const item = ledger.items[i];
+        if (item.type !== "expense" || !item.description) continue;
+
+        // Fix: Change staff_payment to supplier_payment for all vendor names
+        if (item.category === "staff_payment") {
+          const d = item.description.toLowerCase().trim();
+          // Only keep staff_payment for generic payroll terms
+          if (/wage|salary|bonus/i.test(d)) continue;
+
+          updates[`items.${i}.category`] = "supplier_payment";
+          hasUpdate = true;
+          updatedItems++;
+          details.push({
+            description: item.description,
+            oldCategory: "staff_payment",
+            newCategory: "supplier_payment",
+            amount: item.amount,
+          });
+        }
+      }
+
+      if (hasUpdate) {
+        await DailyLedger.updateOne({ _id: ledger._id }, { $set: updates });
+        updatedLedgers++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Fix complete! Changed ${updatedItems} items from staff_payment → supplier_payment across ${updatedLedgers} ledgers.`,
+      updatedItems,
+      updatedLedgers,
+      details,
+    });
+  } catch (err) {
+    console.error("Fix vendor categories error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

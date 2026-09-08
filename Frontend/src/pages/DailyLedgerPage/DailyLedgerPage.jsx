@@ -48,11 +48,11 @@ const suggestCategory = (desc) => {
   if (!desc) return "other";
   const d = desc.toLowerCase().trim();
   if (/milk|paneer|poda|almond|honey|gond|khajoor|tentuli|cherry|dana|egg|vegetables|bread|alu|sugar|flour|ghee|oil|khua|sweet/i.test(d)) return "raw_materials";
-  if (/maheswar|maheshwar|patri|nana|pujak|pujari|staff|subash|raju|bahadur|bisaa|wage|salary|bonus/i.test(d)) return "staff_payment";
+  if (/wage|salary|bonus/i.test(d)) return "staff_payment";
   if (/bharat gas|hp tank|gas cylinder|lpg/i.test(d)) return "gas_utilities";
   if (/petrol|diesel|ferro|jupiter|auto|transport|pickup|tata|freight|delivery|vehicle/i.test(d)) return "transport";
   if (/sip|home loan|emi|pmfme|lic|mutual fund|loan/i.test(d)) return "emi_loan";
-  if (/satya|kaju|ranjan|tent|pravash|pradip|vendor|supplier/i.test(d)) return "supplier_payment";
+  if (/maheswar|maheshwar|patri|pujak|pujari|subash|raju|bahadur|bisaa|satya|kaju|ranjan|tent|pravash|pradip|umakanta|nakul|staff|^alu$|vendor|supplier/i.test(d)) return "supplier_payment";
   if (/repair|grinder|motor|scooty|bike|toto|ferro repair/i.test(d)) return "repairs";
   if (/^home$|recharge|calcutta|cuttack|personal/i.test(d)) return "home_personal";
   if (/misc|factory|shop|workshop|cement|sand|pipeline|elect exp|bleach|newspaper|dustbin|lighter/i.test(d)) return "shop_workshop";
@@ -779,7 +779,14 @@ const DailyLedgerPage = () => {
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <Input
                       value={item.description}
-                      onChange={(e) => updateItem(index, "description", e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateItem(index, "description", val);
+                        const suggested = suggestCategory(val);
+                        if (!item._manualCategory) {
+                          updateItem(index, "category", suggested);
+                        }
+                      }}
                       placeholder="e.g. Milk, Gas, Staff..."
                       style={{ flex: 1, borderRadius: 8, fontSize: 13 }}
                     />
