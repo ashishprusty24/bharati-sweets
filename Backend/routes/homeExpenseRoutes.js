@@ -410,8 +410,19 @@ router.get("/migrate-ledger-categories", async (req, res) => {
 
     for (const ledger of ledgers) {
       let changed = false;
-      for (const item of (ledger.items || [])) {
+
+      // Clean out any empty/invalid items first
+      const validItems = (ledger.items || []).filter(
+        (i) => i.description && i.amount != null
+      );
+      if (validItems.length !== (ledger.items || []).length) {
+        ledger.items = validItems;
+        changed = true;
+      }
+
+      for (const item of ledger.items) {
         if (item.type !== "expense") continue;
+        if (!item.description) continue;
         const oldCat = item.category || "other";
         const newCat = suggestCategory(item.description);
         if (oldCat === "other" && newCat !== "other") {
