@@ -378,6 +378,73 @@ router.get("/analyze-ledger-categories", async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/migrate-ledger-categories
+// ONE-TIME migration: Assigns proper categories to all existing daily ledger
+// expense items based on description keywords from production data analysis.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/migrate-ledger-categories", async (req, res) => {
+  try {
+    const DailyLedger = require("../models/DailyLedger");
+
+    const suggestCategory = (desc) => {
+      if (!desc) return "other";
+      const d = desc.toLowerCase().trim();
+      if (/milk|paneer|poda|almond|honey|gond|khajoor|tentuli|cherry|dana|egg|vegetables|bread|sugar|flour|ghee|oil|khua|sweet|zero water/i.test(d)) return "raw_materials";
+      if (/maheswar|maheshwar|patri|nana|pujak|pujari|staff|subash|raju|bahadur|bisaa|wage|salary|bonus/i.test(d)) return "staff_payment";
+      if (/bharat gas|hp tank|gas cylinder|lpg/i.test(d)) return "gas_utilities";
+      if (/petrol|diesel|ferro|jupiter|auto|transport|pickup|tata|freight|delivery|vehicle/i.test(d)) return "transport";
+      if (/^sip$|home loan|emi|pmfme|lic|mutual fund/i.test(d)) return "emi_loan";
+      if (/satya.*kaju|ranjan.*tent|pravash|pradip.*alu|^alu$|vendor|supplier/i.test(d)) return "supplier_payment";
+      if (/repair|grinder|motor|scooty|bike|toto/i.test(d)) return "repairs";
+      if (/^home$|recharge|calcutta|personal|laxmipuja|puja exp|stamp/i.test(d)) return "home_personal";
+      if (/misc|factory|shop|workshop|cement|sand|pipeline|elect exp|bleach|newspaper|dustbin|lighter|clamp|bit spoon|weight machine/i.test(d)) return "shop_workshop";
+      if (/credit card|bob credit|cc bill|card payment/i.test(d)) return "credit_card_bill";
+      return "other";
+    };
+
+    const ledgers = await DailyLedger.find({});
+    let updatedItems = 0;
+    let updatedLedgers = 0;
+    const details = [];
+
+    for (const ledger of ledgers) {
+      let changed = false;
+      for (const item of (ledger.items || [])) {
+        if (item.type !== "expense") continue;
+        const oldCat = item.category || "other";
+        const newCat = suggestCategory(item.description);
+        if (oldCat === "other" && newCat !== "other") {
+          item.category = newCat;
+          changed = true;
+          updatedItems++;
+          details.push({
+            description: item.description,
+            oldCategory: oldCat,
+            newCategory: newCat,
+            amount: item.amount,
+          });
+        }
+      }
+      if (changed) {
+        await ledger.save();
+        updatedLedgers++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Migration complete! Updated ${updatedItems} items across ${updatedLedgers} ledgers.`,
+      updatedItems,
+      updatedLedgers,
+      details,
+    });
+  } catch (err) {
+    console.error("Ledger category migration error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/home-expenses — create
 router.post("/", async (req, res) => {
   try {

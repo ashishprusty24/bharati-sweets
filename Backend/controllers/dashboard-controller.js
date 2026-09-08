@@ -340,16 +340,7 @@ const getSalesData = async (period = "30d", customStartDate, customEndDate) => {
 
 const classifyExpenseCategory = (item) => {
   const cat = String(item.category || "").toLowerCase().trim();
-  // If the item already has a meaningful category set, respect it as-is
-  // Only use keyword-based guessing when category is completely empty
-  if (cat) return cat;
-  const desc = String(item.description || "").toLowerCase().trim();
-  if (/milk|paneer|poda|khua|khajoor|almond|honey|gond|sugar|sweet|flour|oil|ghee|raw/i.test(desc)) return "raw_materials";
-  if (/staff|salary|bonus|wage|maheswar|maheshwar|patri|nana|subash|raju|pujak/i.test(desc)) return "staff_salary";
-  if (/gas|electric|current|power|water|pipeline|meter|utility|utilities/i.test(desc)) return "utilities";
-  if (/petrol|diesel|fuel|auto|vehicle|ferro|jupiter|transport|logistics|freight|delivery/i.test(desc)) return "logistics";
-  if (/vendor|supplier|pack|packet|box/i.test(desc)) return "supplier_payment";
-  return "other";
+  return cat || "other";
 };
 
 const getExpensesData = async (period = "30d", customStartDate, customEndDate) => {

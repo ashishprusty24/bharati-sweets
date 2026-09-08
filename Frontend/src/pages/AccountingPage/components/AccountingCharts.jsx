@@ -15,17 +15,41 @@ import {
 const { Text, Title } = Typography;
 
 const CATEGORY_COLORS = {
-  staff_salary: "#3b82f6",
+  raw_materials: "#10b981",
+  staff_payment: "#3b82f6",
+  gas_utilities: "#f97316",
+  transport: "#06b6d4",
+  emi_loan: "#8b5cf6",
   supplier_payment: "#f59e0b",
+  repairs: "#dc2626",
+  home_personal: "#ec4899",
+  shop_workshop: "#6366f1",
+  credit_card_bill: "#ef4444",
   home_intake: "#ec4899",
   personal: "#8b5cf6",
-  credit_card_bill: "#ef4444",
-  ingredients: "#10b981",
-  packaging: "#06b6d4",
-  utilities: "#f97316",
-  rent: "#dc2626",
-  marketing: "#6366f1",
+  staff_salary: "#3b82f6",
+  cc_loan: "#0d9488",
+  cc_loan_repayment: "#059669",
   other: "#64748b",
+};
+
+const CATEGORY_LABELS = {
+  raw_materials: "Raw Materials",
+  staff_payment: "Staff Payment",
+  gas_utilities: "Gas & Utilities",
+  transport: "Transport & Fuel",
+  emi_loan: "EMI / Loan",
+  supplier_payment: "Supplier Payment",
+  repairs: "Repairs",
+  home_personal: "Home & Personal",
+  shop_workshop: "Shop & Workshop",
+  credit_card_bill: "CC Bill",
+  home_intake: "Home Intake",
+  personal: "Personal",
+  staff_salary: "Staff Salary",
+  cc_loan: "CC Loan",
+  cc_loan_repayment: "CC Loan Repayment",
+  other: "Other",
 };
 
 const AccountingCharts = ({ financialData }) => {
@@ -98,7 +122,7 @@ const AccountingCharts = ({ financialData }) => {
   // --- CHART 2: EXPENSE DISTRIBUTION DONUT ---
   const expenseMap = financialData.expenseDistribution || {};
   const expenseData = Object.entries(expenseMap).map(([key, val]) => ({
-    name: key.replace("_", " ").toUpperCase(),
+    name: CATEGORY_LABELS[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
     value: val,
     itemStyle: { color: CATEGORY_COLORS[key] || "#64748b" },
   }));

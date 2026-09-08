@@ -29,6 +29,37 @@ const SWEET_NAMES = [
   "Rasmalai", "Pantua", "Ledikeni", "Chhena Gaja",
 ];
 
+const LEDGER_CATEGORIES = {
+  raw_materials: { label: "Raw Materials", emoji: "🥛" },
+  staff_payment: { label: "Staff Payment", emoji: "👨‍🍳" },
+  gas_utilities: { label: "Gas & Utilities", emoji: "🔥" },
+  transport: { label: "Transport & Fuel", emoji: "🚗" },
+  emi_loan: { label: "EMI / Loan", emoji: "💰" },
+  supplier_payment: { label: "Supplier Payment", emoji: "📦" },
+  repairs: { label: "Repairs", emoji: "🔧" },
+  home_personal: { label: "Home & Personal", emoji: "🏠" },
+  shop_workshop: { label: "Shop & Workshop", emoji: "🏪" },
+  credit_card_bill: { label: "CC Bill", emoji: "💳" },
+  other: { label: "Other", emoji: "📋" },
+};
+
+// Auto-suggest category based on description keywords
+const suggestCategory = (desc) => {
+  if (!desc) return "other";
+  const d = desc.toLowerCase().trim();
+  if (/milk|paneer|poda|almond|honey|gond|khajoor|tentuli|cherry|dana|egg|vegetables|bread|alu|sugar|flour|ghee|oil|khua|sweet/i.test(d)) return "raw_materials";
+  if (/maheswar|maheshwar|patri|nana|pujak|pujari|staff|subash|raju|bahadur|bisaa|wage|salary|bonus/i.test(d)) return "staff_payment";
+  if (/bharat gas|hp tank|gas cylinder|lpg/i.test(d)) return "gas_utilities";
+  if (/petrol|diesel|ferro|jupiter|auto|transport|pickup|tata|freight|delivery|vehicle/i.test(d)) return "transport";
+  if (/sip|home loan|emi|pmfme|lic|mutual fund|loan/i.test(d)) return "emi_loan";
+  if (/satya|kaju|ranjan|tent|pravash|pradip|vendor|supplier/i.test(d)) return "supplier_payment";
+  if (/repair|grinder|motor|scooty|bike|toto|ferro repair/i.test(d)) return "repairs";
+  if (/^home$|recharge|calcutta|cuttack|personal/i.test(d)) return "home_personal";
+  if (/misc|factory|shop|workshop|cement|sand|pipeline|elect exp|bleach|newspaper|dustbin|lighter/i.test(d)) return "shop_workshop";
+  if (/credit card|bob credit|cc bill|card payment/i.test(d)) return "credit_card_bill";
+  return "other";
+};
+
 const DailyLedgerPage = () => {
   const screens = useBreakpoint();
   const isMobile = screens.md === false;
@@ -117,7 +148,7 @@ const DailyLedgerPage = () => {
       ...ledgerData,
       items: [
         ...ledgerData.items,
-        { description: "", amount: null, type: "expense", paymentMode: "cash" },
+        { description: "", amount: null, type: "expense", paymentMode: "cash", category: "other" },
       ],
     });
   };
@@ -211,11 +242,19 @@ const DailyLedgerPage = () => {
     {
       title: "Description",
       dataIndex: "description",
-      render: (text, _, index) => (
+      render: (text, record, index) => (
         <Input
           value={text}
-          onChange={(e) => updateItem(index, "description", e.target.value)}
-          placeholder="e.g., Staff Meal, Milk, Bharat Gas, SIP, Home Loan..."
+          onChange={(e) => {
+            const val = e.target.value;
+            updateItem(index, "description", val);
+            // Auto-suggest category if user hasn't manually picked one
+            const suggested = suggestCategory(val);
+            if (!record._manualCategory) {
+              updateItem(index, "category", suggested);
+            }
+          }}
+          placeholder="e.g., Milk, Bharat Gas, SIP, Home Loan..."
         />
       ),
     },
@@ -233,6 +272,29 @@ const DailyLedgerPage = () => {
           <Option value="income">Income</Option>
         </Select>
       ),
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      width: 155,
+      render: (cat, _, index) => {
+        const cfg = LEDGER_CATEGORIES[cat] || LEDGER_CATEGORIES.other;
+        return (
+          <Select
+            value={cat || "other"}
+            onChange={(value) => {
+              updateItem(index, "category", value);
+              updateItem(index, "_manualCategory", true);
+            }}
+            style={{ width: "100%" }}
+            popupMatchSelectWidth={false}
+          >
+            {Object.entries(LEDGER_CATEGORIES).map(([key, c]) => (
+              <Option key={key} value={key}>{c.emoji} {c.label}</Option>
+            ))}
+          </Select>
+        );
+      },
     },
     {
       title: "Mode",
