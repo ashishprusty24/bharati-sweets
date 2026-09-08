@@ -240,6 +240,144 @@ router.get("/migrate-cc-to-expenses", async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/diagnose-cc
+// Diagnostic: shows why CC / CC Loan entries might be hidden from expenses page
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/diagnose-cc", async (req, res) => {
+  try {
+    const HomeExpense = require("../models/HomeExpense");
+
+    // Find ALL CC Loan and Credit Card entries (no filters)
+    const ccLoanEntries = await HomeExpense.find({ paymentSource: "cc_loan" });
+    const ccCardEntries = await HomeExpense.find({ paymentSource: "credit_card" });
+
+    const diagnose = (entries, label) => {
+      const hidden = entries.filter(
+        (e) => e.sourceTag === "daily_ledger" || (e.ledgerItemId && e.ledgerItemId !== "")
+      );
+      const visible = entries.filter(
+        (e) => e.sourceTag !== "daily_ledger" && (!e.ledgerItemId || e.ledgerItemId === "")
+      );
+      return {
+        label,
+        total: entries.length,
+        visible: visible.length,
+        hiddenBySourceTag: hidden.filter((e) => e.sourceTag === "daily_ledger").length,
+        hiddenByLedgerItemId: hidden.filter(
+          (e) => e.ledgerItemId && e.ledgerItemId !== "" && e.sourceTag !== "daily_ledger"
+        ).length,
+        hiddenEntries: hidden.map((e) => ({
+          id: e._id,
+          date: e.date,
+          description: e.description,
+          amount: e.amount,
+          sourceTag: e.sourceTag,
+          ledgerItemId: e.ledgerItemId,
+          category: e.category,
+        })),
+      };
+    };
+
+    res.json({
+      success: true,
+      ccLoan: diagnose(ccLoanEntries, "CC Loan"),
+      creditCard: diagnose(ccCardEntries, "Credit Card"),
+      fix: "If entries are hidden, run /api/home-expenses/fix-cc-visibility to unhide them",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/fix-cc-visibility
+// FIX: Unhides CC Loan and Credit Card HomeExpense entries that were incorrectly
+// tagged as "daily_ledger" by the cleanup migration
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/fix-cc-visibility", async (req, res) => {
+  try {
+    const HomeExpense = require("../models/HomeExpense");
+
+    // Fix CC Loan entries hidden by sourceTag
+    const ccLoanFixed = await HomeExpense.updateMany(
+      {
+        paymentSource: { $in: ["cc_loan", "credit_card"] },
+        $or: [
+          { sourceTag: "daily_ledger" },
+          { ledgerItemId: { $ne: null, $exists: true, $nin: ["", null] } },
+        ],
+      },
+      {
+        $set: { sourceTag: "direct" },
+        $unset: { ledgerItemId: "" },
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Fixed ${ccLoanFixed.modifiedCount} hidden CC/CC Loan entries. They should now appear in the Expenses page.`,
+      modifiedCount: ccLoanFixed.modifiedCount,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/analyze-ledger-categories
+// Diagnostic: Groups all daily ledger expense descriptions to understand
+// what users actually enter, so we can design proper categories.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/analyze-ledger-categories", async (req, res) => {
+  try {
+    const DailyLedger = require("../models/DailyLedger");
+
+    const ledgers = await DailyLedger.find({}).sort({ date: -1 });
+
+    const descMap = {};
+    let totalItems = 0;
+
+    for (const ledger of ledgers) {
+      for (const item of (ledger.items || [])) {
+        if (item.type !== "expense") continue;
+        totalItems++;
+
+        const desc = (item.description || "").trim();
+        const key = desc.toLowerCase();
+
+        if (!descMap[key]) {
+          descMap[key] = {
+            description: desc,
+            category: item.category || "other",
+            count: 0,
+            totalAmount: 0,
+            dates: [],
+          };
+        }
+        descMap[key].count++;
+        descMap[key].totalAmount += Number(item.amount) || 0;
+        if (descMap[key].dates.length < 3) {
+          descMap[key].dates.push(ledger.date);
+        }
+      }
+    }
+
+    // Sort by frequency
+    const grouped = Object.values(descMap).sort((a, b) => b.count - a.count);
+
+    res.json({
+      success: true,
+      totalLedgers: ledgers.length,
+      totalExpenseItems: totalItems,
+      uniqueDescriptions: grouped.length,
+      descriptions: grouped,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/home-expenses — create
 router.post("/", async (req, res) => {
   try {
