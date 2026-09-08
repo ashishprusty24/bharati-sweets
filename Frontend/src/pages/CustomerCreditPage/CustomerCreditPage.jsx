@@ -19,6 +19,7 @@ import {
   Tooltip,
   Statistic,
   Badge,
+  Popconfirm,
 } from "antd";
 import {
   DollarOutlined,
@@ -32,6 +33,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   SyncOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
@@ -160,6 +162,18 @@ const CustomerCreditPage = () => {
     }
   };
 
+  // Delete Bakki Entry
+  const handleDeleteEntry = async (record) => {
+    try {
+      await api.delete(`/customer-credit/${record._id}`);
+      message.success(`Bakki record for ${record.customerName} deleted successfully`);
+      fetchBakkiData();
+    } catch (err) {
+      console.error(err);
+      message.error(err.response?.data?.message || "Failed to delete credit entry");
+    }
+  };
+
   // Trigger Weekly Auto-Reminders for all pending Bakki
   const handleTriggerAutoReminders = async () => {
     Modal.confirm({
@@ -264,7 +278,7 @@ const CustomerCreditPage = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -289,6 +303,25 @@ const CustomerCreditPage = () => {
               onClick={() => handleSendReminder(record)}
             />
           </Tooltip>
+
+          <Popconfirm
+            title="Delete Bakki Entry"
+            description={`Are you sure you want to delete ${record.customerName}'s credit record?`}
+            onConfirm={() => handleDeleteEntry(record)}
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete Entry">
+              <Button
+                type="default"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                style={{ borderRadius: 6 }}
+              />
+            </Tooltip>
+          </Popconfirm>
         </Space>
       ),
     },

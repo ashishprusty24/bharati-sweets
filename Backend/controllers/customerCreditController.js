@@ -142,6 +142,13 @@ const triggerWeeklyAutoReminders = async () => {
   return { total: eligibleEntries.length, sentCount, failCount };
 };
 
+// ─── DELETE BAKKI ENTRY ─────────────────────────────────────
+const deleteBakkiEntry = async (id) => {
+  const deleted = await CustomerCredit.findByIdAndDelete(id);
+  if (!deleted) throw new Error("Bakki entry not found");
+  return { message: "Bakki entry deleted successfully" };
+};
+
 module.exports = {
   getAllBakkiEntries,
   createBakkiEntry,
@@ -149,4 +156,5 @@ module.exports = {
   toggleAutoReminder,
   sendBakkiReminder,
   triggerWeeklyAutoReminders,
+  deleteBakkiEntry,
 };

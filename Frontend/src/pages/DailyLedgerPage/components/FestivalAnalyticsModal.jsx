@@ -81,12 +81,14 @@ export default function FestivalAnalyticsModal({ open, onClose, defaultFestival 
       title: "Sweet Name",
       dataIndex: "sweetName",
       key: "sweetName",
-      render: (text) => <Text strong style={{ fontSize: 14, color: "#1e293b" }}>{text}</Text>,
+      width: 140,
+      render: (text) => <Text strong style={{ fontSize: 14, color: "#1e293b", whiteSpace: "nowrap" }}>{text}</Text>,
     },
     {
       title: "Year-by-Year Log",
       dataIndex: "history",
       key: "history",
+      minWidth: 320,
       render: (history) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {(history || []).map((h, idx) => (
@@ -104,26 +106,25 @@ export default function FestivalAnalyticsModal({ open, onClose, defaultFestival 
                 gap: 8,
               }}
             >
-              <div>
+              <div style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                 <Tag color="purple" style={{ fontWeight: 700, borderRadius: 6 }}>{h.year}</Tag>
-                <Text type="secondary" style={{ fontSize: 11 }}>({h.dateFormatted})</Text>
+                <Text type="secondary" style={{ fontSize: 11, whiteSpace: "nowrap" }}>({h.dateFormatted})</Text>
               </div>
-              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <Text style={{ fontSize: 12 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", whiteSpace: "nowrap" }}>
+                <Text style={{ fontSize: 12, whiteSpace: "nowrap" }}>
                   Made: <Text strong style={{ color: "#6366f1" }}>{h.quantity} {h.unit}</Text>
                 </Text>
-                <Text style={{ fontSize: 12 }}>
+                <Text style={{ fontSize: 12, whiteSpace: "nowrap" }}>
                   Sold: <Text strong style={{ color: "#10b981" }}>{h.actualSold} {h.unit}</Text>
                 </Text>
                 {h.actualSold > 0 && (
                   <Tag
                     color={h.diff > 0 ? "warning" : "error"}
-                    style={{ fontWeight: 700, borderRadius: 6 }}
+                    style={{ fontWeight: 700, borderRadius: 6, whiteSpace: "nowrap" }}
                   >
                     {h.diff > 0 ? `📦 Surplus: ${h.diff} ${h.unit}` : `⚠️ Sold Out / Shortage`}
                   </Tag>
                 )}
-
               </div>
             </div>
           ))}

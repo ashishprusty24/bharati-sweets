@@ -54,28 +54,30 @@ const RecentEventOrders = () => {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {ordersList.slice(0, 4).map((item) => (
-          <div key={item._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Space size={12}>
+          <div key={item._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
               <Avatar 
                 size={38} 
-                style={{ backgroundColor: item.bg || "#f8fafc", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+                style={{ backgroundColor: item.bg || "#f8fafc", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
               >
                 {item.icon || "📦"}
               </Avatar>
-              <div>
-                <Text strong style={{ color: "#0f172a", fontSize: 13, display: "block" }}>{item.purpose}</Text>
-                <Text type="secondary" style={{ fontSize: 11 }}>
+              <div style={{ minWidth: 0, overflow: "hidden" }}>
+                <Text strong style={{ color: "#0f172a", fontSize: 13, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.purpose}
+                </Text>
+                <Text type="secondary" style={{ fontSize: 11, whiteSpace: "nowrap" }}>
                   {dayjs(item.deliveryDate).format("MMM D, YYYY")} • {item.packets || 100} People
                 </Text>
               </div>
-            </Space>
+            </div>
 
-            <Space size={8} align="center">
-              <Text strong style={{ color: "#0f172a", fontSize: 13 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, whiteSpace: "nowrap" }}>
+              <Text strong style={{ color: "#0f172a", fontSize: 13, whiteSpace: "nowrap" }}>
                 ₹{(item.totalAmount || 0).toLocaleString("en-IN")}
               </Text>
               {renderStatusTag(item.orderStatus)}
-            </Space>
+            </div>
           </div>
         ))}
       </div>

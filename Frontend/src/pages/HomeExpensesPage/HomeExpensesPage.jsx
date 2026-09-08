@@ -753,9 +753,6 @@ const HomeExpensesPage = () => {
                   style={{ height: 42 }}
                   onChange={(val) => {
                     setSelectedPaymentSource(val);
-                    if (val === "cc_loan") {
-                      form.setFieldsValue({ category: "cc_loan" });
-                    }
                   }}
                 >
                   {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => (

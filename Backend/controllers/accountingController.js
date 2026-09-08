@@ -63,8 +63,10 @@ const isExcludedExpenseCategory = (cat = "") => {
 
 const classifyExpenseCategory = (item) => {
   const cat = String(item.category || "").toLowerCase().trim();
+  // If the item already has a meaningful category set, respect it as-is
+  // Only use keyword-based guessing when category is completely empty
+  if (cat) return cat;
   const desc = String(item.description || "").toLowerCase().trim();
-  if (cat && cat !== "other" && cat !== "general") return cat;
   if (/milk|paneer|poda|khua|khajoor|almond|honey|gond|sugar|sweet|flour|oil|ghee|raw/i.test(desc)) return "raw_materials";
   if (/staff|salary|bonus|wage|maheswar|maheshwar|patri|nana|subash|raju|pujak/i.test(desc)) return "staff_salary";
   if (/gas|electric|current|power|water|pipeline|meter|utility|utilities/i.test(desc)) return "utilities";

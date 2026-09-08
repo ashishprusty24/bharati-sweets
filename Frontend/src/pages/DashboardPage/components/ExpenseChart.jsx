@@ -77,25 +77,25 @@ const ExpenseChart = ({ queryStr = "period=30d" }) => {
         Expense Mix
       </Title>
 
-      <Row align="middle" gutter={16}>
-        <Col span={11}>
+      <Row align="middle" gutter={[16, 16]}>
+        <Col xs={24} sm={11}>
           <ReactECharts option={option} style={{ height: 180, width: "100%" }} />
         </Col>
 
-        <Col span={13}>
+        <Col xs={24} sm={13}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {chartData.map((item, idx) => (
-              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
-                <Space size={6}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.color, display: "inline-block" }} />
-                  <Text style={{ color: "#475569", fontWeight: 500 }}>{item.name}</Text>
-                </Space>
-                <Space size={12}>
-                  <Text type="secondary" style={{ fontSize: 11 }}>{item.percent}%</Text>
-                  <Text strong style={{ color: "#0f172a", fontSize: 12, minWidth: 55, textAlign: "right" }}>
+              <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: item.color, display: "inline-block", flexShrink: 0 }} />
+                  <Text style={{ color: "#475569", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</Text>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, whiteSpace: "nowrap" }}>
+                  <Text type="secondary" style={{ fontSize: 11, whiteSpace: "nowrap" }}>{item.percent}%</Text>
+                  <Text strong style={{ color: "#0f172a", fontSize: 12, textAlign: "right", whiteSpace: "nowrap" }}>
                     ₹{item.value.toLocaleString("en-IN")}
                   </Text>
-                </Space>
+                </div>
               </div>
             ))}
           </div>

@@ -104,22 +104,22 @@ const SalesChart = ({ queryStr = "period=30d", period = "30d" }) => {
       bodyStyle={{ padding: 20 }}
     >
       {/* Card Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
         <div>
           <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#0f172a", fontSize: 18 }}>
             Revenue Performance
           </Title>
-          <Space style={{ marginTop: 4 }}>
-            <Title level={3} style={{ margin: 0, fontWeight: 800, color: "#0f172a", fontSize: 22 }}>
+          <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Title level={3} style={{ margin: 0, fontWeight: 800, color: "#0f172a", fontSize: 22, whiteSpace: "nowrap" }}>
               ₹{totalRev.toLocaleString("en-IN")}
             </Title>
-            <Tag color="purple" style={{ borderRadius: 12, fontWeight: 600, border: "none", background: "#f3e8ff", color: "#8b5cf6", fontSize: 11 }}>
+            <Tag color="purple" style={{ borderRadius: 12, fontWeight: 600, border: "none", background: "#f3e8ff", color: "#8b5cf6", fontSize: 11, whiteSpace: "nowrap" }}>
               <ArrowUpOutlined /> Total Revenue
             </Tag>
-          </Space>
+          </div>
         </div>
 
-        <Select value={compMode} onChange={setCompMode} style={{ width: 190 }} className="header-select-pill">
+        <Select value={compMode} onChange={setCompMode} style={{ width: 190, maxWidth: "100%" }} className="header-select-pill">
           <Option value="prev_period">Compare: Previous Period</Option>
           <Option value="prev_year">Compare: Previous Year</Option>
           <Option value="none">Compare: Off</Option>

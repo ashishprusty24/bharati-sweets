@@ -315,6 +315,52 @@ const deleteHomeExpense = (id) => {
         console.error("Error removing expense from ledger on delete:", lErr);
       }
 
+      // Cascade delete: Remove matching transaction from CreditCard
+      if (exp.paymentSource === "credit_card" && exp.creditCardId) {
+        try {
+          const card = await CreditCard.findById(exp.creditCardId);
+          if (card) {
+            const txnIndex = card.transactions.findIndex(
+              (t) =>
+                t.amount === exp.amount &&
+                (t.description === exp.description ||
+                  t.description === `Expense via Credit Card` ||
+                  exp.description?.includes(t.description) ||
+                  t.description?.includes(exp.description?.replace("CC: ", "")))
+            );
+            if (txnIndex > -1) {
+              card.transactions.splice(txnIndex, 1);
+              await card.save();
+            }
+          }
+        } catch (ccErr) {
+          console.error("Error cascade-deleting CreditCard transaction on expense delete:", ccErr);
+        }
+      }
+
+      // Cascade delete: Remove matching withdrawal from CCLoan
+      if (exp.paymentSource === "cc_loan" && exp.ccLoanId) {
+        try {
+          const ccAccount = await CCLoan.findById(exp.ccLoanId);
+          if (ccAccount) {
+            const wdIndex = ccAccount.withdrawals.findIndex(
+              (w) =>
+                w.amount === exp.amount &&
+                (w.description === exp.description ||
+                  w.description === `Withdrawal via Home Expense` ||
+                  exp.description?.includes(w.description) ||
+                  w.description?.includes(exp.description?.replace("CC Loan: ", "")))
+            );
+            if (wdIndex > -1) {
+              ccAccount.withdrawals.splice(wdIndex, 1);
+              await ccAccount.save();
+            }
+          }
+        } catch (ccErr) {
+          console.error("Error cascade-deleting CCLoan withdrawal on expense delete:", ccErr);
+        }
+      }
+
       const result = await HomeExpense.findByIdAndDelete(id);
       resolve(result);
     } catch (err) {
