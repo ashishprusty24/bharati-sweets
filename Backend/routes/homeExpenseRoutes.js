@@ -403,31 +403,23 @@ router.get("/migrate-ledger-categories", async (req, res) => {
       return "other";
     };
 
-    const ledgers = await DailyLedger.find({});
+    const ledgers = await DailyLedger.find({}).lean();
     let updatedItems = 0;
     let updatedLedgers = 0;
     const details = [];
 
     for (const ledger of ledgers) {
-      let changed = false;
+      const updates = {};
+      let hasUpdate = false;
 
-      // Clean out any empty/invalid items first
-      const validItems = (ledger.items || []).filter(
-        (i) => i.description && i.amount != null
-      );
-      if (validItems.length !== (ledger.items || []).length) {
-        ledger.items = validItems;
-        changed = true;
-      }
-
-      for (const item of ledger.items) {
-        if (item.type !== "expense") continue;
-        if (!item.description) continue;
+      for (let i = 0; i < (ledger.items || []).length; i++) {
+        const item = ledger.items[i];
+        if (item.type !== "expense" || !item.description) continue;
         const oldCat = item.category || "other";
         const newCat = suggestCategory(item.description);
         if (oldCat === "other" && newCat !== "other") {
-          item.category = newCat;
-          changed = true;
+          updates[`items.${i}.category`] = newCat;
+          hasUpdate = true;
           updatedItems++;
           details.push({
             description: item.description,
@@ -437,8 +429,10 @@ router.get("/migrate-ledger-categories", async (req, res) => {
           });
         }
       }
-      if (changed) {
-        await ledger.save();
+
+      if (hasUpdate) {
+        // Direct $set — ONLY updates the category field, no validation on other fields
+        await DailyLedger.updateOne({ _id: ledger._id }, { $set: updates });
         updatedLedgers++;
       }
     }
