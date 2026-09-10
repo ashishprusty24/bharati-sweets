@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Space, Button, Typography, Switch, DatePicker, Tag } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Space, Button, Typography, Switch, DatePicker } from "antd";
 import { PlusOutlined, DeleteOutlined, UserOutlined, PhoneOutlined, WalletOutlined, BellOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -97,34 +97,12 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <>
-              {fields.map(({ key, name, ...restField }, index) => (
+              {fields.map(({ key, name, ...restField }) => (
                 <Space key={key} style={{ display: "flex", marginBottom: 8 }} align="baseline">
-                  <Text strong style={{ minWidth: 24, color: "#1a1a2e", fontSize: 14 }}>{index + 1}.</Text>
                   <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ width: 250 }}>
-                    <Select
-                      placeholder="Select sweet"
-                      showSearch
-                      optionFilterProp="label"
-                      options={inventoryItems.map(inv => ({
-                        value: inv._id,
-                        label: inv.name,
-                        desc: `₹${inv.costPerUnit}/${inv.unit}`
-                      }))}
-                      optionRender={(option) => (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>{option.label}</span>
-                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
-                        </div>
-                      )}
-                      onChange={(value) => {
-                        const selected = inventoryItems.find(inv => inv._id === value);
-                        if (selected) {
-                          const items = form.getFieldValue("items");
-                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
-                          form.setFieldsValue({ items });
-                        }
-                      }}
-                    />
+                    <Select placeholder="Select sweet" showSearch optionFilterProp="children">
+                      {inventoryItems.map(inv => <Option key={inv._id} value={inv._id}>{inv.name}</Option>)}
+                    </Select>
                   </Form.Item>
                   <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]}>
                     <InputNumber placeholder="Price" prefix="₹" style={{ width: 120 }} />
@@ -139,24 +117,6 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
             </>
           )}
         </Form.List>
-
-        {/* 1 Packet Total */}
-        <Form.Item noStyle shouldUpdate>
-          {({ getFieldValue }) => {
-            const items = getFieldValue("items") || [];
-            const total = items.reduce((sum, item) => sum + ((Number(item?.price) || 0) * (Number(item?.quantity) || 0)), 0);
-            return total > 0 ? (
-              <div style={{
-                marginTop: 12, padding: "10px 16px", borderRadius: 8,
-                background: "#f0fdf4", border: "1px solid #bbf7d0",
-                display: "flex", justifyContent: "space-between", alignItems: "center"
-              }}>
-                <Text strong style={{ color: "#166534" }}>1 Packet Price ({items.filter(i => i?.price && i?.quantity).length} sweets)</Text>
-                <Text strong style={{ color: "#166534", fontSize: 16 }}>₹{total}</Text>
-              </div>
-            ) : null;
-          }}
-        </Form.Item>
 
         <Divider>Payment Details</Divider>
         <Row gutter={16}>
@@ -207,9 +167,6 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
       </Form>
     </Modal>
   );
-};
-
-export default RegularOrderModal;
 };
 
 export default RegularOrderModal;

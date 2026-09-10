@@ -154,17 +154,28 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
 
         <Divider>Items Details</Divider>
         <Row gutter={16} align="middle">
-          <Col xs={8}>
+          <Col xs={6}>
             <Form.Item name="packets" label="Packets" rules={[{ required: true }]}>
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
-          <Col xs={8}>
+          <Col xs={6}>
+            <Form.Item name="packetType" label="Packet Type">
+              <Select placeholder="Select type">
+                <Option value="Box">Box</Option>
+                <Option value="Thali">Thali</Option>
+                <Option value="Polythene">Polythene</Option>
+                <Option value="Thermocol">Thermocol</Option>
+                <Option value="Custom">Custom</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={6}>
             <Form.Item name="discount" label="Discount/Pkt">
               <InputNumber min={0} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
-          <Col xs={8}>
+          <Col xs={6}>
             <Form.Item name="orderStatus" label="Status">
               <Select>
                 {orderStatusOptions.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
