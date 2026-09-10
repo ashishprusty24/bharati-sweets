@@ -98,65 +98,65 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
           {(fields, { add, remove }) => (
             <>
               {fields.map(({ key, name, ...restField }, index) => (
-                <div key={key} style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-start" }}>
-                  <Text strong style={{ minWidth: 28, textAlign: "right", marginTop: 5, color: "#1a1a2e", fontSize: 14 }}>
-                    {index + 1}.
-                  </Text>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                      <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ width: 250, marginBottom: 2 }}>
-                        <Select
-                          placeholder="Select sweet"
-                          showSearch
-                          optionFilterProp="label"
-                          options={inventoryItems.map(inv => ({
-                            value: inv._id,
-                            label: inv.name,
-                            desc: `₹${inv.costPerUnit}/${inv.unit}`
-                          }))}
-                          optionRender={(option) => (
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span>{option.label}</span>
-                              <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
-                            </div>
-                          )}
-                          onChange={(value) => {
-                            const selected = inventoryItems.find(inv => inv._id === value);
-                            if (selected) {
-                              const items = form.getFieldValue("items");
-                              items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
-                              form.setFieldsValue({ items });
-                            }
-                          }}
-                        />
-                      </Form.Item>
-                      <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]} style={{ marginBottom: 2 }}>
-                        <InputNumber placeholder="Price" prefix="₹" style={{ width: 120 }} />
-                      </Form.Item>
-                      <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true }]} style={{ marginBottom: 2 }}>
-                        <InputNumber placeholder="Qty" style={{ width: 100 }} />
-                      </Form.Item>
-                      <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ marginTop: 2 }} />
-                    </div>
-                    {/* Show 1 packet price below the sweet name */}
-                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.items?.[name]?.itemId !== curr?.items?.[name]?.itemId}>
-                      {({ getFieldValue }) => {
-                        const itemId = getFieldValue(["items", name, "itemId"]);
-                        const inv = itemId && inventoryItems.find(i => i._id === itemId);
-                        return inv ? (
-                          <Tag color="green" style={{ fontSize: 11, marginTop: 2 }}>
-                            1 Pkt Price: ₹{inv.costPerUnit}/{inv.unit}
-                          </Tag>
-                        ) : null;
+                <Space key={key} style={{ display: "flex", marginBottom: 8 }} align="baseline">
+                  <Text strong style={{ minWidth: 24, color: "#1a1a2e", fontSize: 14 }}>{index + 1}.</Text>
+                  <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ width: 250 }}>
+                    <Select
+                      placeholder="Select sweet"
+                      showSearch
+                      optionFilterProp="label"
+                      options={inventoryItems.map(inv => ({
+                        value: inv._id,
+                        label: inv.name,
+                        desc: `₹${inv.costPerUnit}/${inv.unit}`
+                      }))}
+                      optionRender={(option) => (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span>{option.label}</span>
+                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
+                        </div>
+                      )}
+                      onChange={(value) => {
+                        const selected = inventoryItems.find(inv => inv._id === value);
+                        if (selected) {
+                          const items = form.getFieldValue("items");
+                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
+                          form.setFieldsValue({ items });
+                        }
                       }}
-                    </Form.Item>
-                  </div>
-                </div>
+                    />
+                  </Form.Item>
+                  <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]}>
+                    <InputNumber placeholder="Price" prefix="₹" style={{ width: 120 }} />
+                  </Form.Item>
+                  <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true }]}>
+                    <InputNumber placeholder="Qty" style={{ width: 100 }} />
+                  </Form.Item>
+                  <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} />
+                </Space>
               ))}
               <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Add Item</Button>
             </>
           )}
         </Form.List>
+
+        {/* 1 Packet Total */}
+        <Form.Item noStyle shouldUpdate>
+          {({ getFieldValue }) => {
+            const items = getFieldValue("items") || [];
+            const total = items.reduce((sum, item) => sum + (Number(item?.price) || 0), 0);
+            return total > 0 ? (
+              <div style={{
+                marginTop: 12, padding: "10px 16px", borderRadius: 8,
+                background: "#f0fdf4", border: "1px solid #bbf7d0",
+                display: "flex", justifyContent: "space-between", alignItems: "center"
+              }}>
+                <Text strong style={{ color: "#166534" }}>1 Packet Price ({items.filter(i => i?.price).length} sweets)</Text>
+                <Text strong style={{ color: "#166534", fontSize: 16 }}>₹{total}</Text>
+              </div>
+            ) : null;
+          }}
+        </Form.Item>
 
         <Divider>Payment Details</Divider>
         <Row gutter={16}>
@@ -207,6 +207,9 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
       </Form>
     </Modal>
   );
+};
+
+export default RegularOrderModal;
 };
 
 export default RegularOrderModal;
