@@ -144,14 +144,14 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
         <Form.Item noStyle shouldUpdate>
           {({ getFieldValue }) => {
             const items = getFieldValue("items") || [];
-            const total = items.reduce((sum, item) => sum + (Number(item?.price) || 0), 0);
+            const total = items.reduce((sum, item) => sum + ((Number(item?.price) || 0) * (Number(item?.quantity) || 0)), 0);
             return total > 0 ? (
               <div style={{
                 marginTop: 12, padding: "10px 16px", borderRadius: 8,
                 background: "#f0fdf4", border: "1px solid #bbf7d0",
                 display: "flex", justifyContent: "space-between", alignItems: "center"
               }}>
-                <Text strong style={{ color: "#166534" }}>1 Packet Price ({items.filter(i => i?.price).length} sweets)</Text>
+                <Text strong style={{ color: "#166534" }}>1 Packet Price ({items.filter(i => i?.price && i?.quantity).length} sweets)</Text>
                 <Text strong style={{ color: "#166534", fontSize: 16 }}>₹{total}</Text>
               </div>
             ) : null;
