@@ -101,34 +101,8 @@ const getLedgerByDate = (date) => {
         (i) => !isCCExpense(i)
       );
 
-      // Merge Home Expenses into ledger items if missing
-      // ONLY merge genuine shop/home expenses paid from shop/home cash or bank, NEVER cc_loan or credit_card!
-      try {
-        const homeExpenses = await HomeExpense.find({
-          date: { $gte: targetDate, $lte: endOfDay },
-          paymentSource: { $in: ["home_cash", "bank_account"] },
-          category: { $nin: ["home_intake", "home intake", "personal", "intake", "cc_loan", "cc_loan_repayment", "credit_card_bill"] }
-        });
-        homeExpenses.forEach((exp) => {
-          if (!isIntakeCategory(exp.category) && !isCCExpense(exp)) {
-            const exists = items.some(
-              (i) => i.description === exp.description && Number(i.amount) === Number(exp.amount)
-            );
-            if (!exists) {
-              items.push({
-                description: exp.description,
-                amount: Number(exp.amount) || 0,
-                type: "expense",
-                category: exp.category,
-                vendorId: exp.vendorId,
-                paymentMode: exp.paymentSource === "bank_account" ? "bank" : "cash",
-              });
-            }
-          }
-        });
-      } catch (eErr) {
-        console.error("Error merging home expenses into ledger items:", eErr);
-      }
+      // NOTE: Home Expenses are NOT merged into Daily Ledger items.
+      // Expense module and Daily Ledger are kept completely separate per customer requirement.
 
       const cashExpenseTotal = items
         .filter((i) => i.type === "expense" && i.paymentMode !== "bank")

@@ -173,15 +173,52 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
           </Col>
         </Row>
 
+        {/* Column Headers */}
+        <div style={{ display: "flex", marginBottom: 4, padding: "0 4px", gap: 8, alignItems: "flex-start" }}>
+          <Text strong style={{ width: 32, textAlign: "center", fontSize: 12, color: "#64748b" }}>S.No</Text>
+          <Text strong style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", fontSize: 12, color: "#64748b" }}>Sweet Name</Text>
+          <Text strong style={{ flex: "0 0 90px", fontSize: 12, color: "#64748b" }}>Price (₹)</Text>
+          <Text strong style={{ flex: "0 0 70px", fontSize: 12, color: "#64748b" }}>Qty</Text>
+          <span style={{ width: 32 }}></span>
+        </div>
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <>
-              {fields.map(({ key, name, ...restField }) => (
+              {fields.map(({ key, name, ...restField }, index) => (
                 <div key={key} className="order-item-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 4
+                  }}>
+                    {index + 1}
+                  </div>
                   <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", marginBottom: 4 }}>
-                    <Select placeholder="Select Sweet" showSearch optionFilterProp="children">
-                      {inventoryOptions}
-                    </Select>
+                    <Select
+                      placeholder="Select Sweet"
+                      showSearch
+                      optionFilterProp="label"
+                      options={(inventoryItems || []).map(inv => ({
+                        value: inv._id,
+                        label: inv.name,
+                        desc: `₹${inv.costPerUnit}/${inv.unit}`
+                      }))}
+                      optionRender={(option) => (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span>{option.label}</span>
+                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
+                        </div>
+                      )}
+                      onChange={(value) => {
+                        const selected = (inventoryItems || []).find(inv => inv._id === value);
+                        if (selected) {
+                          const items = form.getFieldValue("items");
+                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
+                          form.setFieldsValue({ items });
+                        }
+                      }}
+                    />
                   </Form.Item>
                   <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]} style={{ flex: "0 0 90px", marginBottom: 4 }}>
                     <InputNumber placeholder="Price" prefix="₹" style={{ width: "100%" }} />

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Space, Button, Typography, Switch, DatePicker } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Space, Button, Typography, Switch, DatePicker, Tag } from "antd";
 import { PlusOutlined, DeleteOutlined, UserOutlined, PhoneOutlined, WalletOutlined, BellOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -94,15 +94,52 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
         </div>
 
         <Divider>Order Items</Divider>
+        {/* Column Headers */}
+        <div style={{ display: "flex", marginBottom: 4, padding: "0 4px", gap: 8, alignItems: "center" }}>
+          <Text strong style={{ width: 32, textAlign: "center", fontSize: 12, color: "#64748b" }}>S.No</Text>
+          <Text strong style={{ width: 250, fontSize: 12, color: "#64748b" }}>Sweet Name</Text>
+          <Text strong style={{ width: 120, fontSize: 12, color: "#64748b" }}>Price (₹)</Text>
+          <Text strong style={{ width: 100, fontSize: 12, color: "#64748b" }}>Qty</Text>
+          <Text strong style={{ width: 32, fontSize: 12, color: "#64748b" }}></Text>
+        </div>
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <>
-              {fields.map(({ key, name, ...restField }) => (
+              {fields.map(({ key, name, ...restField }, index) => (
                 <Space key={key} style={{ display: "flex", marginBottom: 8 }} align="baseline">
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0
+                  }}>
+                    {index + 1}
+                  </div>
                   <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ width: 250 }}>
-                    <Select placeholder="Select sweet" showSearch optionFilterProp="children">
-                      {inventoryItems.map(inv => <Option key={inv._id} value={inv._id}>{inv.name}</Option>)}
-                    </Select>
+                    <Select
+                      placeholder="Select sweet"
+                      showSearch
+                      optionFilterProp="label"
+                      options={inventoryItems.map(inv => ({
+                        value: inv._id,
+                        label: inv.name,
+                        desc: `₹${inv.costPerUnit}/${inv.unit}`
+                      }))}
+                      optionRender={(option) => (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span>{option.label}</span>
+                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
+                        </div>
+                      )}
+                      onChange={(value) => {
+                        const selected = inventoryItems.find(inv => inv._id === value);
+                        if (selected) {
+                          const items = form.getFieldValue("items");
+                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
+                          form.setFieldsValue({ items });
+                        }
+                      }}
+                    />
                   </Form.Item>
                   <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]}>
                     <InputNumber placeholder="Price" prefix="₹" style={{ width: 120 }} />

@@ -1,5 +1,5 @@
 const HomeExpense = require("../models/HomeExpense");
-const DailyLedger = require("../models/DailyLedger");
+
 const Vendor = require("../models/Vendor");
 const Staff = require("../models/Staff");
 const CreditCard = require("../models/CreditCard");
@@ -137,70 +137,8 @@ const createHomeExpense = (data) => {
         }
       }
 
-      // --- AUTO SYNC TO DAILY LEDGER ---
-      // CC Loan withdrawals and Credit Card swiped spending (paymentSource = cc_loan/credit_card)
-      // must NEVER sync to Daily Ledger.
-      // But repayments paid from home_cash or bank_account DO deduct from cash/bank in Daily Ledger!
-      const isCCExpenseData = (d) => {
-        const cat = String(d.category || "").toLowerCase().trim();
-        const src = String(d.paymentSource || "").toLowerCase().trim();
-        const desc = String(d.description || "").toLowerCase().trim();
-        if (src === "cc_loan" || src === "credit_card" || cat === "cc_loan") {
-          return true;
-        }
-        if ((desc.startsWith("cc loan:") || desc.startsWith("cc loan -")) && (src === "cc_loan" || !src)) {
-          return true;
-        }
-        return false;
-      };
-
-      if (!isCCExpenseData(data)) {
-        try {
-          const txDate = data.date ? new Date(data.date) : new Date();
-          const targetDate = dayjs(txDate).startOf("day").toDate();
-          let ledger = await DailyLedger.findOne({ date: targetDate });
-          const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-          const prevLedger = await DailyLedger.findOne({ date: prevDay });
-          const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-          const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
-
-          if (!ledger) {
-            ledger = new DailyLedger({
-              date: targetDate,
-              openingBalance,
-              openingBankBalance,
-              items: [],
-            });
-          } else if (prevLedger) {
-            ledger.openingBalance = openingBalance;
-            ledger.openingBankBalance = openingBankBalance;
-          }
-
-          if (isIntakeCategory(data.category)) {
-            if (data.paymentSource === "home_cash" || !data.paymentSource) {
-              ledger.cashToHome = (Number(ledger.cashToHome) || 0) + Number(data.amount || 0);
-            } else {
-              ledger.digitalToHome = (Number(ledger.digitalToHome) || 0) + Number(data.amount || 0);
-            }
-          } else {
-            const paymentMode = data.paymentSource === "bank_account" ? "bank" : "cash";
-            ledger.items.push({
-              description: data.description,
-              amount: Number(data.amount) || 0,
-              type: "expense",
-              category: data.category || "other",
-              vendorId: data.vendorId || null,
-              paymentMode,
-            });
-            ledger.totalExpenses = ledger.items
-              .filter((i) => i.type === "expense")
-              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-          }
-          await ledger.save();
-        } catch (ledgerSyncErr) {
-          console.error("Daily Ledger sync error in homeExpense:", ledgerSyncErr);
-        }
-      }
+      // NOTE: Expenses are NOT synced to Daily Ledger.
+      // Expense module and Daily Ledger are kept completely separate per customer requirement.
 
       const populated = await HomeExpense.findById(saved._id)
         .populate("staffId", "name")
@@ -244,44 +182,7 @@ const updateHomeExpense = (id, data) => {
         );
       };
 
-      // Sync update to Daily Ledger
-      try {
-        const txDate = updated.date ? new Date(updated.date) : new Date();
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        if (ledger && oldExp) {
-          if (isCCExpenseData(updated)) {
-            // If expense was changed to CC loan/card, remove it from DailyLedger
-            const itemIdx = ledger.items.findIndex(
-              (i) => i.description === oldExp.description || i.description === updated.description
-            );
-            if (itemIdx > -1) {
-              ledger.items.splice(itemIdx, 1);
-              ledger.totalExpenses = ledger.items
-                .filter((i) => i.type === "expense")
-                .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-              await ledger.save();
-            }
-          } else {
-            // Update the item in DailyLedger
-            const item = ledger.items.find(
-              (i) => i.description === oldExp.description || i.description === updated.description
-            );
-            if (item) {
-              item.description = updated.description;
-              item.amount = Number(updated.amount) || 0;
-              item.category = updated.category || "other";
-              item.paymentMode = updated.paymentSource === "bank_account" ? "bank" : "cash";
-              ledger.totalExpenses = ledger.items
-                .filter((i) => i.type === "expense")
-                .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-              await ledger.save();
-            }
-          }
-        }
-      } catch (lErr) {
-        console.error("Error syncing updated expense to ledger:", lErr);
-      }
+      // NOTE: Expenses are NOT synced to Daily Ledger (per customer requirement).
 
       resolve(updated);
     } catch (err) {
@@ -296,24 +197,7 @@ const deleteHomeExpense = (id) => {
       const exp = await HomeExpense.findById(id);
       if (!exp) return reject({ status: 404, message: "Home expense not found" });
 
-      // If synced to ledger, remove from ledger
-      try {
-        const txDate = exp.date ? new Date(exp.date) : new Date();
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        if (ledger) {
-          const itemIndex = ledger.items.findIndex((i) => i.description === exp.description);
-          if (itemIndex > -1) {
-            ledger.items.splice(itemIndex, 1);
-            ledger.totalExpenses = ledger.items
-              .filter((i) => i.type === "expense")
-              .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-            await ledger.save();
-          }
-        }
-      } catch (lErr) {
-        console.error("Error removing expense from ledger on delete:", lErr);
-      }
+      // NOTE: Expenses are NOT synced to Daily Ledger (per customer requirement).
 
       // Cascade delete: Remove matching transaction from CreditCard
       if (exp.paymentSource === "credit_card" && exp.creditCardId) {
