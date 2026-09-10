@@ -80,7 +80,14 @@ const EventOrdersPage = () => {
 
   const allPurposeOptions = useMemo(() => {
     const fromOrders = (orders || []).map((o) => (o.purpose || "").trim()).filter(Boolean);
-    return Array.from(new Set([...DEFAULT_PURPOSE_OPTIONS, ...fromOrders]));
+    const combined = [...DEFAULT_PURPOSE_OPTIONS, ...fromOrders];
+    const seen = new Set();
+    return combined.filter((p) => {
+      const key = p.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
