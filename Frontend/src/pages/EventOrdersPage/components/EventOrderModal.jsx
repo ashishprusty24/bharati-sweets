@@ -173,60 +173,63 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
           </Col>
         </Row>
 
-        {/* Column Headers */}
-        <div style={{ display: "flex", marginBottom: 4, padding: "0 4px", gap: 8, alignItems: "flex-start" }}>
-          <Text strong style={{ width: 32, textAlign: "center", fontSize: 12, color: "#64748b" }}>S.No</Text>
-          <Text strong style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", fontSize: 12, color: "#64748b" }}>Sweet Name</Text>
-          <Text strong style={{ flex: "0 0 90px", fontSize: 12, color: "#64748b" }}>Price (₹)</Text>
-          <Text strong style={{ flex: "0 0 70px", fontSize: 12, color: "#64748b" }}>Qty</Text>
-          <span style={{ width: 32 }}></span>
-        </div>
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <>
               {fields.map(({ key, name, ...restField }, index) => (
-                <div key={key} className="order-item-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 4
-                  }}>
-                    {index + 1}
-                  </div>
-                  <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", marginBottom: 4 }}>
-                    <Select
-                      placeholder="Select Sweet"
-                      showSearch
-                      optionFilterProp="label"
-                      options={(inventoryItems || []).map(inv => ({
-                        value: inv._id,
-                        label: inv.name,
-                        desc: `₹${inv.costPerUnit}/${inv.unit}`
-                      }))}
-                      optionRender={(option) => (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>{option.label}</span>
-                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
-                        </div>
-                      )}
-                      onChange={(value) => {
-                        const selected = (inventoryItems || []).find(inv => inv._id === value);
-                        if (selected) {
-                          const items = form.getFieldValue("items");
-                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
-                          form.setFieldsValue({ items });
-                        }
+                <div key={key} style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-start" }}>
+                  <Text strong style={{ minWidth: 28, textAlign: "right", marginTop: 5, color: "#1a1a2e", fontSize: 14 }}>
+                    {index + 1}.
+                  </Text>
+                  <div style={{ flex: 1 }}>
+                    <div className="order-item-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+                      <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", marginBottom: 2 }}>
+                        <Select
+                          placeholder="Select Sweet"
+                          showSearch
+                          optionFilterProp="label"
+                          options={(inventoryItems || []).map(inv => ({
+                            value: inv._id,
+                            label: inv.name,
+                            desc: `₹${inv.costPerUnit}/${inv.unit}`
+                          }))}
+                          optionRender={(option) => (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span>{option.label}</span>
+                              <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
+                            </div>
+                          )}
+                          onChange={(value) => {
+                            const selected = (inventoryItems || []).find(inv => inv._id === value);
+                            if (selected) {
+                              const items = form.getFieldValue("items");
+                              items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
+                              form.setFieldsValue({ items });
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                      <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]} style={{ flex: "0 0 90px", marginBottom: 2 }}>
+                        <InputNumber placeholder="Price" prefix="₹" style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true }]} style={{ flex: "0 0 70px", marginBottom: 2 }}>
+                        <InputNumber placeholder="Qty" style={{ width: "100%" }} />
+                      </Form.Item>
+                      <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ marginTop: 2 }} />
+                    </div>
+                    {/* Show 1 packet price below the sweet name */}
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.items?.[name]?.itemId !== curr?.items?.[name]?.itemId}>
+                      {({ getFieldValue }) => {
+                        const itemId = getFieldValue(["items", name, "itemId"]);
+                        const inv = itemId && (inventoryItems || []).find(i => i._id === itemId);
+                        return inv ? (
+                          <Tag color="green" style={{ fontSize: 11, marginTop: 2 }}>
+                            1 Pkt Price: ₹{inv.costPerUnit}/{inv.unit}
+                          </Tag>
+                        ) : null;
                       }}
-                    />
-                  </Form.Item>
-                  <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]} style={{ flex: "0 0 90px", marginBottom: 4 }}>
-                    <InputNumber placeholder="Price" prefix="₹" style={{ width: "100%" }} />
-                  </Form.Item>
-                  <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true }]} style={{ flex: "0 0 70px", marginBottom: 4 }}>
-                    <InputNumber placeholder="Qty" style={{ width: "100%" }} />
-                  </Form.Item>
-                  <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ marginTop: 4 }} />
+                    </Form.Item>
+                  </div>
                 </div>
               ))}
               <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Add Item</Button>
