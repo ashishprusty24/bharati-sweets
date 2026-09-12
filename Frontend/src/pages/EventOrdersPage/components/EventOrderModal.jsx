@@ -173,7 +173,7 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
             </Form.Item>
           </Col>
           <Col xs={6}>
-            <Form.Item name="packetType" label="Packet Type">
+            <Form.Item name="packetType" label="Packet Type (Invoice)">
               <Input placeholder="e.g. Box, Thali" />
             </Form.Item>
           </Col>

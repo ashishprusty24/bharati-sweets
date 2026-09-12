@@ -168,12 +168,15 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             <div style={{ fontSize: 11, color: "#44403c" }}>Order ID: <strong>{order._id ? order._id.slice(-8) : "N/A"}</strong></div>
             <div style={{ fontSize: 11, color: "#44403c" }}>Event: <strong>{order.purpose || "N/A"}</strong></div>
             <div style={{ fontSize: 11, color: "#44403c" }}>Delivery: <strong>{formatDate(order.deliveryDate || order.eventDate)} at {order.deliveryTime || "TBD"}</strong></div>
+            {order.packetType && (
+              <div style={{ fontSize: 11, color: "#44403c" }}>Packet Type: <strong>{order.packetType}</strong></div>
+            )}
           </div>
         </div>
 
         {/* ITEMS TABLE */}
         <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 6, letterSpacing: 0.5 }}>
-          📦 ITEMS PER PACKET ({packets}{order.packetType ? ` ${order.packetType}` : ''} PACKETS TOTAL)
+          📦 ITEMS PER PACKET ({packets} {order.packetType ? order.packetType.toUpperCase() : 'PACKET'}{packets > 1 ? 'S' : ''} TOTAL)
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
           <thead>
