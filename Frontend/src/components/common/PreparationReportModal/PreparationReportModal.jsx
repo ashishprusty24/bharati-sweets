@@ -180,7 +180,7 @@ const PreparationReportModal = () => {
         destroyOnClose
         className="responsive-modal"
         styles={{
-          body: { padding: isMobile ? 16 : 24 },
+          body: { padding: isMobile ? 15 : 24, overflowX: "hidden" },
           content: { borderRadius: 20, overflow: "hidden" },
         }}
       >

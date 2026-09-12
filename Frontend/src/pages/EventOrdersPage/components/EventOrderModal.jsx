@@ -86,7 +86,7 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
       width={isMobile ? "95vw" : 800}
       centered
       className="responsive-modal"
-      styles={{ body: { maxHeight: "70vh", overflowY: "auto", padding: isMobile ? 12 : 24 } }}
+      styles={{ content: { padding: isMobile ? 15 : 24, overflow: "hidden" }, body: { maxHeight: "75vh", overflowY: "auto", overflowX: "hidden" } }}
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>
@@ -131,32 +131,32 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
         </Form.Item>
 
         <Divider><BellOutlined /> Smart CRM Reminder</Divider>
-        <div style={{ background: "#f8fafc", padding: 16, borderRadius: 8, marginBottom: 24, border: "1px solid #e2e8f0" }}>
-          <Form.Item name="setReminder" valuePropName="checked" style={{ marginBottom: 8 }}>
+        <div style={{ background: "#f8fafc", padding: isMobile ? 12 : 16, borderRadius: 10, marginBottom: 20, border: "1px solid #e2e8f0" }}>
+          <Form.Item name="setReminder" valuePropName="checked" style={{ marginBottom: 4 }}>
             <Switch checkedChildren="Reminder ON" unCheckedChildren="Reminder OFF" />
-            <Text style={{ marginLeft: 12 }}>Set a yearly reminder for this customer to get repeat business</Text>
+            <Text style={{ marginLeft: 12, fontSize: isMobile ? 12 : 13 }}>Set yearly reminder for repeat business</Text>
           </Form.Item>
 
           <Form.Item noStyle shouldUpdate={(prev, curr) => prev.setReminder !== curr.setReminder}>
             {({ getFieldValue }) => getFieldValue("setReminder") && (
-              <Row gutter={16} style={{ marginTop: 16 }}>
-                <Col span={8}>
+              <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+                <Col xs={24} sm={8}>
                   <Form.Item name="reminderEventType" label="Event Type" rules={[{ required: true, message: "Required" }]}>
-                    <Select placeholder="Type">
-                      <Option value="Birthday">Birthday</Option>
-                      <Option value="Anniversary">Anniversary</Option>
-                      <Option value="Corporate">Corporate</Option>
-                      <Option value="Other">Other</Option>
+                    <Select placeholder="Select Type">
+                      <Option value="Birthday">🎂 Birthday</Option>
+                      <Option value="Anniversary">💍 Anniversary</Option>
+                      <Option value="Corporate">🏢 Corporate</Option>
+                      <Option value="Other">⭐ Other</Option>
                     </Select>
                   </Form.Item>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} sm={8}>
                   <Form.Item name="reminderEventDate" label="Event Date" rules={[{ required: true, message: "Required" }]}>
                     <DatePicker style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
-                  <Form.Item name="reminderSecondaryName" label="Secondary Name (Opt)">
+                <Col xs={12} sm={8}>
+                  <Form.Item name="reminderSecondaryName" label="Secondary Name">
                     <Input placeholder="e.g. Spouse/Child" />
                   </Form.Item>
                 </Col>
@@ -165,26 +165,26 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
           </Form.Item>
         </div>
 
-        <Divider>Items Details</Divider>
-        <Row gutter={16} align="middle">
-          <Col xs={6}>
-            <Form.Item name="packets" label="Packets" rules={[{ required: true }]}>
-              <InputNumber min={1} style={{ width: "100%" }} />
+        <Divider>Items & Quantity Details</Divider>
+        <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+          <Col xs={12} sm={6}>
+            <Form.Item name="packets" label="Packets" rules={[{ required: true, message: "Required" }]}>
+              <InputNumber min={1} style={{ width: "100%" }} placeholder="1" />
             </Form.Item>
           </Col>
-          <Col xs={6}>
-            <Form.Item name="packetType" label="Packet Type (Invoice)">
+          <Col xs={12} sm={6}>
+            <Form.Item name="packetType" label="Packet Type">
               <Input placeholder="e.g. Box, Thali" />
             </Form.Item>
           </Col>
-          <Col xs={6}>
-            <Form.Item name="discount" label="Discount/Pkt">
-              <InputNumber min={0} style={{ width: "100%" }} />
+          <Col xs={12} sm={6}>
+            <Form.Item name="discount" label="Discount / Pkt">
+              <InputNumber min={0} style={{ width: "100%" }} placeholder="0" prefix="₹" />
             </Form.Item>
           </Col>
-          <Col xs={6}>
+          <Col xs={12} sm={6}>
             <Form.Item name="orderStatus" label="Status">
-              <Select>
+              <Select placeholder="Status">
                 {orderStatusOptions.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
               </Select>
             </Form.Item>
@@ -195,44 +195,93 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
           {(fields, { add, remove }) => (
             <>
               {fields.map(({ key, name, ...restField }, index) => (
-                <div key={key} className="order-item-row" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                  <Text strong style={{ minWidth: 24, marginTop: 5, color: "#1a1a2e", fontSize: 14 }}>{index + 1}.</Text>
-                  <Form.Item {...restField} name={[name, "itemId"]} rules={[{ required: true }]} style={{ flex: isMobile ? "1 1 100%" : "1 1 200px", marginBottom: 4 }}>
-                    <Select
-                      placeholder="Select Sweet"
-                      showSearch
-                      optionFilterProp="label"
-                      options={(inventoryItems || []).map(inv => ({
-                        value: inv._id,
-                        label: inv.name,
-                        desc: `₹${inv.costPerUnit}/${inv.unit}`
-                      }))}
-                      optionRender={(option) => (
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>{option.label}</span>
-                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
-                        </div>
-                      )}
-                      onChange={(value) => {
-                        const selected = (inventoryItems || []).find(inv => inv._id === value);
-                        if (selected) {
-                          const items = form.getFieldValue("items");
-                          items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
-                          form.setFieldsValue({ items });
-                        }
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item {...restField} name={[name, "price"]} rules={[{ required: true }]} style={{ flex: "0 0 90px", marginBottom: 4 }}>
-                    <InputNumber placeholder="Price" prefix="₹" style={{ width: "100%" }} />
-                  </Form.Item>
-                  <Form.Item {...restField} name={[name, "quantity"]} rules={[{ required: true }]} style={{ flex: "0 0 70px", marginBottom: 4 }}>
-                    <InputNumber placeholder="Qty" style={{ width: "100%" }} />
-                  </Form.Item>
-                  <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ marginTop: 4 }} />
+                <div
+                  key={key}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: isMobile ? "10px 12px" : "12px 14px",
+                    marginBottom: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text strong style={{ fontSize: 13, color: "#334155" }}>
+                      Item #{index + 1}
+                    </Text>
+                    {fields.length > 1 && (
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => remove(name)}
+                        style={{ background: "#fef2f2", borderRadius: 6, fontSize: 12, padding: "2px 8px" }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <Row gutter={[10, 10]}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        {...restField}
+                        name={[name, "itemId"]}
+                        rules={[{ required: true, message: "Select item" }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Select
+                          placeholder="Select Sweet / Item"
+                          showSearch
+                          optionFilterProp="label"
+                          options={(inventoryItems || []).map(inv => ({
+                            value: inv._id,
+                            label: inv.name,
+                            desc: `₹${inv.costPerUnit}/${inv.unit}`
+                          }))}
+                          optionRender={(option) => (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span>{option.label}</span>
+                              <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>{option.data.desc}</Tag>
+                            </div>
+                          )}
+                          onChange={(value) => {
+                            const selected = (inventoryItems || []).find(inv => inv._id === value);
+                            if (selected) {
+                              const items = form.getFieldValue("items");
+                              items[name] = { ...items[name], itemId: value, price: selected.costPerUnit };
+                              form.setFieldsValue({ items });
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} sm={6}>
+                      <Form.Item
+                        {...restField}
+                        name={[name, "price"]}
+                        rules={[{ required: true, message: "Price" }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <InputNumber placeholder="Price (₹)" prefix="₹" style={{ width: "100%" }} min={0} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} sm={6}>
+                      <Form.Item
+                        {...restField}
+                        name={[name, "quantity"]}
+                        rules={[{ required: true, message: "Qty" }]}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <InputNumber placeholder="Qty" style={{ width: "100%" }} min={1} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </div>
               ))}
-              <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Add Item</Button>
+              <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{ borderRadius: 10, marginTop: 4, height: 38 }}>
+                + Add Sweet / Item
+              </Button>
             </>
           )}
         </Form.List>

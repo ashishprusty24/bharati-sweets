@@ -61,7 +61,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
       width={isMobile ? "95vw" : 820}
       centered
       className="responsive-modal"
-      styles={{ body: { padding: isMobile ? 4 : 16, maxHeight: "82vh", overflowY: "auto" } }}
+      styles={{ body: { padding: isMobile ? 4 : 16, maxHeight: "82vh", overflowY: "auto", overflowX: "hidden" } }}
       footer={[
         <Button key="close" onClick={onCancel}>Close</Button>,
         <Button key="download" type="primary" icon={<DownloadOutlined />} onClick={handleDownloadPDF} style={{ background: "#4a151b", borderColor: "#4a151b" }}>

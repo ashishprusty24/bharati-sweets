@@ -250,6 +250,15 @@ body {
         line-height: 1.35 !important;
     }
 
+    .header-page-title,
+    h3.ant-typography.header-page-title,
+    h4.ant-typography.header-page-title {
+        font-size: 22px !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        line-height: 1.2 !important;
+    }
+
     /* Mobile Card & Head Padding */
     .ant-card-body {
         padding: 10px 12px !important;
@@ -525,22 +534,44 @@ body {
 }
 
 /* ─── Responsive Modal Overrides ─────────────────────────────────── */
+.ant-modal-content {
+    overflow: hidden !important;
+}
+
+.ant-modal-body {
+    overflow-x: hidden !important;
+}
+
 @media (max-width: 768px) {
-    .responsive-modal .ant-modal {
+    .responsive-modal .ant-modal,
+    .ant-modal {
         max-width: 95vw !important;
         margin: 12px auto !important;
     }
 
-    .responsive-modal .ant-modal-content {
+    .responsive-modal .ant-modal-content,
+    .ant-modal .ant-modal-content {
+        padding: 15px !important;
         border-radius: 16px !important;
+        overflow: hidden !important;
     }
 
-    .responsive-modal .ant-modal-header {
-        padding: 12px 16px !important;
+    .responsive-modal .ant-modal-header,
+    .ant-modal .ant-modal-header {
+        padding: 0 0 10px 0 !important;
+        margin-bottom: 8px !important;
     }
 
-    .responsive-modal .ant-modal-footer {
-        padding: 8px 12px !important;
+    .responsive-modal .ant-modal-body,
+    .ant-modal .ant-modal-body {
+        padding: 4px 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    .responsive-modal .ant-modal-footer,
+    .ant-modal .ant-modal-footer {
+        padding: 10px 0 0 0 !important;
+        margin-top: 10px !important;
     }
 
     .responsive-modal .ant-modal-footer .ant-btn {

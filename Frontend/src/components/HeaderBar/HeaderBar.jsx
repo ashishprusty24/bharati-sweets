@@ -62,20 +62,20 @@ const HeaderBar = ({
   return (
     <Header
       style={{
-        background: "rgba(255, 255, 255, 0.85)",
+        background: "rgba(255, 255, 255, 0.92)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        padding: isMobile ? "0 12px" : "0 28px",
+        padding: isMobile ? "0 16px" : "0 28px",
         paddingTop: "env(safe-area-inset-top, 0px)",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)",
-        borderBottom: "1px solid rgba(0,0,0,0.04)",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         position: "sticky",
         top: 0,
         zIndex: 10,
-        height: isMobile ? "calc(56px + env(safe-area-inset-top, 0px))" : "calc(64px + env(safe-area-inset-top, 0px))",
+        height: "calc(64px + env(safe-area-inset-top, 0px))",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
@@ -86,12 +86,12 @@ const HeaderBar = ({
           alignItems: "center",
           flex: 1,
           minWidth: 0,
-          gap: isMobile ? 10 : 16,
+          gap: isMobile ? 12 : 16,
         }}
       >
         <Button
           type="text"
-          icon={<MenuOutlined style={{ fontSize: isMobile ? 18 : 16 }} />}
+          icon={<MenuOutlined style={{ fontSize: isMobile ? 16 : 18, color: "#1e293b" }} />}
           onClick={() => {
             if (isMobile) {
               setDrawerVisible(true);
@@ -100,31 +100,32 @@ const HeaderBar = ({
             }
           }}
           style={{
-            width: isMobile ? 40 : 38,
-            height: isMobile ? 40 : 38,
+            width: isMobile ? 36 : 40,
+            height: isMobile ? 36 : 40,
             borderRadius: 10,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(15, 23, 42, 0.04)",
-            border: "none",
+            background: "rgba(15, 23, 42, 0.05)",
+            border: "1px solid rgba(15, 23, 42, 0.08)",
             transition: "all 0.2s ease",
+            flexShrink: 0,
           }}
         />
 
-        <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ minWidth: 0, flex: 1, display: "flex", alignItems: "center" }}>
           <Title
-            level={4}
+            level={3}
+            className="header-page-title"
             style={{
               margin: 0,
-              fontSize: isMobile ? "17px" : "20px",
-              fontWeight: 700,
+              fontSize: isMobile ? "22px" : "22px",
+              fontWeight: 800,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
               color: "#0f172a",
               letterSpacing: "-0.3px",
-              lineHeight: isMobile ? "56px" : "64px",
             }}
           >
             {pageTitle}
@@ -137,7 +138,7 @@ const HeaderBar = ({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: isMobile ? 6 : 12,
+          gap: isMobile ? 8 : 14,
           flexShrink: 0,
         }}
       >
@@ -145,16 +146,16 @@ const HeaderBar = ({
         {!isMobile && (
           <Button
             type="text"
-            icon={<SearchOutlined style={{ fontSize: 16, color: "#64748b" }} />}
+            icon={<SearchOutlined style={{ fontSize: 18, color: "#64748b" }} />}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(15, 23, 42, 0.04)",
-              border: "none",
+              background: "rgba(15, 23, 42, 0.05)",
+              border: "1px solid rgba(15, 23, 42, 0.08)",
             }}
           />
         )}
@@ -163,17 +164,17 @@ const HeaderBar = ({
         <Badge count={5} size="small" offset={[-2, 2]}>
           <Button
             type="text"
-            icon={<BellOutlined style={{ fontSize: isMobile ? 18 : 17, color: "#64748b" }} />}
+            icon={<BellOutlined style={{ fontSize: isMobile ? 16 : 18, color: "#475569" }} />}
             onClick={() => navigate("/working-on-it")}
             style={{
-              width: isMobile ? 40 : 38,
-              height: isMobile ? 40 : 38,
+              width: isMobile ? 36 : 40,
+              height: isMobile ? 36 : 40,
               borderRadius: 10,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(15, 23, 42, 0.04)",
-              border: "none",
+              background: "rgba(15, 23, 42, 0.05)",
+              border: "1px solid rgba(15, 23, 42, 0.08)",
             }}
           />
         </Badge>
@@ -189,9 +190,9 @@ const HeaderBar = ({
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
-              gap: 10,
-              padding: isMobile ? "4px" : "4px 12px 4px 4px",
-              borderRadius: 12,
+              gap: 8,
+              padding: isMobile ? "2px" : "4px 12px 4px 4px",
+              borderRadius: 10,
               transition: "all 0.2s ease",
               background: "transparent",
               marginLeft: isMobile ? 2 : 4,
@@ -203,9 +204,9 @@ const HeaderBar = ({
                 verticalAlign: "middle",
                 fontWeight: 700,
                 fontSize: 13,
-                boxShadow: "0 2px 8px rgba(231, 76, 60, 0.3)",
+                boxShadow: "0 2px 6px rgba(231, 76, 60, 0.3)",
               }}
-              size={isMobile ? 34 : 36}
+              size={isMobile ? 34 : 40}
             >
               SK
             </Avatar>

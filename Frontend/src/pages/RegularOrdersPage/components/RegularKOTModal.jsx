@@ -65,7 +65,7 @@ const RegularKOTModal = ({ visible, order, inventoryItems, onCancel }) => {
       width={isMobile ? "95vw" : 500}
       centered
       className="responsive-modal"
-      styles={{ body: { padding: isMobile ? 8 : 24, maxHeight: "70vh", overflowY: "auto" } }}
+      styles={{ body: { padding: isMobile ? 8 : 24, maxHeight: "70vh", overflowY: "auto", overflowX: "hidden" } }}
       footer={
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onCancel}>Close</Button>
