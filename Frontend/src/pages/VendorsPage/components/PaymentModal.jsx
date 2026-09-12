@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, DatePicker } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, DatePicker, Button } from "antd";
 import dayjs from "dayjs";
 
 const { Option } = Select;
 
 const PaymentModal = ({ visible, vendor, creditCards, paymentMethods, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible && vendor) {
+      setSubmitting(false);
       form.resetFields();
       form.setFieldsValue({
         vendorId: vendor._id,
@@ -21,21 +23,41 @@ const PaymentModal = ({ visible, vendor, creditCards, paymentMethods, onCancel, 
   }, [visible, vendor, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    onOk({
-      ...values,
-      date: values.date.format("YYYY-MM-DD"),
-      amount: values.quantity * values.rate,
-    });
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      await onOk({
+        ...values,
+        date: values.date.format("YYYY-MM-DD"),
+        amount: values.quantity * values.rate,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       title={`Make Payment to ${vendor?.name || "Vendor"}`}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          Record Payment
+        </Button>
+      ]}
       width={600}
     >
       <Form form={form} layout="vertical">

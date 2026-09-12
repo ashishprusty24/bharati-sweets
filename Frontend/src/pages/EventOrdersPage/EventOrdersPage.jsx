@@ -220,6 +220,8 @@ const EventOrdersPage = () => {
       refetch();
     } catch (error) {
       console.error(error);
+      message.error(error.response?.data?.message || "Failed to save order");
+      throw error;
     }
   };
 
@@ -231,7 +233,8 @@ const EventOrdersPage = () => {
       refetch();
     } catch (error) {
       console.error(error);
-      message.error("Failed to record payment");
+      message.error(error.response?.data?.message || "Failed to record payment");
+      throw error;
     }
   };
 

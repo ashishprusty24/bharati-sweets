@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Space, Button, Typography, Switch, DatePicker } from "antd";
 import { PlusOutlined, DeleteOutlined, UserOutlined, PhoneOutlined, WalletOutlined, BellOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -8,9 +8,11 @@ const { Text } = Typography;
 
 const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setSubmitting(false);
       if (item) {
         form.setFieldsValue({
           ...item,
@@ -31,17 +33,37 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
   }, [visible, item, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    onOk(values);
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      await onOk(values);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       title={item ? "Edit Regular Order" : "Create New Regular Order"}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          {item ? "Update Order" : "Create Order"}
+        </Button>
+      ]}
       width={800}
     >
       <Form form={form} layout="vertical">

@@ -52,10 +52,12 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
   const handleSubmit = async () => {
     if (submitting) return;
     try {
-      setSubmitting(true);
       const values = await form.validateFields();
+      setSubmitting(true);
       await onOk(values);
     } catch (err) {
+      console.error(err);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -66,10 +68,21 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
     <Modal
       title={item ? "Edit Event Order" : "Create New Event Order"}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading || submitting}
-      okButtonProps={{ disabled: submitting }}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          {item ? "Update Event Order" : "Create Event Order"}
+        </Button>
+      ]}
       width={isMobile ? "95vw" : 800}
       centered
       className="responsive-modal"

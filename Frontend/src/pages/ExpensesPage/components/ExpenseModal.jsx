@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, DatePicker } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, DatePicker, Button } from "antd";
 import dayjs from "dayjs";
 
 const { TextArea } = Input;
 
 const ExpenseModal = ({ visible, item, categories, paymentMethods, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setSubmitting(false);
       if (item) {
         form.setFieldsValue({ ...item, date: dayjs(item.date) });
       } else {
@@ -19,17 +21,37 @@ const ExpenseModal = ({ visible, item, categories, paymentMethods, onCancel, onO
   }, [visible, item, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    onOk({ ...values, date: values.date.format("YYYY-MM-DD") });
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      await onOk({ ...values, date: values.date.format("YYYY-MM-DD") });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       title={item ? "Edit Expense" : "Add Expense"}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          {item ? "Update Expense" : "Add Expense"}
+        </Button>
+      ]}
     >
       <Form form={form} layout="vertical">
         <Row gutter={16}>

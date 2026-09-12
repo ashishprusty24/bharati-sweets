@@ -85,10 +85,15 @@ const CCLoanPage = () => {
     fetchSummary();
   }, []);
 
+  // Submitting state
+  const [submitting, setSubmitting] = useState(false);
+
   // --- Account CRUD ---
   const handleAccountSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await accountForm.validateFields();
+      setSubmitting(true);
       if (values.sanctionDate) values.sanctionDate = values.sanctionDate.format("YYYY-MM-DD");
       if (editingAccount) {
         await api.put(`/cc-loans/${editingAccount._id}`, values);
@@ -104,7 +109,9 @@ const CCLoanPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to save account");
+      message.error(err.response?.data?.message || "Failed to save account");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -121,8 +128,10 @@ const CCLoanPage = () => {
 
   // --- Withdrawal ---
   const handleWithdrawalSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await withdrawalForm.validateFields();
+      setSubmitting(true);
       const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/cc-loans/${selectedAccountId}/withdrawals`, payload);
       message.success("Withdrawal recorded & synced to Expenses");
@@ -132,7 +141,9 @@ const CCLoanPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to add withdrawal");
+      message.error(err.response?.data?.message || "Failed to add withdrawal");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -149,8 +160,10 @@ const CCLoanPage = () => {
 
   // --- Repayment ---
   const handleRepaymentSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await repaymentForm.validateFields();
+      setSubmitting(true);
       const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/cc-loans/${repaymentAccountId}/repayments`, payload);
       message.success("Repayment recorded & synced to Expenses");
@@ -160,7 +173,9 @@ const CCLoanPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to record repayment");
+      message.error(err.response?.data?.message || "Failed to record repayment");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -600,8 +615,10 @@ const CCLoanPage = () => {
         open={accountModalVisible}
         onCancel={() => { setAccountModalVisible(false); setEditingAccount(null); }}
         onOk={handleAccountSubmit}
+        confirmLoading={submitting}
         okText={editingAccount ? "Update" : "Add Account"}
         okButtonProps={{
+          loading: submitting,
           style: {
             borderRadius: 10, height: 42,
             background: "linear-gradient(135deg, #0d7377 0%, #14919b 100%)",
@@ -656,8 +673,10 @@ const CCLoanPage = () => {
         open={withdrawalModalVisible}
         onCancel={() => setWithdrawalModalVisible(false)}
         onOk={handleWithdrawalSubmit}
+        confirmLoading={submitting}
         okText="Record Withdrawal"
         okButtonProps={{
+          loading: submitting,
           style: {
             borderRadius: 10, height: 42,
             background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
@@ -720,8 +739,10 @@ const CCLoanPage = () => {
         open={repaymentModalVisible}
         onCancel={() => setRepaymentModalVisible(false)}
         onOk={handleRepaymentSubmit}
+        confirmLoading={submitting}
         okText="Record Repayment"
         okButtonProps={{
+          loading: submitting,
           style: {
             borderRadius: 10, height: 42,
             background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",

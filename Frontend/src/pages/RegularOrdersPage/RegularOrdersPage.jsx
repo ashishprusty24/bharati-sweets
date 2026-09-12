@@ -98,6 +98,8 @@ const RegularOrdersPage = () => {
       refetch();
     } catch (error) {
       console.error(error);
+      message.error(error.response?.data?.message || "Failed to save order");
+      throw error;
     }
   };
 

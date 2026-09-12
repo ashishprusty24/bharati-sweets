@@ -179,9 +179,13 @@ const HomeExpensesPage = () => {
     return counts;
   }, [expenses]);
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await form.validateFields();
+      setSubmitting(true);
       const payload = {
         ...values,
         category: values.category || (editingExpense && editingExpense.category) || "other",
@@ -205,7 +209,9 @@ const HomeExpensesPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to save expense");
+      message.error(err.response?.data?.message || "Failed to save expense");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -691,7 +697,9 @@ const HomeExpensesPage = () => {
           setEditingExpense(null);
         }}
         onOk={handleSubmit}
+        confirmLoading={submitting}
         okText={editingExpense ? "Update Expense" : "Save Expense"}
+        okButtonProps={{ loading: submitting, style: { background: "#4a151b", borderColor: "#4a151b" } }}
         width={540}
         centered
         styles={{ body: { paddingTop: 16 } }}

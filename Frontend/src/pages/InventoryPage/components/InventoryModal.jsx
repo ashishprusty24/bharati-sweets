@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Form, Input, InputNumber, Select, Button } from "antd";
 
 const { Option } = Select;
 
 const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
   const getModalTitle = () => {
     if (item) return "Edit Item";
@@ -46,6 +47,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
 
   useEffect(() => {
     if (visible) {
+      setSubmitting(false);
       if (item) {
         form.setFieldsValue(item);
       } else {
@@ -59,9 +61,17 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
   }, [visible, item, defaultType, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    values.category = item?.category || values.kitchenSection || defaultType || "General";
-    onOk(values);
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      values.category = item?.category || values.kitchenSection || defaultType || "General";
+      setSubmitting(true);
+      await onOk(values);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const unitOptions = [
@@ -76,10 +86,21 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     <Modal
       title={getModalTitle()}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
-      okText={item ? "Update" : "Add"}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          {item ? "Update Item" : "Add Item"}
+        </Button>
+      ]}
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label="Item Name" rules={[{ required: true, message: "Please enter item name" }]}>

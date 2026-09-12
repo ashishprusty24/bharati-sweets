@@ -1,5 +1,5 @@
-import React, { useEffect, memo } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Grid, Typography, Divider } from "antd";
+import React, { useEffect, useState, memo } from "react";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Grid, Typography, Divider, Button } from "antd";
 
 const { Text } = Typography;
 
@@ -10,9 +10,11 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
   const [form] = Form.useForm();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible && order) {
+      setSubmitting(false);
       const remainingDue = Math.max(0, order.totalAmount - (order.paidAmount || 0) - (order.adminWaiver || 0));
       form.resetFields();
       form.setFieldsValue({
@@ -24,17 +26,37 @@ const EventPaymentModal = memo(({ visible, order, paymentMethods, onCancel, onOk
   }, [visible, order, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    onOk(values);
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      await onOk(values);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       title={`Record Payment for ${order?.customerName}`}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          Record Payment
+        </Button>
+      ]}
       width={isMobile ? "95vw" : 540}
       centered
       className="responsive-modal"

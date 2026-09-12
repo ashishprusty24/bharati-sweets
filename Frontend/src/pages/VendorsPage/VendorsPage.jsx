@@ -71,6 +71,8 @@ const VendorsPage = () => {
       refetch();
     } catch (error) {
       console.error(error);
+      message.error(error.response?.data?.message || "Failed to save vendor");
+      throw error;
     }
   };
 
@@ -82,6 +84,8 @@ const VendorsPage = () => {
       refetch();
     } catch (error) {
       console.error(error);
+      message.error(error.response?.data?.message || "Failed to record payment");
+      throw error;
     }
   };
 

@@ -78,10 +78,15 @@ const CreditCardPage = () => {
     fetchSummary();
   }, []);
 
+  // Submitting state
+  const [submitting, setSubmitting] = useState(false);
+
   // --- Card CRUD ---
   const handleCardSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await cardForm.validateFields();
+      setSubmitting(true);
       if (editingCard) {
         await api.put(`/credit-cards/${editingCard._id}`, values);
         message.success("Card updated");
@@ -96,7 +101,9 @@ const CreditCardPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to save card");
+      message.error(err.response?.data?.message || "Failed to save card");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -113,8 +120,10 @@ const CreditCardPage = () => {
 
   // --- Transaction ---
   const handleTxnSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await txnForm.validateFields();
+      setSubmitting(true);
       const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/credit-cards/${selectedCardId}/transactions`, payload);
       message.success("Transaction added");
@@ -124,7 +133,9 @@ const CreditCardPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to add transaction");
+      message.error(err.response?.data?.message || "Failed to add transaction");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -141,8 +152,10 @@ const CreditCardPage = () => {
 
   // --- Bill Payment ---
   const handleBillSubmit = async () => {
+    if (submitting) return;
     try {
       const values = await billForm.validateFields();
+      setSubmitting(true);
       const payload = { ...values, date: values.date.format("YYYY-MM-DD") };
       await api.post(`/credit-cards/${billCardId}/bill-payments`, payload);
       message.success("Bill payment recorded");
@@ -152,7 +165,9 @@ const CreditCardPage = () => {
       fetchSummary();
     } catch (err) {
       if (err.errorFields) return;
-      message.error("Failed to record bill payment");
+      message.error(err.response?.data?.message || "Failed to record bill payment");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -498,7 +513,9 @@ const CreditCardPage = () => {
         open={cardModalVisible}
         onCancel={() => { setCardModalVisible(false); setEditingCard(null); }}
         onOk={handleCardSubmit}
+        confirmLoading={submitting}
         okText={editingCard ? "Update" : "Add"}
+        okButtonProps={{ loading: submitting, style: { background: "#4a151b", borderColor: "#4a151b" } }}
         width={480}
         destroyOnClose
       >
@@ -541,7 +558,9 @@ const CreditCardPage = () => {
         open={txnModalVisible}
         onCancel={() => setTxnModalVisible(false)}
         onOk={handleTxnSubmit}
+        confirmLoading={submitting}
         okText="Add"
+        okButtonProps={{ loading: submitting, style: { background: "#4a151b", borderColor: "#4a151b" } }}
         width={480}
         destroyOnClose
       >
@@ -577,7 +596,9 @@ const CreditCardPage = () => {
         open={billModalVisible}
         onCancel={() => setBillModalVisible(false)}
         onOk={handleBillSubmit}
+        confirmLoading={submitting}
         okText="Record Payment"
+        okButtonProps={{ loading: submitting, style: { background: "#4a151b", borderColor: "#4a151b" } }}
         width={480}
         destroyOnClose
       >

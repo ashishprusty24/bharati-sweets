@@ -1,13 +1,15 @@
-import React, { useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider } from "antd";
+import React, { useEffect, useState } from "react";
+import { Modal, Form, Input, InputNumber, Select, Row, Col, Divider, Button } from "antd";
 
 const { Option } = Select;
 
 const VendorModal = ({ visible, item, vendorTypes, onCancel, onOk, loading }) => {
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      setSubmitting(false);
       if (item) {
         form.setFieldsValue({ ...item, suppliedItems: item.suppliedItems || [] });
       } else {
@@ -17,17 +19,37 @@ const VendorModal = ({ visible, item, vendorTypes, onCancel, onOk, loading }) =>
   }, [visible, item, form]);
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
-    onOk(values);
+    if (submitting) return;
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+      await onOk(values);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <Modal
       title={item ? "Edit Vendor" : "Add New Vendor"}
       open={visible}
-      onOk={handleSubmit}
       onCancel={onCancel}
-      confirmLoading={loading}
+      footer={[
+        <Button key="cancel" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </Button>,
+        <Button
+          key="submit"
+          type="primary"
+          loading={submitting}
+          onClick={handleSubmit}
+          style={{ backgroundColor: "#4a151b", borderColor: "#4a151b" }}
+        >
+          {item ? "Update Vendor" : "Add Vendor"}
+        </Button>
+      ]}
       width={700}
     >
       <Form form={form} layout="vertical">
