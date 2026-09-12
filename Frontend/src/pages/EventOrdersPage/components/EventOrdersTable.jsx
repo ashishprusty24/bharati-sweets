@@ -386,7 +386,6 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       title: "Actions",
       key: "actions",
       width: 100,
-      fixed: "right",
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Edit Order">

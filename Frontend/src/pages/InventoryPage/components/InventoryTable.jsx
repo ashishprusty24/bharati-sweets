@@ -88,7 +88,6 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
       title: "Actions",
       key: "actions",
       width: 100,
-      fixed: "right",
       render: (_, record) => (
         <Space size="small" style={{ whiteSpace: "nowrap" }}>
           <Tooltip title="Edit Item">
