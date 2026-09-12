@@ -24,7 +24,7 @@ const DashboardPage = () => {
   }, [period, customRange]);
 
   return (
-    <div className="dashboard-container" style={{ background: "#f8fafc", minHeight: "100vh", padding: "16px 24px 40px" }}>
+    <div className="dashboard-container">
       {/* Top Header */}
       <DashboardHeader period={period} setPeriod={setPeriod} setCustomRange={setCustomRange} />
 

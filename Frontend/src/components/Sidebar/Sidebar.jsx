@@ -96,8 +96,8 @@ const Sidebar = ({
 
   // Logo section for both desktop and mobile drawer
   const renderLogo = (isCollapsed = false, size = "normal") => {
-    const logoSize = isCollapsed ? 42 : size === "small" ? 40 : 70;
-    const containerSize = isCollapsed ? 48 : size === "small" ? 46 : 80;
+    const logoSize = isCollapsed ? 36 : size === "small" ? 36 : 48;
+    const containerSize = isCollapsed ? 42 : size === "small" ? 42 : 54;
 
     return (
       <div
@@ -180,7 +180,7 @@ const Sidebar = ({
           collapsed={collapsed}
           onCollapse={setCollapsed}
           collapsedWidth={80}
-          width={240}
+          width={220}
           trigger={null}
           className="premium-sidebar"
           style={{
@@ -201,7 +201,7 @@ const Sidebar = ({
           {/* Logo area */}
           <div
             style={{
-              padding: collapsed ? "20px 8px" : "24px 20px",
+              padding: collapsed ? "14px 8px" : "14px 16px",
               borderBottom: "1px solid rgba(255,255,255,0.08)",
               display: "flex",
               alignItems: "center",

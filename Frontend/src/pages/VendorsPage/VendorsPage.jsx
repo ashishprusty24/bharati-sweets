@@ -117,7 +117,7 @@ const VendorsPage = () => {
   );
 
   return (
-    <div style={{ padding: "0 8px" }}>
+    <div>
       <div className="page-header-container">
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Vendors</Title>

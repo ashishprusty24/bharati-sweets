@@ -198,9 +198,9 @@ const CCLoanPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} style={{ borderRadius: 20, background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", border: "1px solid #fecaca" }}>
+          <Card bordered={false} style={{ borderRadius: 20, background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#dc2626" }}>Currently Utilized</Text>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Currently Utilized</Text>
               <ArrowDownOutlined style={{ color: "#dc2626", fontSize: 16 }} />
             </div>
             <div style={{ marginTop: 4 }}>
@@ -212,9 +212,9 @@ const CCLoanPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} style={{ borderRadius: 20, background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", border: "1px solid #a7f3d0" }}>
+          <Card bordered={false} style={{ borderRadius: 20, background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#059669" }}>Available Limit</Text>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Available Limit</Text>
               <WalletOutlined style={{ color: "#059669", fontSize: 16 }} />
             </div>
             <div style={{ marginTop: 4 }}>

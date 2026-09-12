@@ -17,10 +17,10 @@ const { Title, Text } = Typography;
 // Stats Cards (API-driven)
 // ─────────────────────────────────────────────
 const STAT_ICONS = [
-  { key: "messagesSent", title: "Messages Sent", suffix: "this month", icon: <SendOutlined />, color: "#25D366", bg: "linear-gradient(135deg,#dcfce7,#bbf7d0)" },
-  { key: "totalContacts", title: "Customer Reach", suffix: "total contacts", icon: <TeamOutlined />, color: "#3b82f6", bg: "linear-gradient(135deg,#dbeafe,#bfdbfe)" },
-  { key: "openRate", title: "Open Rate", suffix: "campaign open rate", icon: <BarChartOutlined />, color: "#f59e0b", bg: "linear-gradient(135deg,#fef3c7,#fde68a)", isPercent: true },
-  { key: "newContacts", title: "New Contacts", suffix: "added this month", icon: <RiseOutlined />, color: "#8b5cf6", bg: "linear-gradient(135deg,#ede9fe,#ddd6fe)" },
+  { key: "messagesSent", title: "Messages Sent", suffix: "this month", icon: <SendOutlined />, color: "#25D366", bg: "#dcfce7" },
+  { key: "totalContacts", title: "Customer Reach", suffix: "total contacts", icon: <TeamOutlined />, color: "#3b82f6", bg: "#dbeafe" },
+  { key: "openRate", title: "Open Rate", suffix: "campaign open rate", icon: <BarChartOutlined />, color: "#f59e0b", bg: "#fef3c7", isPercent: true },
+  { key: "newContacts", title: "New Contacts", suffix: "added this month", icon: <RiseOutlined />, color: "#8b5cf6", bg: "#ede9fe" },
 ];
 
 const MarketingPage = () => {
@@ -29,11 +29,15 @@ const MarketingPage = () => {
   return (
     <div className="marketing-page">
       {/* Header */}
-      <div className="marketing-header">
-        <Title level={1} className="marketing-title">Marketing Hub</Title>
-        <Text className="marketing-subtitle">
-          Message and call customers, run local ads, and grow Bharati Sweets' digital presence.
-        </Text>
+      <div className="page-header-container">
+        <div>
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+            Marketing Hub
+          </Title>
+          <Text type="secondary">
+            Message and call customers, run local ads, and grow Bharati Sweets' digital presence.
+          </Text>
+        </div>
       </div>
 
       {/* Stats Row */}

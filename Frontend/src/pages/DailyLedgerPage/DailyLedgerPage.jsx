@@ -468,7 +468,7 @@ const DailyLedgerPage = () => {
   ];
 
   return (
-    <div style={{ padding: isMobile ? "0" : "0 8px" }}>
+    <div>
       {/* HEADER */}
       <div
         style={{
@@ -566,12 +566,12 @@ const DailyLedgerPage = () => {
       {/* ─── FESTIVAL TAG CARD ─── */}
       <Card
         bordered={false}
-        className="glass-card"
         style={{
           borderRadius: 16,
           marginBottom: 16,
           borderLeft: "4px solid #f59e0b",
-          background: ledgerData.festival ? "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)" : undefined,
+          background: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
@@ -628,8 +628,7 @@ const DailyLedgerPage = () => {
       {/* ─── OPENING BALANCE ─── */}
       <Card
         bordered={false}
-        className="glass-card"
-        style={{ borderRadius: 16, marginBottom: 16 }}
+        style={{ borderRadius: 16, marginBottom: 16, background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
         <Row gutter={[16, 12]} align="middle">
@@ -674,7 +673,7 @@ const DailyLedgerPage = () => {
       {/* ─── DAILY EXPENSES TABLE ─── */}
       <Card
         bordered={false}
-        className="glass-card ledger-details-card"
+        className="ledger-details-card"
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
@@ -844,13 +843,13 @@ const DailyLedgerPage = () => {
               </div>
               <div style={{
                 gridColumn: "1 / -1",
-                background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                background: "#f8fafc",
                 padding: "10px 14px",
                 borderRadius: 8,
+                border: "1px solid #e2e8f0",
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                color: "#fff"
+                alignItems: "center"
               }}>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#94a3b8" }}>Total Expenses</span>
                 <span style={{ fontSize: 17, fontWeight: 900, color: "#f87171" }}>₹{fmt(totals.totalExpenses)}</span>
@@ -863,8 +862,7 @@ const DailyLedgerPage = () => {
       {/* ─── MAA / HOME ─── */}
       <Card
         bordered={false}
-        className="glass-card"
-        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #8b5cf6" }}
+        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #8b5cf6", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
         <Row gutter={[16, 12]} align="middle">
@@ -911,8 +909,7 @@ const DailyLedgerPage = () => {
       {/* ─── CLOSING BALANCE ─── */}
       <Card
         bordered={false}
-        className="glass-card"
-        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #f59e0b" }}
+        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #f59e0b", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
         <Row gutter={[16, 12]} align="middle">
@@ -954,25 +951,17 @@ const DailyLedgerPage = () => {
         bordered={false}
         style={{
           borderRadius: 20,
-          background: totals.hasClosing
-            ? "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)"
-            : "#f1f5f9",
-          overflow: "hidden",
-          position: "relative",
+          background: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          border: "1px solid #f1f5f9",
           marginBottom: 16,
         }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
-        {totals.hasClosing && (
-          <>
-            <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(59,130,246,0.08)" }} />
-            <div style={{ position: "absolute", bottom: -20, left: 40, width: 100, height: 100, borderRadius: "50%", background: "rgba(16,185,129,0.06)" }} />
-          </>
-        )}
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-            <ShoppingCartOutlined style={{ fontSize: 22, color: totals.hasClosing ? "#60a5fa" : "#94a3b8" }} />
-            <Title level={3} style={{ margin: 0, color: totals.hasClosing ? "white" : "#64748b", fontWeight: 800, letterSpacing: 1, fontSize: isMobile ? "1.2rem" : "1.5rem" }}>
+            <ShoppingCartOutlined style={{ fontSize: 22, color: "#4a151b" }} />
+            <Title level={3} style={{ margin: 0, color: "#0f172a", fontWeight: 700, letterSpacing: 0.5, fontSize: isMobile ? "1.2rem" : "1.4rem" }}>
               TODAY'S SELL
             </Title>
             {ledgerData.festival && totals.hasClosing && (
@@ -983,48 +972,48 @@ const DailyLedgerPage = () => {
           </div>
 
           {!totals.hasClosing ? (
-            <Text style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.5, display: "block" }}>
+            <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.5, display: "block" }}>
               Enter Closing Balance (evening physical count) to see today's sell.
             </Text>
           ) : (
             <>
               <Row gutter={[12, 12]}>
                 <Col xs={12} sm={8}>
-                  <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: isMobile ? "12px 14px" : "16px 20px" }}>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: isMobile ? "12px 14px" : "16px 20px", border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                       <WalletOutlined style={{ color: "#10b981" }} />
-                      <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Cash Sell</Text>
+                      <Text style={{ color: "#475569", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Cash Sell</Text>
                     </div>
-                    <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#10b981", fontWeight: 800, fontSize: isMobile ? "1.3rem" : "1.75rem" }}>
+                    <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#10b981", fontWeight: 700, fontSize: isMobile ? "1.3rem" : "1.75rem" }}>
                       ₹{fmt(totals.derivedCashSell)}
                     </Title>
                   </div>
                 </Col>
                 <Col xs={12} sm={8}>
-                  <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: isMobile ? "12px 14px" : "16px 20px" }}>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: isMobile ? "12px 14px" : "16px 20px", border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <BankOutlined style={{ color: "#818cf8" }} />
-                      <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>P/P Sell</Text>
+                      <BankOutlined style={{ color: "#3b82f6" }} />
+                      <Text style={{ color: "#475569", fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>P/P Sell</Text>
                     </div>
-                    <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#818cf8", fontWeight: 800, fontSize: isMobile ? "1.3rem" : "1.75rem" }}>
+                    <Title level={isMobile ? 3 : 2} style={{ margin: 0, color: "#3b82f6", fontWeight: 700, fontSize: isMobile ? "1.3rem" : "1.75rem" }}>
                       ₹{fmt(totals.derivedDigitalSell)}
                     </Title>
                   </div>
                 </Col>
                 <Col xs={24} sm={8}>
-                  <div style={{ background: "rgba(16,185,129,0.12)", borderRadius: 12, padding: isMobile ? "14px 16px" : "16px 20px", border: "1px solid rgba(16,185,129,0.25)" }}>
+                  <div style={{ background: "#f8fafc", borderRadius: 12, padding: isMobile ? "14px 16px" : "16px 20px", border: "1px solid #cbd5e1" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <ShoppingCartOutlined style={{ color: "#fbbf24" }} />
-                      <Text style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Total Sell</Text>
+                      <ShoppingCartOutlined style={{ color: "#4a151b" }} />
+                      <Text style={{ color: "#4a151b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Total Sell</Text>
                     </div>
-                    <Title level={1} style={{ margin: 0, color: "#ffffff", fontWeight: 900, fontSize: isMobile ? 26 : 34 }}>
+                    <Title level={1} style={{ margin: 0, color: "#0f172a", fontWeight: 800, fontSize: isMobile ? 26 : 34 }}>
                       ₹{fmt(totals.derivedTotalSell)}
                     </Title>
                   </div>
                 </Col>
               </Row>
-              <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 8, wordBreak: "break-word" }}>
-                <Text style={{ color: "#94a3b8", fontSize: 10, fontFamily: "monospace" }}>
+              <div style={{ marginTop: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, wordBreak: "break-word", border: "1px solid #f1f5f9" }}>
+                <Text type="secondary" style={{ fontSize: 11, fontFamily: "monospace" }}>
                   Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Expenses ({fmt(totals.totalExpenses)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
                 </Text>
               </div>
@@ -1036,8 +1025,7 @@ const DailyLedgerPage = () => {
       {/* ─── DAILY NOTES & REMARKS ─── */}
       <Card
         bordered={false}
-        className="glass-card"
-        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #0284c7" }}
+        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #0284c7", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -1063,7 +1051,6 @@ const DailyLedgerPage = () => {
       {/* ─── SWEET PRODUCTION TABLE ─── */}
       <Card
         bordered={false}
-        className="glass-card"
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1078,10 +1065,10 @@ const DailyLedgerPage = () => {
             <Button
               onClick={addSweetRow}
               icon={<PlusOutlined />}
+              type="primary"
               style={{
                 borderRadius: 8,
-                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                color: "#fff",
+                background: "#4a151b",
                 border: "none",
                 fontWeight: 600,
               }}
@@ -1090,7 +1077,7 @@ const DailyLedgerPage = () => {
             </Button>
           </div>
         }
-        style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #6366f1" }}
+        style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #6366f1", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "12px 14px" : "20px 24px" }}
       >
         {ledgerData.sweetProduction.length === 0 ? (

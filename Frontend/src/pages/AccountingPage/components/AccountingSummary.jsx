@@ -39,44 +39,29 @@ const AccountingSummary = ({ financialData }) => {
         <Card
           bordered={false}
           style={{
-            borderRadius: 22,
+            borderRadius: 20,
             background: "#ffffff",
-            boxShadow: "0 8px 30px rgba(16, 185, 129, 0.08)",
-            border: "1px solid #d1fae5",
-            position: "relative",
-            overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #f1f5f9",
           }}
-          bodyStyle={{ padding: "24px" }}
+          bodyStyle={{ padding: "20px 24px" }}
         >
-          {/* Accent Glow Strip */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              background: "linear-gradient(90deg, #10b981 0%, #34d399 100%)",
-            }}
-          />
-
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <Text
                 type="secondary"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                  color: "#059669",
+                  letterSpacing: 0.5,
                 }}
               >
                 Total Gross Revenue
               </Text>
               <Title
                 level={2}
-                style={{ margin: "4px 0 0 0", color: "#065f46", fontWeight: 800, fontSize: 30 }}
+                style={{ margin: "4px 0 0 0", color: "#0f172a", fontWeight: 700, fontSize: 28 }}
               >
                 ₹{totalRevenue.toLocaleString("en-IN")}
               </Title>
@@ -85,31 +70,30 @@ const AccountingSummary = ({ financialData }) => {
               style={{
                 background: "#ecfdf5",
                 color: "#10b981",
-                padding: 12,
-                borderRadius: 16,
+                padding: 10,
+                borderRadius: 14,
                 display: "inline-flex",
-                border: "1px solid #a7f3d0",
               }}
             >
-              <DollarOutlined style={{ fontSize: 24 }} />
+              <DollarOutlined style={{ fontSize: 20 }} />
             </span>
           </div>
 
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #f0fdf4" }}>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
               <Space size={4}>
                 <ShopOutlined style={{ color: "#10b981" }} />
-                <Text style={{ color: "#374151", fontWeight: 600 }}>Daily Ledger Sales:</Text>
+                <Text style={{ color: "#475569", fontWeight: 500 }}>Daily Ledger Sales:</Text>
               </Space>
-              <Text strong style={{ color: "#065f46" }}>
+              <Text strong style={{ color: "#0f172a" }}>
                 ₹{ledgerSales.toLocaleString("en-IN")}{" "}
-                <span style={{ color: "#6b7280", fontWeight: 400 }}>({ledgerPct}%)</span>
+                <span style={{ color: "#64748b", fontWeight: 400 }}>({ledgerPct}%)</span>
               </Text>
             </div>
             <Progress
               percent={ledgerPct}
               strokeColor="#10b981"
-              trailColor="#e5e7eb"
+              trailColor="#f1f5f9"
               showInfo={false}
               size="small"
               style={{ marginBottom: 12 }}
@@ -118,14 +102,14 @@ const AccountingSummary = ({ financialData }) => {
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
               <Space size={4}>
                 <CalendarOutlined style={{ color: "#3b82f6" }} />
-                <Text style={{ color: "#374151", fontWeight: 600 }}>Event Orders:</Text>
+                <Text style={{ color: "#475569", fontWeight: 500 }}>Event Orders:</Text>
               </Space>
-              <Text strong style={{ color: "#1e40af" }}>
+              <Text strong style={{ color: "#0f172a" }}>
                 ₹{eventSales.toLocaleString("en-IN")}{" "}
-                <span style={{ color: "#6b7280", fontWeight: 400 }}>({eventPct}%)</span>
+                <span style={{ color: "#64748b", fontWeight: 400 }}>({eventPct}%)</span>
               </Text>
             </div>
-            <Progress percent={eventPct} strokeColor="#3b82f6" trailColor="#e5e7eb" showInfo={false} size="small" />
+            <Progress percent={eventPct} strokeColor="#3b82f6" trailColor="#f1f5f9" showInfo={false} size="small" />
           </div>
         </Card>
       </Col>
@@ -135,43 +119,29 @@ const AccountingSummary = ({ financialData }) => {
         <Card
           bordered={false}
           style={{
-            borderRadius: 22,
+            borderRadius: 20,
             background: "#ffffff",
-            boxShadow: "0 8px 30px rgba(239, 68, 68, 0.08)",
-            border: "1px solid #fee2e2",
-            position: "relative",
-            overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #f1f5f9",
           }}
-          bodyStyle={{ padding: "24px" }}
+          bodyStyle={{ padding: "20px 24px" }}
         >
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              background: "linear-gradient(90deg, #ef4444 0%, #f87171 100%)",
-            }}
-          />
-
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <Text
                 type="secondary"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                  color: "#dc2626",
+                  letterSpacing: 0.5,
                 }}
               >
                 Total Operating Expenses
               </Text>
               <Title
                 level={2}
-                style={{ margin: "4px 0 0 0", color: "#991b1b", fontWeight: 800, fontSize: 30 }}
+                style={{ margin: "4px 0 0 0", color: "#0f172a", fontWeight: 700, fontSize: 28 }}
               >
                 ₹{totalExpenses.toLocaleString("en-IN")}
               </Title>
@@ -180,37 +150,36 @@ const AccountingSummary = ({ financialData }) => {
               style={{
                 background: "#fef2f2",
                 color: "#ef4444",
-                padding: 12,
-                borderRadius: 16,
+                padding: 10,
+                borderRadius: 14,
                 display: "inline-flex",
-                border: "1px solid #fca5a5",
               }}
             >
-              <ArrowDownOutlined style={{ fontSize: 24 }} />
+              <ArrowDownOutlined style={{ fontSize: 20 }} />
             </span>
           </div>
 
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #fff1f2" }}>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
             {maxExpenseCategory ? (
               <div>
-                <Text style={{ color: "#6b7280", fontSize: 12, display: "block", marginBottom: 6 }}>
+                <Text style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>
                   Largest Cost Category:
                 </Text>
                 <div
                   style={{
                     display: "flex",
-                    justify: "space-between",
+                    justifyContent: "space-between",
                     alignItems: "center",
-                    background: "#fef2f2",
+                    background: "#f8fafc",
                     padding: "8px 12px",
-                    borderRadius: 12,
-                    border: "1px solid #fecaca",
+                    borderRadius: 10,
+                    border: "1px solid #e2e8f0",
                   }}
                 >
-                  <Tag color="error" style={{ borderRadius: 6, fontWeight: 700, textTransform: "capitalize" }}>
+                  <Tag color="default" style={{ borderRadius: 6, fontWeight: 600, textTransform: "capitalize" }}>
                     {maxExpenseCategory[0].replace("_", " ")}
                   </Tag>
-                  <Text strong style={{ color: "#991b1b", fontSize: 15, fontWeight: 700 }}>
+                  <Text strong style={{ color: "#0f172a", fontSize: 14 }}>
                     ₹{Number(maxExpenseCategory[1]).toLocaleString("en-IN")}
                   </Text>
                 </div>
@@ -222,7 +191,7 @@ const AccountingSummary = ({ financialData }) => {
             )}
 
             <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Text type="secondary" style={{ fontSize: 11 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
                 Expense-to-Revenue Ratio:
               </Text>
               <Tag color={totalRevenue > 0 && totalExpenses / totalRevenue > 0.7 ? "warning" : "default"}>
@@ -238,28 +207,22 @@ const AccountingSummary = ({ financialData }) => {
         <Card
           bordered={false}
           style={{
-            borderRadius: 22,
-            background:
-              netProfit >= 0
-                ? "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"
-                : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
-            boxShadow: "0 8px 30px rgba(59, 130, 246, 0.1)",
-            border: netProfit >= 0 ? "1px solid #bfdbfe" : "1px solid #fde68a",
-            position: "relative",
-            overflow: "hidden",
+            borderRadius: 20,
+            background: "#ffffff",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #f1f5f9",
           }}
-          bodyStyle={{ padding: "24px" }}
+          bodyStyle={{ padding: "20px 24px" }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <Text
                 type="secondary"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 12,
+                  fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                  color: netProfit >= 0 ? "#1d4ed8" : "#b45309",
+                  letterSpacing: 0.5,
                 }}
               >
                 Net Business Profit
@@ -268,9 +231,9 @@ const AccountingSummary = ({ financialData }) => {
                 level={2}
                 style={{
                   margin: "4px 0 0 0",
-                  color: netProfit >= 0 ? "#1e3a8a" : "#78350f",
-                  fontWeight: 800,
-                  fontSize: 30,
+                  color: netProfit >= 0 ? "#10b981" : "#ef4444",
+                  fontWeight: 700,
+                  fontSize: 28,
                 }}
               >
                 ₹{netProfit.toLocaleString("en-IN")}
@@ -278,26 +241,25 @@ const AccountingSummary = ({ financialData }) => {
             </div>
             <span
               style={{
-                background: netProfit >= 0 ? "#ffffff" : "#ffffff",
-                color: netProfit >= 0 ? "#2563eb" : "#d97706",
-                padding: 12,
-                borderRadius: 16,
+                background: netProfit >= 0 ? "#ecfdf5" : "#fef2f2",
+                color: netProfit >= 0 ? "#10b981" : "#ef4444",
+                padding: 10,
+                borderRadius: 14,
                 display: "inline-flex",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
               }}
             >
-              {netProfit >= 0 ? <RiseOutlined style={{ fontSize: 24 }} /> : <FallOutlined style={{ fontSize: 24 }} />}
+              {netProfit >= 0 ? <RiseOutlined style={{ fontSize: 20 }} /> : <FallOutlined style={{ fontSize: 20 }} />}
             </span>
           </div>
 
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <Text strong style={{ color: netProfit >= 0 ? "#1e40af" : "#92400e", fontSize: 13 }}>
+              <Text strong style={{ color: "#475569", fontSize: 12 }}>
                 Net Margin Efficiency
               </Text>
               <Tag
-                color={netProfit >= 0 ? "blue" : "warning"}
-                style={{ borderRadius: 10, padding: "2px 10px", fontWeight: 800, fontSize: 13 }}
+                color={netProfit >= 0 ? "success" : "error"}
+                style={{ borderRadius: 8, padding: "2px 8px", fontWeight: 700, fontSize: 12 }}
               >
                 {profitMargin.toFixed(1)}% Margin
               </Tag>
@@ -305,15 +267,15 @@ const AccountingSummary = ({ financialData }) => {
 
             <Progress
               percent={Math.min(100, Math.max(0, profitMargin))}
-              strokeColor={netProfit >= 0 ? "#2563eb" : "#d97706"}
-              trailColor="rgba(255,255,255,0.6)"
-              strokeWidth={10}
+              strokeColor={netProfit >= 0 ? "#10b981" : "#ef4444"}
+              trailColor="#f1f5f9"
+              strokeWidth={8}
               showInfo={false}
             />
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 11 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 12 }}>
               <Text type="secondary">Cash Reserve Asset</Text>
-              <Text strong style={{ color: "#1e3a8a" }}>
+              <Text strong style={{ color: "#0f172a" }}>
                 ₹{(financialData.assets?.cash || 125000).toLocaleString("en-IN")}
               </Text>
             </div>

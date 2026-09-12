@@ -384,7 +384,7 @@ const HomeExpensesPage = () => {
   const supplierPct = totalAmount > 0 ? Math.round((supplierPaySum / totalAmount) * 100) : 0;
 
   return (
-    <div style={{ padding: "8px 4px 40px", background: "#f8fafc", minHeight: "100vh" }}>
+    <div>
       {/* ── TOP RIGHT ACTION BAR ── */}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <Button
@@ -397,8 +397,8 @@ const HomeExpensesPage = () => {
             padding: "0 24px",
             borderRadius: 12,
             fontWeight: 700,
-            background: "#6366f1",
-            borderColor: "#6366f1",
+            background: "#4a151b",
+            borderColor: "#4a151b",
             boxShadow: "0 4px 14px rgba(99, 102, 241, 0.35)",
           }}
         >

@@ -258,7 +258,7 @@ const EventOrdersPage = () => {
   }, [refetch]);
 
   return (
-    <div style={{ padding: "0 8px" }}>
+    <div>
       <div className="page-header-container">
         <Row gutter={[12, 12]} align="middle" justify="space-between" style={{ width: "100%" }}>
           <Col xs={24} lg={12}>
@@ -281,7 +281,7 @@ const EventOrdersPage = () => {
         </Row>
       </div>
 
-      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+      <Card bordered={false} style={{ borderRadius: 20 }}>
         <Row gutter={[16, 16]} className="search-filter-row">
           <Col xs={24} md={8}>
             <Input

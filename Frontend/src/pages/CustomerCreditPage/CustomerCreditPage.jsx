@@ -328,7 +328,7 @@ const CustomerCreditPage = () => {
   ];
 
   return (
-    <div style={{ padding: "0 8px" }}>
+    <div>
       {/* Header */}
       <div className="page-header-container">
         <div>

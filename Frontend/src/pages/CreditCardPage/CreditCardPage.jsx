@@ -178,7 +178,7 @@ const CreditCardPage = () => {
       {/* Summary Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #ef4444" }}>
+          <Card bordered={false} style={{ borderRadius: 16, borderLeft: "4px solid #ef4444", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <Statistic
               title={<Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Total Outstanding</Text>}
               value={totalOutstanding}
@@ -188,7 +188,7 @@ const CreditCardPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #3b82f6" }}>
+          <Card bordered={false} style={{ borderRadius: 16, borderLeft: "4px solid #3b82f6", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <Statistic
               title={<Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Total Cards</Text>}
               value={cards.length}
@@ -197,7 +197,7 @@ const CreditCardPage = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Card bordered={false} className="glass-card" style={{ borderRadius: 16, borderLeft: "4px solid #10b981" }}>
+          <Card bordered={false} style={{ borderRadius: 16, borderLeft: "4px solid #10b981", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <Statistic
               title={<Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" }}>Total Bills Paid</Text>}
               value={summary?.cards?.reduce((s, c) => s + (c.totalBillPayments || 0), 0) || 0}
@@ -212,7 +212,7 @@ const CreditCardPage = () => {
       <Row gutter={[20, 20]}>
         {cards.length === 0 && (
           <Col span={24}>
-            <Card bordered={false} className="glass-card" style={{ borderRadius: 16, textAlign: "center", padding: "40px 0" }}>
+            <Card bordered={false} style={{ borderRadius: 16, textAlign: "center", padding: "40px 0", background: "#ffffff" }}>
               <Empty description="No credit cards added yet" />
               <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCard(null); cardForm.resetFields(); cardForm.setFieldsValue({ cardType: "visa" }); setCardModalVisible(true); }} style={{ marginTop: 16, borderRadius: 8 }}>
                 Add Your First Card
@@ -423,7 +423,7 @@ const CreditCardPage = () => {
           </Space>
         </div>
 
-        <Card bordered={false} className="glass-card" style={{ borderRadius: 16, marginBottom: 20 }}
+        <Card bordered={false} style={{ borderRadius: 16, marginBottom: 20 }}
           title={<Title level={5} style={{ margin: 0 }}>Transactions ({sortedTxns.length})</Title>}>
           <div className="responsive-table-container">
             <Table dataSource={sortedTxns} columns={txnColumns} rowKey="_id" size="small"
@@ -486,7 +486,7 @@ const CreditCardPage = () => {
       </div>
 
       {/* TABS */}
-      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+      <Card bordered={false} style={{ borderRadius: 20, background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
       </Card>
 

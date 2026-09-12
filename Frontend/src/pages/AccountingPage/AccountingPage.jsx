@@ -134,7 +134,7 @@ const AccountingPage = () => {
   };
 
   return (
-    <div style={{ padding: "0 4px" }}>
+    <div>
       {/* Hero Banner with Filters */}
       <div style={{ marginBottom: 24 }}>
         <AccountingFilters
@@ -257,12 +257,11 @@ const AccountingPage = () => {
                                   block
                                   onClick={generateFinancialReport}
                                   style={{
-                                    borderRadius: 14,
-                                    height: 48,
-                                    fontWeight: 700,
-                                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                    borderRadius: 12,
+                                    height: 44,
+                                    fontWeight: 600,
+                                    background: "#4a151b",
                                     border: "none",
-                                    boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
                                   }}
                                 >
                                   Export Full Audit Analysis (.TXT)
@@ -280,8 +279,9 @@ const AccountingPage = () => {
                           bordered={false}
                           style={{
                             borderRadius: 22,
-                            background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                            border: "1px solid #e2e8f0",
+                            background: "#ffffff",
+                            border: "1px solid #f1f5f9",
+                            boxShadow: "0 8px 30px rgba(0,0,0,0.04)",
                           }}
                           title={<span style={{ fontWeight: 700, fontSize: 16 }}>Financial Health Indicators</span>}
                         >

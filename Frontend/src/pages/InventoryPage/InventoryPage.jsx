@@ -55,7 +55,7 @@ const InventoryPage = () => {
   };
 
   return (
-    <div style={{ padding: "0 8px" }}>
+    <div>
       <div className="page-header-container" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 20 }}>
         <div>
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Inventory</Title>

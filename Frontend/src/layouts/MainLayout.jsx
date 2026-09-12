@@ -40,7 +40,7 @@ const AppLayout = () => {
       />
       <Layout
         style={{
-          marginLeft: isMobile ? 0 : collapsed ? 80 : 240,
+          marginLeft: isMobile ? 0 : collapsed ? 80 : 220,
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           background: "transparent",
         }}
@@ -56,7 +56,7 @@ const AppLayout = () => {
         />
         <Layout.Content
           style={{
-            padding: isMobile ? "16px" : "32px",
+            padding: isMobile ? "12px" : "18px 24px",
             minHeight: "calc(100vh - 64px)",
             background: "transparent",
           }}
