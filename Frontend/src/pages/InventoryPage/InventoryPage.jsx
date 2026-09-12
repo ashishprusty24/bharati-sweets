@@ -67,7 +67,7 @@ const InventoryPage = () => {
             size="large"
             icon={<PlusOutlined />} 
             onClick={() => handleAddEdit(null, "Sweets")}
-            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#10b981", borderColor: "#10b981" }}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600 }}
           >
             Add Sweets
           </Button>
@@ -76,7 +76,7 @@ const InventoryPage = () => {
             size="large"
             icon={<PlusOutlined />} 
             onClick={() => handleAddEdit(null, "Snacks")}
-            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#f59e0b", borderColor: "#f59e0b" }}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600 }}
           >
             Add Snacks
           </Button>
@@ -85,14 +85,14 @@ const InventoryPage = () => {
             size="large"
             icon={<PlusOutlined />} 
             onClick={() => handleAddEdit(null, "Namkeens")}
-            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#8b5cf6", borderColor: "#8b5cf6" }}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600 }}
           >
             Add Namkeens
           </Button>
         </Space>
       </div>
 
-      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+      <Card bordered={false} style={{ borderRadius: 20 }}>
         <div className="search-filter-row" style={{ marginBottom: 16 }}>
           <Input
             placeholder="Search items by name..."

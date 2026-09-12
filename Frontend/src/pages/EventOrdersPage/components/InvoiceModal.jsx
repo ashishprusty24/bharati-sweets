@@ -173,7 +173,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
 
         {/* ITEMS TABLE */}
         <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 6, letterSpacing: 0.5 }}>
-          📦 ITEMS PER PACKET ({packets} PACKETS TOTAL)
+          📦 ITEMS PER PACKET ({packets}{order.packetType ? ` ${order.packetType}` : ''} PACKETS TOTAL)
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
           <thead>
@@ -225,7 +225,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
               <span style={{ fontWeight: 600 }}>₹{finalPacketPrice}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-              <span style={{ color: "#57534e" }}>Packets</span>
+              <span style={{ color: "#57534e" }}>Packets{order.packetType ? ` (${order.packetType})` : ''}</span>
               <span style={{ fontWeight: 600 }}>{packets}</span>
             </div>
             <div style={{ borderTop: "1px solid #e2e8f0", margin: "6px 0" }}></div>

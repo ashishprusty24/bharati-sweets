@@ -40,6 +40,7 @@ const crestLogoSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000
 
 const invoiceTemplate = (order, title, status, isUpdate = false) => {
   const packets = order.packets || 1;
+  const packetType = order.packetType || "";
   const items = order.items || [];
   const discountPerPacket = Number(order.discount || 0);
 
@@ -422,7 +423,7 @@ const invoiceTemplate = (order, title, status, isUpdate = false) => {
   </table>
 
   <!-- ITEMS TABLE -->
-  <div class="table-section-title">📦 ITEMS PER PACKET (${packets} PACKETS TOTAL)</div>
+  <div class="table-section-title">📦 ITEMS PER PACKET (${packets}${packetType ? ' ' + packetType : ''} PACKETS TOTAL)</div>
   <table class="items-table">
     <thead>
       <tr>
@@ -475,7 +476,7 @@ const invoiceTemplate = (order, title, status, isUpdate = false) => {
           <span class="total-row-val">₹${finalPacketPrice}</span>
         </div>
         <div class="total-row">
-          <span class="total-row-lbl">Packets</span>
+          <span class="total-row-lbl">Packets${packetType ? ' (' + packetType + ')' : ''}</span>
           <span class="total-row-val">${packets}</span>
         </div>
         <div style="border-top: 1px solid #e2e8f0; margin: 4px 0;"></div>

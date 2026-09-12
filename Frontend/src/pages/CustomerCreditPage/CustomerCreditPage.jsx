@@ -328,51 +328,51 @@ const CustomerCreditPage = () => {
   ];
 
   return (
-    <div style={{ padding: "12px 16px", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: "0 8px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div className="page-header-container">
         <div>
-          <Title level={2} style={{ margin: 0, color: "#1e293b", fontWeight: 700, fontSize: "calc(1.2rem + 0.6vw)" }}>
+          <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
             Customer Credit (Bakki Ledger)
           </Title>
-          <Text type="secondary" style={{ fontSize: 13 }}>
+          <Text type="secondary">
             Manage customer pending dues, record payments, and send weekly WhatsApp payment reminders.
           </Text>
         </div>
 
-        <Space wrap style={{ width: "100%", justifyContent: "flex-end" }}>
+        <div className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Button
             icon={<SyncOutlined />}
             onClick={fetchBakkiData}
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 10, height: 45, fontWeight: 600 }}
           >
             Refresh
           </Button>
           <Button
-            type="default"
-            icon={<BellOutlined style={{ color: "#25D366" }} />}
+            icon={<BellOutlined />}
             onClick={handleTriggerAutoReminders}
-            style={{ borderRadius: 8, borderColor: "#25D366", color: "#15803d", fontWeight: 600 }}
+            style={{ borderRadius: 10, height: 45, fontWeight: 600, borderColor: "#25D366", color: "#15803d" }}
           >
             Trigger Weekly Reminders
           </Button>
           <Button
             type="primary"
+            size="large"
             icon={<PlusOutlined />}
             onClick={() => setIsAddModalOpen(true)}
-            style={{ background: "#4a151b", borderColor: "#4a151b", borderRadius: 8, fontWeight: 600 }}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px", fontWeight: 600 }}
           >
             New Bakki Entry
           </Button>
-        </Space>
+        </div>
       </div>
 
       {/* Summary Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={8}>
-          <Card style={{ borderRadius: 12, borderColor: "#fecaca", background: "#fff5f5" }}>
+          <Card bordered={false} style={{ borderRadius: 16 }}>
             <Statistic
-              title={<Text strong style={{ color: "#991b1b" }}>💳 Total Pending Bakki Dues</Text>}
+              title={<Text strong style={{ color: "#64748b" }}>💳 Total Pending Bakki Dues</Text>}
               value={data.summary?.totalDues || 0}
               prefix="₹"
               valueStyle={{ color: "#dc2626", fontWeight: 800, fontSize: 26 }}
@@ -381,9 +381,9 @@ const CustomerCreditPage = () => {
         </Col>
 
         <Col xs={24} sm={12} md={8}>
-          <Card style={{ borderRadius: 12, borderColor: "#fed7aa", background: "#fff7ed" }}>
+          <Card bordered={false} style={{ borderRadius: 16 }}>
             <Statistic
-              title={<Text strong style={{ color: "#9a3412" }}>👥 Customers with Pending Dues</Text>}
+              title={<Text strong style={{ color: "#64748b" }}>👥 Customers with Pending Dues</Text>}
               value={data.summary?.totalCustomers || 0}
               valueStyle={{ color: "#ea580c", fontWeight: 800, fontSize: 26 }}
             />
@@ -391,10 +391,10 @@ const CustomerCreditPage = () => {
         </Col>
 
         <Col xs={24} sm={24} md={8}>
-          <Card style={{ borderRadius: 12, borderColor: "#bbf7d0", background: "#f0fdf4" }}>
+          <Card bordered={false} style={{ borderRadius: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <Text strong style={{ color: "#166534" }}>📲 Weekly Auto-Reminders</Text>
+                <Text strong style={{ color: "#64748b" }}>📲 Weekly Auto-Reminders</Text>
                 <div style={{ marginTop: 6 }}>
                   <Tag color="green" style={{ borderRadius: 6, fontWeight: 700 }}>
                     ACTIVE (Every Sunday)
@@ -408,7 +408,7 @@ const CustomerCreditPage = () => {
       </Row>
 
       {/* Filters & Table */}
-      <Card style={{ borderRadius: 12, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }} bodyStyle={{ padding: "16px" }}>
+      <Card bordered={false} style={{ borderRadius: 20 }} bodyStyle={{ padding: "16px" }}>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={14} md={8}>
             <Input
@@ -417,7 +417,7 @@ const CustomerCreditPage = () => {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 12, height: 45, background: "#f8fafc", border: "1px solid #e2e8f0" }}
             />
           </Col>
 
@@ -435,15 +435,17 @@ const CustomerCreditPage = () => {
           </Col>
         </Row>
 
-        <Table
-          dataSource={filteredEntries}
-          columns={columns}
-          rowKey={(r) => r._id}
-          loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
-          scroll={{ x: 850 }}
-          size="middle"
-        />
+        <div className="responsive-table-container">
+          <Table
+            dataSource={filteredEntries}
+            columns={columns}
+            rowKey={(r) => r._id}
+            loading={loading}
+            pagination={{ pageSize: 10, showSizeChanger: true }}
+            scroll={{ x: 850 }}
+            size="middle"
+          />
+        </div>
       </Card>
 
       {/* MODAL: ADD NEW BAKKI ENTRY */}
@@ -500,7 +502,7 @@ const CustomerCreditPage = () => {
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
             <Button onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={submitting} style={{ background: "#4a151b", borderColor: "#4a151b" }}>
+            <Button type="primary" htmlType="submit" loading={submitting}>
               Save Bakki Entry
             </Button>
           </div>
@@ -557,7 +559,7 @@ const CustomerCreditPage = () => {
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
             <Button onClick={() => setIsPaymentModalOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={submitting} style={{ background: "#10b981", borderColor: "#10b981" }}>
+            <Button type="primary" htmlType="submit" loading={submitting}>
               Save & Update Ledger
             </Button>
           </div>

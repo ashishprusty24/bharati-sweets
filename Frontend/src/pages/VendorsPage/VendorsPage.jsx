@@ -125,7 +125,7 @@ const VendorsPage = () => {
         </div>
       </div>
 
-      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+      <Card bordered={false} style={{ borderRadius: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 16 }} className="search-filter-row">
           <Input
             placeholder="Search vendors..."

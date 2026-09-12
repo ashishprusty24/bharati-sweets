@@ -37,6 +37,7 @@ const eventOrderSchema = new mongoose.Schema(
     payments: [paymentSchema],
     discount: { type: Number, default: 0 },
     packets: { type: Number, default: 1 },
+    packetType: { type: String, default: "" },
     totalAmount: { type: Number, required: true },
     paidAmount: { type: Number, default: 0 },
     adminWaiver: { type: Number, default: 0 },

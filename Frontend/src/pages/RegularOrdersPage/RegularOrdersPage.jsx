@@ -150,7 +150,7 @@ const RegularOrdersPage = () => {
         </Button>
       </div>
 
-      <Card bordered={false} className="glass-card" style={{ borderRadius: 20 }}>
+      <Card bordered={false} style={{ borderRadius: 20 }}>
         <div className="search-filter-row">
           <Input
             placeholder="Search by customer, phone, or ID..."
