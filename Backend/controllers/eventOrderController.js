@@ -515,41 +515,61 @@ const deleteEventOrder = (orderId) => {
 };
 
 // ─── PREPARATION REPORT ──────────────────────────────────────
-const getPreparationReport = (date) => {
+const getPreparationReport = (startDateParam, endDateParam) => {
   return new Promise(async (resolve, reject) => {
     try {
-      if (!date) return reject({ status: 400, message: "Date is required" });
+      let query = {};
 
-      const tz = "Asia/Kolkata";
-      const startDate = dayjs.tz(date, tz).startOf("day").utc().toDate();
-      const endDate = dayjs.tz(date, tz).endOf("day").utc().toDate();
+      if (startDateParam && startDateParam !== "all" && startDateParam !== "2000-01-01") {
+        const start = dayjs(startDateParam).startOf("day").toDate();
+        const end = endDateParam
+          ? dayjs(endDateParam).endOf("day").toDate()
+          : dayjs(startDateParam).endOf("day").toDate();
 
-      const orders = await EventOrder.find({
-        deliveryDate: { $gte: startDate, $lte: endDate },
-      });
+        query = {
+          $or: [
+            { deliveryDate: { $gte: start, $lte: end } },
+            { eventDate: { $gte: start, $lte: end } },
+          ],
+        };
+      }
 
-      if (orders.length === 0) return resolve([]);
+      const orders = await EventOrder.find(query);
+
+      if (!orders || orders.length === 0) return resolve([]);
 
       let totalPackets = 0;
+      let activeOrderCount = 0;
       const itemTotals = {};
 
       orders.forEach((order) => {
-        totalPackets += order.packets || 1;
-        order.items.forEach((item) => {
-          const key = item.name;
+        if (order.orderStatus === "cancelled" || order.status === "cancelled") return;
+        activeOrderCount++;
+        const pkts = Number(order.packets) || 1;
+        totalPackets += pkts;
+        (order.items || []).forEach((item) => {
+          const key = (item.name || item.itemName || "").trim();
+          if (!key) return;
           if (!itemTotals[key]) {
-            itemTotals[key] = { name: item.name, quantity: 0 };
+            itemTotals[key] = { name: key, quantity: 0, unit: item.unit || "pcs" };
           }
-          itemTotals[key].quantity += item.quantity * (order.packets || 1);
+          const itemQty = Number(item.quantity) || Number(item.qty) || 0;
+          itemTotals[key].quantity += itemQty * pkts;
         });
       });
 
+      if (activeOrderCount === 0) return resolve([]);
+
+      const itemsList = Object.values(itemTotals).sort((a, b) => b.quantity - a.quantity);
+
       resolve([{
-        deliveryDate: orders[0].deliveryDate,
+        deliveryDate: orders[0]?.deliveryDate || new Date(),
         packets: totalPackets,
-        items: Object.values(itemTotals),
+        items: itemsList,
+        totalOrders: activeOrderCount,
       }]);
     } catch (err) {
+      console.error("❌ Preparation report error:", err);
       reject({ status: 500, message: err.message });
     }
   });

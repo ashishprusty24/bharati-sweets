@@ -639,9 +639,10 @@ body {
     .ant-picker-dropdown {
         left: 50% !important;
         transform: translateX(-50%) !important;
-        max-width: calc(100vw - 16px) !important;
-        width: min(340px, calc(100vw - 16px)) !important;
+        max-width: calc(100vw - 20px) !important;
+        width: min(320px, calc(100vw - 20px)) !important;
         box-sizing: border-box !important;
+        z-index: 1050 !important;
     }
 
     .ant-picker-dropdown .ant-picker-panel-container {
@@ -652,16 +653,21 @@ body {
     }
 
     .ant-picker-dropdown .ant-picker-panels {
-        flex-direction: column !important;
+        flex-direction: row !important;
         flex-wrap: nowrap !important;
         width: 100% !important;
+    }
+
+    /* Hide second month panel on mobile for compact popup height */
+    .ant-picker-dropdown .ant-picker-panels > .ant-picker-panel:nth-child(2) {
+        display: none !important;
     }
 
     .ant-picker-dropdown .ant-picker-panel {
         width: 100% !important;
         min-width: unset !important;
         border-right: none !important;
-        border-bottom: 1px solid #f0f0f0 !important;
+        border-bottom: none !important;
     }
 
     .ant-picker-dropdown .ant-picker-panel:last-child {
@@ -751,4 +757,28 @@ body {
 
 .page-header-container {
     margin-bottom: 14px !important;
+}
+
+/* ─── Horizontal Touch Scrollable Date Presets (Mobile & Desktop) ─── */
+.date-presets-scroll-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    padding-bottom: 4px;
+    max-width: 100%;
+}
+
+.date-presets-scroll-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.date-presets-scroll-container .ant-btn {
+    flex-shrink: 0;
+    border-radius: 16px;
+    font-weight: 600;
 }

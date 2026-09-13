@@ -22,7 +22,10 @@ router.get("/list", async (req, res) => {
 
 router.get("/preparation-report", async (req, res) => {
   try {
-    const report = await eventOrderController.getPreparationReport(req.query.date);
+    const report = await eventOrderController.getPreparationReport(
+      req.query.date || req.query.startDate,
+      req.query.endDate
+    );
     res.json(report);
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
