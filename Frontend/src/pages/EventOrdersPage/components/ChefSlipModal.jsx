@@ -131,7 +131,7 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
                     <Text type="secondary" style={{ fontSize: 11 }}>Time:</Text> <Text mark style={{ fontSize: 12, fontWeight: 700 }}>{order.deliveryTime}</Text>
                   </Col>
                   <Col xs={12} sm={12}>
-                    <Text type="secondary" style={{ fontSize: 11 }}>Packets:</Text> <Tag color="volcano" style={{ fontWeight: 700, margin: 0 }}>x{order.packets || 1}</Tag>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Packets:</Text> <Tag color="volcano" style={{ fontWeight: 700, margin: 0 }}>x{order.packets || 1}{order.packetType ? ` (${order.packetType})` : ''}</Tag>
                   </Col>
                   <Col span={24}>
                     <Text type="secondary" style={{ fontSize: 11 }}>Delivery Address:</Text> <Text style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>{order.address || order.deliveryAddress || "N/A"}</Text>

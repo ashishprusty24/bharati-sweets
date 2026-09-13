@@ -77,7 +77,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
         }}
       >
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img
               src="/assets/logo.jpeg"
@@ -101,7 +101,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             </div>
           </div>
 
-          <div style={{ textAlign: "right" }}>
+          <div style={{ textAlign: isMobile ? "left" : "right", flexShrink: 0 }}>
             <div style={{ display: "inline-block", background: "#4a151b", color: "#ffffff", padding: "5px 18px", borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>
               INVOICE
             </div>
@@ -117,8 +117,8 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
         <div style={{ borderBottom: "2px solid #eab308", margin: "12px 0 16px 0" }}></div>
 
         {/* BILL TO & ORDER DETAILS */}
-        <div style={{ display: "flex", flexWrap: isMobile ? "wrap" : "nowrap", gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "12px 16px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: "1 1 220px", background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "12px 16px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 4, letterSpacing: 0.5 }}>
               👤 BILL TO
             </div>
@@ -129,19 +129,22 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             <div style={{ fontSize: 11, color: "#44403c" }}>📍 {order.address || order.deliveryAddress || "N/A"}</div>
           </div>
 
-          <div style={{ flex: 1, background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "12px 16px" }}>
+          <div style={{ flex: "1 1 220px", background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "12px 16px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 4, letterSpacing: 0.5 }}>
               📋 ORDER DETAILS
             </div>
             <div style={{ fontSize: 11, color: "#44403c" }}>Order ID: <strong>{order._id ? order._id.slice(-8) : "N/A"}</strong></div>
             <div style={{ fontSize: 11, color: "#44403c" }}>Event: <strong>{order.purpose || "N/A"}</strong></div>
             <div style={{ fontSize: 11, color: "#44403c" }}>Delivery: <strong>{formatDate(order.deliveryDate || order.eventDate)} at {order.deliveryTime || "TBD"}</strong></div>
+            {order.packetType && (
+              <div style={{ fontSize: 11, color: "#44403c" }}>Packet Type: <strong>{order.packetType}</strong></div>
+            )}
           </div>
         </div>
 
         {/* ITEMS TABLE */}
         <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 6, letterSpacing: 0.5 }}>
-          📦 ITEMS PER PACKET ({packets}{order.packetType ? ` ${order.packetType}` : ''} PACKETS TOTAL)
+          📦 ITEMS PER PACKET ({packets} PACKET{packets > 1 ? 'S' : ''} TOTAL{order.packetType ? ` • ${order.packetType.toUpperCase()}` : ''})
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
           <thead>
@@ -165,8 +168,8 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
         </table>
 
         {/* DELIVERY & TOTALS CARDS */}
-        <div style={{ display: "flex", flexWrap: isMobile ? "wrap" : "nowrap", gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "16px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: "1 1 200px", background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "16px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", marginBottom: 6 }}>
               ⏰ DELIVERY DATE & TIME
             </div>
@@ -178,7 +181,7 @@ const InvoiceModal = ({ visible, order, onCancel }) => {
             </div>
           </div>
 
-          <div style={{ flex: 1, background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "16px" }}>
+          <div style={{ flex: "1 1 240px", background: "#fffcf8", border: "1px solid #fef3c7", borderRadius: 12, padding: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
               <span style={{ color: "#57534e" }}>Packet Total</span>
               <span style={{ fontWeight: 600 }}>₹{Number(packetTotal).toFixed(2)}</span>

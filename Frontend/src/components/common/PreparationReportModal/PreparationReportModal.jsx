@@ -37,9 +37,9 @@ const PreparationReportModal = () => {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState([]);
 
-  // Default to "all" so data is immediately fetched & displayed on open!
-  const [datePreset, setDatePreset] = useState("all");
-  const [dateRange, setDateRange] = useState(null);
+  // Default to "this_month"
+  const [datePreset, setDatePreset] = useState("this_month");
+  const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
 
   const printRef = useRef();
   const screens = useBreakpoint();
@@ -59,8 +59,9 @@ const PreparationReportModal = () => {
       setDateRange([dayjs().startOf("week"), dayjs().endOf("week")]);
     } else if (preset === "this_month") {
       setDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
-    } else if (preset === "all") {
-      setDateRange(null);
+    } else if (preset === "last_month") {
+      const m = dayjs().subtract(1, "month");
+      setDateRange([m.startOf("month"), m.endOf("month")]);
     }
   };
 
@@ -272,12 +273,12 @@ const PreparationReportModal = () => {
               <CalendarOutlined /> Target:
             </Text>
             {[
-              { key: "all", label: "All Orders" },
+              { key: "this_month", label: "This Month" },
               { key: "today", label: "Today" },
               { key: "tomorrow", label: "Tomorrow" },
               { key: "yesterday", label: "Yesterday" },
               { key: "this_week", label: "This Week" },
-              { key: "this_month", label: "This Month" },
+              { key: "last_month", label: "Last Month" },
             ].map((p) => {
               const isActive = datePreset === p.key;
               return (
@@ -525,17 +526,17 @@ const PreparationReportModal = () => {
                     No preparation requirements found for {getFormattedDateLabel()}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    Try selecting a different date range or tap "All Orders" to view all active event orders.
+                    Try selecting a different date range or select "This Month" to view monthly preparation report.
                   </Text>
                 </div>
               }
             >
               <Button
                 type="primary"
-                onClick={() => handlePresetChange("all")}
+                onClick={() => handlePresetChange("this_month")}
                 style={{ borderRadius: 10, marginTop: 12 }}
               >
-                View All Event Orders Report
+                View This Month Report
               </Button>
             </Empty>
           </div>

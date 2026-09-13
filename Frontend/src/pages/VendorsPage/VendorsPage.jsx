@@ -23,8 +23,8 @@ const VendorsPage = () => {
 
   const [searchText, setSearchText] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [datePreset, setDatePreset] = useState("all");
-  const [dateRange, setDateRange] = useState(null);
+  const [datePreset, setDatePreset] = useState("this_month");
+  const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
 
   const [isVendorModalVisible, setIsVendorModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);

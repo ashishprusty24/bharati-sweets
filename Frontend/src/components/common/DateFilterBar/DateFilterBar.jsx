@@ -6,11 +6,10 @@ const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const PRESETS = [
-  { key: "all", label: "All Time" },
+  { key: "this_month", label: "This Month" },
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
   { key: "this_week", label: "This Week" },
-  { key: "this_month", label: "This Month" },
   { key: "last_month", label: "Last Month" },
 ];
 
@@ -101,10 +100,10 @@ const DateFilterBar = ({
             type="text"
             size="small"
             icon={<CloseOutlined />}
-            onClick={() => onPresetChange("all")}
+            onClick={() => onPresetChange("this_month")}
             style={{ fontSize: 11, color: "#64748b", height: 22, padding: "0 6px" }}
           >
-            Clear
+            Reset
           </Button>
         </div>
       )}

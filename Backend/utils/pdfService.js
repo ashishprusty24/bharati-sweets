@@ -423,7 +423,7 @@ const invoiceTemplate = (order, title, status, isUpdate = false) => {
   </table>
 
   <!-- ITEMS TABLE -->
-  <div class="table-section-title">📦 ITEMS PER PACKET (${packets}${packetType ? ' ' + packetType : ''} PACKETS TOTAL)</div>
+  <div class="table-section-title">📦 ITEMS PER PACKET (${packets} PACKET${packets > 1 ? 'S' : ''} TOTAL${packetType ? ' • ' + packetType.toUpperCase() : ''})</div>
   <table class="items-table">
     <thead>
       <tr>
