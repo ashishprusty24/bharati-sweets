@@ -133,7 +133,7 @@ const PreparationReportModal = () => {
     }
     const items = reportData.items || [];
     const header = ["Item Name,Kitchen Section,Order Quantity,Current Stock,To Prepare,Unit,Status"];
-    const rows = items.map((i) => 
+    const rows = items.map((i) =>
       `"${i.name}","${i.kitchenSection || 'Uncategorized'}",${i.quantity || 0},${i.currentStock || 0},${i.toPrepare || 0},"${i.unit || 'pcs'}","${i.toPrepare > 0 ? 'Preparation Required' : 'In Stock'}"`
     );
     const csv = [...header, ...rows].join("\n");
@@ -564,14 +564,14 @@ const PreparationReportModal = () => {
                 pagination={
                   reportData.items?.length > 10
                     ? {
-                        pageSize: 10,
-                        size: "small",
-                        showTotal: (total) => (
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {total} items total
-                          </Text>
-                        ),
-                      }
+                      pageSize: 10,
+                      size: "small",
+                      showTotal: (total) => (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {total} items total
+                        </Text>
+                      ),
+                    }
                     : false
                 }
                 size="small"

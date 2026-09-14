@@ -52,6 +52,7 @@ export default function EventOrdersView() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [occasionFilter, setOccasionFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
+  const [sortBy, setSortBy] = useState("deliveryDate_asc");
 
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -129,8 +130,36 @@ export default function EventOrdersView() {
       });
     }
 
+    if (dateRange && dateRange.length === 2) {
+      const start = dateRange[0].startOf("day");
+      const end = dateRange[1].endOf("day");
+      result = result.filter((o) => dayjs(o.deliveryDate || o.eventDate).isBetween(start, end, null, "[]"));
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === "deliveryDate_asc") {
+        return dayjs(a.deliveryDate || a.eventDate).valueOf() - dayjs(b.deliveryDate || b.eventDate).valueOf();
+      }
+      if (sortBy === "deliveryDate_desc") {
+        return dayjs(b.deliveryDate || b.eventDate).valueOf() - dayjs(a.deliveryDate || a.eventDate).valueOf();
+      }
+      if (sortBy === "createdAt_desc") {
+        return dayjs(b.createdAt || b.orderDate).valueOf() - dayjs(a.createdAt || a.orderDate).valueOf();
+      }
+      if (sortBy === "createdAt_asc") {
+        return dayjs(a.createdAt || a.orderDate).valueOf() - dayjs(b.createdAt || b.orderDate).valueOf();
+      }
+      if (sortBy === "totalAmount_desc") {
+        return (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0);
+      }
+      if (sortBy === "totalAmount_asc") {
+        return (Number(a.totalAmount) || 0) - (Number(b.totalAmount) || 0);
+      }
+      return 0;
+    });
+
     return result;
-  }, [orders, searchText, statusFilter, occasionFilter]);
+  }, [orders, searchText, statusFilter, occasionFilter, dateRange, sortBy]);
 
   const handleAddEdit = (order = null) => {
     setEditingOrder(order);
@@ -309,7 +338,7 @@ Thank you for choosing Bharati Sweets! 🍬`;
 
       <Card variant="borderless" className="glass-card" style={{ borderRadius: 20 }}>
         <Row gutter={[16, 16]} className="search-filter-row">
-          <Col xs={24} md={8}>
+          <Col xs={24} md={6}>
             <Input
               placeholder="Search orders..."
               prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
@@ -318,19 +347,33 @@ Thank you for choosing Bharati Sweets! 🍬`;
               onChange={(e) => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={24} sm={12} md={5}>
+          <Col xs={24} sm={12} md={4}>
             <Select value={statusFilter} onChange={setStatusFilter} style={{ width: "100%", height: 45 }}>
               <Option value="all">All Status</Option>
               {ORDER_STATUS_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={5}>
+          <Col xs={24} sm={12} md={4}>
             <Select value={occasionFilter} onChange={setOccasionFilter} style={{ width: "100%", height: 45 }}>
               <Option value="all">All Occasions</Option>
               {allPurposeOptions.map((p) => <Option key={p} value={p}>{p}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={5}>
+            <Select
+              value={sortBy}
+              onChange={setSortBy}
+              style={{ width: "100%", height: 45 }}
+            >
+              <Option value="deliveryDate_asc">📅 Delivery Date (Earliest)</Option>
+              <Option value="deliveryDate_desc">📅 Delivery Date (Latest)</Option>
+              <Option value="createdAt_desc">🕒 Booking Date (Newest)</Option>
+              <Option value="createdAt_asc">🕒 Booking Date (Oldest)</Option>
+              <Option value="totalAmount_desc">💰 Amount (High → Low)</Option>
+              <Option value="totalAmount_asc">💰 Amount (Low → High)</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={5}>
             <RangePicker
               onChange={setDateRange}
               style={{ width: "100%", height: 45, borderRadius: 12 }}
