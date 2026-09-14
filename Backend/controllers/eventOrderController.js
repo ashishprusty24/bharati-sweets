@@ -551,6 +551,9 @@ const getPreparationReport = (startDateParam, endDateParam) => {
         activeOrderCount++;
         const pkts = Number(order.packets) || 1;
         totalPackets += pkts;
+        const delDate = order.deliveryDate ? new Date(order.deliveryDate).getTime() : (order.eventDate ? new Date(order.eventDate).getTime() : 0);
+        const createdDate = order.createdAt ? new Date(order.createdAt).getTime() : 0;
+
         (order.items || []).forEach((item) => {
           const key = (item.name || item.itemName || "").trim();
           if (!key) return;
@@ -560,7 +563,16 @@ const getPreparationReport = (startDateParam, endDateParam) => {
               itemId: item.itemId || item._id,
               quantity: 0,
               unit: item.unit || "pcs",
+              earliestDeliveryDate: delDate,
+              earliestCreatedAt: createdDate,
             };
+          } else {
+            if (delDate && (!itemTotals[key].earliestDeliveryDate || delDate < itemTotals[key].earliestDeliveryDate)) {
+              itemTotals[key].earliestDeliveryDate = delDate;
+            }
+            if (createdDate && (!itemTotals[key].earliestCreatedAt || createdDate < itemTotals[key].earliestCreatedAt)) {
+              itemTotals[key].earliestCreatedAt = createdDate;
+            }
           }
           const itemQty = Number(item.quantity) || Number(item.qty) || 0;
           itemTotals[key].quantity += itemQty * pkts;
@@ -602,8 +614,16 @@ const getPreparationReport = (startDateParam, endDateParam) => {
         };
       });
 
-      // Sort items: items requiring preparation first, then by required quantity descending
-      itemsList.sort((a, b) => b.toPrepare - a.toPrepare || b.quantity - a.quantity);
+      // Sort items: 1) Delivery/Preparation Date ascending, 2) Order Creation Date ascending, 3) Shortfall descending
+      itemsList.sort((a, b) => {
+        if (a.earliestDeliveryDate && b.earliestDeliveryDate && a.earliestDeliveryDate !== b.earliestDeliveryDate) {
+          return a.earliestDeliveryDate - b.earliestDeliveryDate;
+        }
+        if (a.earliestCreatedAt && b.earliestCreatedAt && a.earliestCreatedAt !== b.earliestCreatedAt) {
+          return a.earliestCreatedAt - b.earliestCreatedAt;
+        }
+        return b.toPrepare - a.toPrepare || b.quantity - a.quantity;
+      });
 
       resolve([
         {
