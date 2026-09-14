@@ -14,11 +14,28 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
 
   if (!order) return null;
 
+  const totalPackets = Number(order.packets) || 1;
+
   const groupedItems = (order.items || []).reduce((acc, item) => {
-    const invItem = inventoryItems?.find((i) => i._id === item.itemId);
+    const invItem = inventoryItems?.find(
+      (i) => i._id === item.itemId || i.name?.toLowerCase() === item.name?.toLowerCase()
+    );
     const section = invItem?.kitchenSection || "Uncategorized";
+    const currentStock = invItem ? Number(invItem.quantity) || 0 : 0;
+    const unit = invItem ? invItem.unit || item.unit || "pcs" : item.unit || "pcs";
+    const qtyPerPacket = Number(item.quantity) || 0;
+    const totalOrderQty = qtyPerPacket * totalPackets;
+    const toPrepare = Math.max(0, totalOrderQty - currentStock);
+
     if (!acc[section]) acc[section] = [];
-    acc[section].push(item);
+    acc[section].push({
+      ...item,
+      currentStock,
+      unit,
+      qtyPerPacket,
+      totalOrderQty,
+      toPrepare,
+    });
     return acc;
   }, {});
 
@@ -31,7 +48,7 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
     sectionsToShare.forEach(sec => {
       itemsList += `\n*${sec}*\n`;
       groupedItems[sec].forEach(item => {
-        itemsList += `• ${item.name}: ${item.quantity}\n`;
+        itemsList += `• ${item.name}: ${item.qtyPerPacket}/pkt (Total Order: ${item.totalOrderQty} ${item.unit} | In Stock: ${item.currentStock} ${item.unit} | Cook: ${item.toPrepare} ${item.unit})\n`;
       });
     });
 
@@ -41,8 +58,8 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
       `*Date:* ${dayjs(order.deliveryDate).format("MMM D, YYYY")}\n` +
       `*Delivery Time:* ${order.deliveryTime}\n` +
       `*Delivery Address:* ${order.address || order.deliveryAddress || "N/A"}\n\n` +
-      `*ITEMS:*\n${itemsList}\n` +
-      `*Total Packets:* x${order.packets || 1}\n` +
+      `*ITEMS BREAKDOWN (INVENTORY SYNCED):*\n${itemsList}\n` +
+      `*Total Packets:* x${order.packets || 1}${order.packetType ? ` (${order.packetType})` : ''}\n` +
       (order.notes ? `\n*SPECIAL INSTRUCTIONS:*\n${order.notes}` : "");
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -67,7 +84,7 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
       title="Kitchen Order Ticket (Section-wise KOT)"
       open={visible}
       onCancel={onCancel}
-      width={isMobile ? "95vw" : 650}
+      width={isMobile ? "95vw" : 750}
       centered
       className="responsive-modal"
       styles={{ body: { padding: isMobile ? 8 : 20, maxHeight: "75vh", overflowY: "auto", overflowX: "hidden" } }}
@@ -143,12 +160,19 @@ const ChefSlipModal = ({ visible, order, inventoryItems, onCancel }) => {
               <Table
                 dataSource={groupedItems[section]}
                 pagination={false}
-                rowKey="_id"
+                rowKey={(r, idx) => r._id || r.itemId || idx}
                 size="small"
                 bordered
                 columns={[
                   { title: "Item Description", dataIndex: "name", key: "name", render: (text) => <Text strong style={{ fontSize: 13 }}>{text}</Text> },
-                  { title: "Qty / Packet", dataIndex: "quantity", key: "quantity", align: "center", width: 110, render: (q) => <Text strong style={{ fontSize: 14 }}>{q}</Text> },
+                  { title: "Qty / Packet", dataIndex: "qtyPerPacket", key: "qtyPerPacket", align: "center", width: 95, render: (q) => <Text style={{ fontSize: 13 }}>{q}</Text> },
+                  { title: "Total Order", dataIndex: "totalOrderQty", key: "totalOrderQty", align: "center", width: 100, render: (q, r) => <Text strong style={{ fontSize: 13, color: "#2563eb" }}>{q} {r.unit}</Text> },
+                  { title: "In Stock", dataIndex: "currentStock", key: "currentStock", align: "center", width: 95, render: (s, r) => <Text style={{ fontSize: 13, color: s >= r.totalOrderQty ? "#16a34a" : "#64748b" }}>{s} {r.unit}</Text> },
+                  { title: "To Prepare", dataIndex: "toPrepare", key: "toPrepare", align: "center", width: 105, render: (p, r) => (
+                    <Tag color={p > 0 ? "volcano" : "green"} style={{ fontWeight: 700, fontSize: 12 }}>
+                      {p > 0 ? `${p} ${r.unit}` : "0"}
+                    </Tag>
+                  )},
                 ]}
               />
               

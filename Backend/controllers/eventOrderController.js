@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const EventOrder = require("../models/EventOrder");
+const Inventory = require("../models/Inventory");
 const inventoryController = require("./inventoryController");
 const {
   generateBookingReceipt,
@@ -534,7 +535,10 @@ const getPreparationReport = (startDateParam, endDateParam) => {
         };
       }
 
-      const orders = await EventOrder.find(query);
+      const [orders, allInventory] = await Promise.all([
+        EventOrder.find(query),
+        Inventory.find({}),
+      ]);
 
       if (!orders || orders.length === 0) return resolve([]);
 
@@ -551,7 +555,12 @@ const getPreparationReport = (startDateParam, endDateParam) => {
           const key = (item.name || item.itemName || "").trim();
           if (!key) return;
           if (!itemTotals[key]) {
-            itemTotals[key] = { name: key, quantity: 0, unit: item.unit || "pcs" };
+            itemTotals[key] = {
+              name: key,
+              itemId: item.itemId || item._id,
+              quantity: 0,
+              unit: item.unit || "pcs",
+            };
           }
           const itemQty = Number(item.quantity) || Number(item.qty) || 0;
           itemTotals[key].quantity += itemQty * pkts;
@@ -560,14 +569,53 @@ const getPreparationReport = (startDateParam, endDateParam) => {
 
       if (activeOrderCount === 0) return resolve([]);
 
-      const itemsList = Object.values(itemTotals).sort((a, b) => b.quantity - a.quantity);
+      // Merge with current inventory stock
+      let totalStockQty = 0;
+      let totalNetPrepQty = 0;
+      let totalItemsShortage = 0;
 
-      resolve([{
-        deliveryDate: orders[0]?.deliveryDate || new Date(),
-        packets: totalPackets,
-        items: itemsList,
-        totalOrders: activeOrderCount,
-      }]);
+      const itemsList = Object.values(itemTotals).map((item) => {
+        // Find matching inventory item by ID or name
+        const invItem = allInventory.find(
+          (inv) =>
+            (item.itemId && inv._id.toString() === item.itemId.toString()) ||
+            inv.name.trim().toLowerCase() === item.name.toLowerCase()
+        );
+
+        const currentStock = invItem ? Number(invItem.quantity) || 0 : 0;
+        const unit = invItem ? invItem.unit || item.unit || "pcs" : item.unit || "pcs";
+        const kitchenSection = invItem ? invItem.kitchenSection || "Uncategorized" : "Uncategorized";
+        const toPrepare = Math.max(0, item.quantity - currentStock);
+        const stockStatus = currentStock >= item.quantity ? "In Stock" : "Preparation Required";
+
+        totalStockQty += currentStock;
+        totalNetPrepQty += toPrepare;
+        if (toPrepare > 0) totalItemsShortage++;
+
+        return {
+          ...item,
+          unit,
+          kitchenSection,
+          currentStock,
+          toPrepare,
+          stockStatus,
+        };
+      });
+
+      // Sort items: items requiring preparation first, then by required quantity descending
+      itemsList.sort((a, b) => b.toPrepare - a.toPrepare || b.quantity - a.quantity);
+
+      resolve([
+        {
+          deliveryDate: orders[0]?.deliveryDate || new Date(),
+          packets: totalPackets,
+          items: itemsList,
+          totalOrders: activeOrderCount,
+          totalStockQty,
+          totalNetPrepQty,
+          totalItemsShortage,
+        },
+      ]);
     } catch (err) {
       console.error("❌ Preparation report error:", err);
       reject({ status: 500, message: err.message });

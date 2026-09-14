@@ -26,11 +26,24 @@ const RegularKOTModal = ({ visible, order, inventoryItems, onCancel }) => {
     html2pdf().set(opt).from(element).save();
   };
 
-  const groupedItems = order.items.reduce((acc, item) => {
-    const invItem = inventoryItems?.find((i) => i._id === item.itemId);
+  const groupedItems = (order.items || []).reduce((acc, item) => {
+    const invItem = inventoryItems?.find(
+      (i) => i._id === item.itemId || i.name?.toLowerCase() === item.name?.toLowerCase()
+    );
     const section = invItem?.kitchenSection || "Uncategorized";
+    const currentStock = invItem ? Number(invItem.quantity) || 0 : 0;
+    const unit = invItem ? invItem.unit || item.unit || "pcs" : item.unit || "pcs";
+    const orderQty = Number(item.quantity) || 0;
+    const toPrepare = Math.max(0, orderQty - currentStock);
+
     if (!acc[section]) acc[section] = [];
-    acc[section].push(item);
+    acc[section].push({
+      ...item,
+      currentStock,
+      unit,
+      orderQty,
+      toPrepare,
+    });
     return acc;
   }, {});
 
@@ -43,14 +56,14 @@ const RegularKOTModal = ({ visible, order, inventoryItems, onCancel }) => {
     sectionsToShare.forEach(sec => {
       itemsList += `\n*${sec}*\n`;
       groupedItems[sec].forEach(item => {
-        itemsList += `• ${item.name}: ${item.quantity}\n`;
+        itemsList += `• ${item.name}: ${item.orderQty} ${item.unit} (In Stock: ${item.currentStock} ${item.unit} | Cook: ${item.toPrepare} ${item.unit})\n`;
       });
     });
 
-    const message = `*KITCHEN ORDER TICKET (KOT)${sectionName ? ` - ${sectionName}` : ""}*\n` +
+    const message = `*KITCHEN ORDER TICKET (REGULAR KOT)${sectionName ? ` - ${sectionName}` : ""}*\n` +
       `*No:* RKOT-${order._id.slice(-6).toUpperCase()}\n\n` +
       `*Date:* ${dayjs(order.orderDate).format("MMM D, YYYY h:mm A")}\n\n` +
-      `*ITEMS:*\n${itemsList}\n` +
+      `*ITEMS BREAKDOWN (INVENTORY SYNCED):*\n${itemsList}\n` +
       (order.notes ? `\n*SPECIAL INSTRUCTIONS:*\n${order.notes}` : "");
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -62,7 +75,7 @@ const RegularKOTModal = ({ visible, order, inventoryItems, onCancel }) => {
       title="Kitchen Order Ticket (Regular)"
       open={visible}
       onCancel={onCancel}
-      width={isMobile ? "95vw" : 500}
+      width={isMobile ? "95vw" : 600}
       centered
       className="responsive-modal"
       styles={{ body: { padding: isMobile ? 8 : 24, maxHeight: "70vh", overflowY: "auto" } }}
@@ -112,12 +125,18 @@ const RegularKOTModal = ({ visible, order, inventoryItems, onCancel }) => {
             <Table
               dataSource={groupedItems[section]}
               pagination={false}
-              rowKey="_id"
+              rowKey={(r, idx) => r._id || r.itemId || idx}
               size="middle"
               bordered
               columns={[
-                { title: "Item", dataIndex: "name", key: "name", render: (text) => <Text strong>{text}</Text> },
-                { title: "Qty", dataIndex: "quantity", key: "quantity", align: "center", width: isMobile ? 70 : 100 },
+                { title: "Item Description", dataIndex: "name", key: "name", render: (text) => <Text strong>{text}</Text> },
+                { title: "Order Qty", dataIndex: "orderQty", key: "orderQty", align: "center", width: 95, render: (q, r) => <Text strong style={{ color: "#2563eb" }}>{q} {r.unit}</Text> },
+                { title: "In Stock", dataIndex: "currentStock", key: "currentStock", align: "center", width: 90, render: (s, r) => <Text style={{ color: s >= r.orderQty ? "#16a34a" : "#64748b" }}>{s} {r.unit}</Text> },
+                { title: "To Prepare", dataIndex: "toPrepare", key: "toPrepare", align: "center", width: 100, render: (p, r) => (
+                  <Text strong style={{ color: p > 0 ? "#dc2626" : "#16a34a" }}>
+                    {p > 0 ? `${p} ${r.unit}` : "0"}
+                  </Text>
+                )},
               ]}
             />
             

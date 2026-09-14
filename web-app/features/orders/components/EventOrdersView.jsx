@@ -9,6 +9,7 @@ import EventOrderModal from "./EventOrderModal";
 import EventPaymentModal from "./EventPaymentModal";
 import InvoiceModal from "./InvoiceModal";
 import ChefSlipModal from "./ChefSlipModal";
+import PreparationReportModal from "./PreparationReportModal";
 import EventOrderDetails from "./EventOrderDetails";
 import { formatWhatsAppPhone } from "../../marketing/components/config";
 
@@ -292,15 +293,18 @@ Thank you for choosing Bharati Sweets! 🍬`;
           <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Event Orders</Title>
           <Text type="secondary">Manage large bookings, delivery schedules, and payments.</Text>
         </div>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => handleAddEdit()}
-          style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
-        >
-          New Booking
-        </Button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <PreparationReportModal />
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => handleAddEdit()}
+            style={{ borderRadius: 10, height: 45, padding: "0 24px" }}
+          >
+            New Booking
+          </Button>
+        </div>
       </div>
 
       <Card variant="borderless" className="glass-card" style={{ borderRadius: 20 }}>

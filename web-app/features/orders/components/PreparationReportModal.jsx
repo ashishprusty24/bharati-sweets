@@ -1,10 +1,11 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   Button,
   Modal,
   DatePicker,
   Table,
-  Space,
   message,
   Typography,
   Empty,
@@ -23,7 +24,6 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import isBetween from "dayjs/plugin/isBetween";
 import html2pdf from "html2pdf.js";
-import api from "../../../services/api";
 
 dayjs.extend(utc);
 dayjs.extend(isBetween);
@@ -32,12 +32,11 @@ const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
 
-const PreparationReportModal = () => {
+export default function PreparationReportModal() {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState([]);
 
-  // Default to "this_month"
   const [datePreset, setDatePreset] = useState("this_month");
   const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
 
@@ -68,13 +67,14 @@ const PreparationReportModal = () => {
   const fetchReport = async () => {
     try {
       setLoading(true);
-      let url = "/event-orders/preparation-report";
+      let url = "/api/event-orders/preparation-report";
       if (dateRange && dateRange[0] && dateRange[1]) {
         url += `?startDate=${dateRange[0].format("YYYY-MM-DD")}&endDate=${dateRange[1].format("YYYY-MM-DD")}`;
       } else {
         url += `?startDate=2000-01-01&endDate=2099-12-31`;
       }
-      const data = await api.get(url);
+      const res = await fetch(url);
+      const data = await res.json();
       setReport(data || []);
     } catch (err) {
       console.error(err);
@@ -237,7 +237,6 @@ const PreparationReportModal = () => {
 
   return (
     <>
-      {/* TRIGGER BUTTON */}
       <Button
         icon={<FileTextOutlined />}
         onClick={() => setVisible(true)}
@@ -259,7 +258,6 @@ const PreparationReportModal = () => {
         Prep Report
       </Button>
 
-      {/* MODAL */}
       <Modal
         open={visible}
         onCancel={() => setVisible(false)}
@@ -273,7 +271,6 @@ const PreparationReportModal = () => {
           content: { borderRadius: 20, overflow: "hidden" },
         }}
       >
-        {/* Modal Header */}
         <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
@@ -301,7 +298,6 @@ const PreparationReportModal = () => {
           </div>
         </div>
 
-        {/* Compact Filters & Controls Row */}
         <div
           style={{
             background: "#f8fafc",
@@ -314,7 +310,6 @@ const PreparationReportModal = () => {
             gap: 10,
           }}
         >
-          {/* Presets Bar */}
           <div className="date-presets-scroll-container">
             <Text strong style={{ fontSize: 12, color: "#64748b", flexShrink: 0, marginRight: 2 }}>
               <CalendarOutlined /> Target:
@@ -347,7 +342,6 @@ const PreparationReportModal = () => {
             })}
           </div>
 
-          {/* RangePicker & Action Buttons Row */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
             <RangePicker
               value={dateRange}
@@ -475,10 +469,8 @@ const PreparationReportModal = () => {
           </div>
         </div>
 
-        {/* Report Content */}
         {reportData && totalItems > 0 ? (
           <>
-            {/* Stats Row */}
             <Row gutter={[10, 10]} style={{ marginBottom: 16 }}>
               <Col xs={12} sm={6}>
                 <div
@@ -554,7 +546,6 @@ const PreparationReportModal = () => {
               </Col>
             </Row>
 
-            {/* Items Table */}
             <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #f1f5f9" }}>
               <Table
                 columns={columns}
@@ -635,6 +626,4 @@ const PreparationReportModal = () => {
       </Modal>
     </>
   );
-};
-
-export default PreparationReportModal;
+}
