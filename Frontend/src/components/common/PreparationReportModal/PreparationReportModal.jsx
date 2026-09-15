@@ -132,9 +132,9 @@ const PreparationReportModal = () => {
       return;
     }
     const items = reportData.items || [];
-    const header = ["Item Name,Kitchen Section,Order Quantity,Current Stock,To Prepare,Unit,Status"];
+    const header = ["Item Name,Kitchen Section,Order Quantity,Current Stock,Unit"];
     const rows = items.map((i) =>
-      `"${i.name}","${i.kitchenSection || 'Uncategorized'}",${i.quantity || 0},${i.currentStock || 0},${i.toPrepare || 0},"${i.unit || 'pcs'}","${i.toPrepare > 0 ? 'Preparation Required' : 'In Stock'}"`
+      `"${i.name}","${i.kitchenSection || 'Uncategorized'}",${i.quantity || 0},${i.currentStock || 0},"${i.unit || 'pcs'}"`
     );
     const csv = [...header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -197,41 +197,6 @@ const PreparationReportModal = () => {
           {stock || 0} {record.unit || "pcs"}
         </Text>
       ),
-    },
-    {
-      title: "To Prepare",
-      dataIndex: "toPrepare",
-      key: "toPrepare",
-      sorter: (a, b) => (a.toPrepare || 0) - (b.toPrepare || 0),
-      width: 110,
-      align: "center",
-      render: (prep, record) => (
-        <Tag
-          color={prep > 0 ? "volcano" : "green"}
-          style={{
-            fontWeight: 700,
-            fontSize: 13,
-            borderRadius: 6,
-            padding: "2px 8px",
-          }}
-        >
-          {prep > 0 ? `${prep} ${record.unit || "pcs"}` : "0 (In Stock)"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Status",
-      key: "status",
-      width: 120,
-      align: "center",
-      render: (_, record) => {
-        const isSufficient = (record.currentStock || 0) >= record.quantity;
-        return (
-          <Tag color={isSufficient ? "success" : "warning"} style={{ borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
-            {isSufficient ? "✓ Stock Ready" : "⚡ Cook Needed"}
-          </Tag>
-        );
-      },
     },
   ];
 
@@ -434,10 +399,8 @@ const PreparationReportModal = () => {
                   <th style={{ padding: "8px 10px", textAlign: "left", width: "35px" }}>#</th>
                   <th style={{ padding: "8px 10px", textAlign: "left" }}>Sweet / Item Name</th>
                   <th style={{ padding: "8px 10px", textAlign: "left", width: "110px" }}>Section</th>
-                  <th style={{ padding: "8px 10px", textAlign: "right", width: "90px" }}>Order Qty</th>
-                  <th style={{ padding: "8px 10px", textAlign: "right", width: "90px" }}>In Stock</th>
-                  <th style={{ padding: "8px 10px", textAlign: "right", width: "100px" }}>To Prepare</th>
-                  <th style={{ padding: "8px 10px", textAlign: "center", width: "90px" }}>Status</th>
+                  <th style={{ padding: "8px 10px", textAlign: "right", width: "110px" }}>Order Qty</th>
+                  <th style={{ padding: "8px 10px", textAlign: "right", width: "110px" }}>In Stock</th>
                 </tr>
               </thead>
               <tbody>
@@ -448,12 +411,6 @@ const PreparationReportModal = () => {
                     <td style={{ padding: "8px 10px", color: "#64748b", fontSize: "11px" }}>{item.kitchenSection || "Uncategorized"}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right", color: "#3b82f6", fontWeight: "600" }}>{item.quantity} {item.unit || "pcs"}</td>
                     <td style={{ padding: "8px 10px", textAlign: "right", color: item.currentStock >= item.quantity ? "#059669" : "#64748b" }}>{item.currentStock || 0} {item.unit || "pcs"}</td>
-                    <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: "bold", color: item.toPrepare > 0 ? "#dc2626" : "#059669" }}>
-                      {item.toPrepare > 0 ? `${item.toPrepare} ${item.unit || "pcs"}` : "0 (In Stock)"}
-                    </td>
-                    <td style={{ padding: "8px 10px", textAlign: "center", fontWeight: "bold", fontSize: "11px", color: item.toPrepare > 0 ? "#d97706" : "#059669" }}>
-                      {item.toPrepare > 0 ? "COOK NEEDED" : "IN STOCK"}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -462,8 +419,6 @@ const PreparationReportModal = () => {
                   <td colSpan={3} style={{ padding: "10px", color: "#3730a3", fontSize: "13px" }}>TOTAL UNITS SUMMARY</td>
                   <td style={{ padding: "10px", textAlign: "right", color: "#3b82f6", fontSize: "14px" }}>{totalOrderQty}</td>
                   <td style={{ padding: "10px", textAlign: "right", color: "#059669", fontSize: "14px" }}>{totalStockQty}</td>
-                  <td style={{ padding: "10px", textAlign: "right", color: "#dc2626", fontSize: "14px" }}>{totalNetPrepQty}</td>
-                  <td style={{ padding: "10px" }} />
                 </tr>
               </tfoot>
             </table>
@@ -595,12 +550,6 @@ const PreparationReportModal = () => {
                           {totalStockQty.toLocaleString("en-IN")}
                         </Text>
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={4} align="center">
-                        <Text strong style={{ fontSize: 14, color: "#dc2626" }}>
-                          {totalNetPrepQty.toLocaleString("en-IN")}
-                        </Text>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={5} />
                     </Table.Summary.Row>
                   </Table.Summary>
                 )}
