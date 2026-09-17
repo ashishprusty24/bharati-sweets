@@ -1,6 +1,18 @@
 const CustomerCredit = require("../models/CustomerCredit");
 const EventOrder = require("../models/EventOrder");
 const { sendWhatsApp, sendWhatsAppTemplate } = require("../utils/whatsappService");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const formatIST = (dateVal) => {
+  if (!dateVal) return "N/A";
+  const dt = dayjs(dateVal);
+  return dt.isValid() ? dt.tz("Asia/Kolkata").format("DD MMM YYYY, hh:mm:ss A IST") : "N/A";
+};
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
 const getAllBakkiEntries = async () => {
@@ -200,7 +212,8 @@ const getPaymentHistoryReport = async (query = {}) => {
     }
   }
 
-  const paymentRows = [];
+  const targetInstallmentNo = query.installmentNo ? Number(query.installmentNo) : null;
+  let paymentRows = [];
 
   // 1. Customer Credit Payments
   const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
@@ -218,6 +231,9 @@ const getPaymentHistoryReport = async (query = {}) => {
     }
 
     payments.forEach((p, index) => {
+      const instNo = index + 1;
+      if (targetInstallmentNo && instNo !== targetInstallmentNo) return;
+
       cumulativePaid += Number(p.amount || 0);
       const remainingBalance = Math.max(0, totalAmount - cumulativePaid);
       const pDate = p.date || p.timestamp || credit.createdAt;
@@ -235,8 +251,9 @@ const getPaymentHistoryReport = async (query = {}) => {
         phone: credit.phone,
         notes: credit.notes || "Bakki Dues",
         totalAmount,
-        installmentNo: index + 1,
+        installmentNo: instNo,
         date: pDate,
+        dateFormatted: formatIST(pDate),
         amountPaid: Number(p.amount || 0),
         method: p.method || "cash",
         cumulativePaid,
@@ -264,6 +281,9 @@ const getPaymentHistoryReport = async (query = {}) => {
         }
 
         payments.forEach((p, index) => {
+          const instNo = index + 1;
+          if (targetInstallmentNo && instNo !== targetInstallmentNo) return;
+
           cumulativePaid += Number(p.amount || 0);
           const remainingBalance = Math.max(0, totalAmount - (cumulativePaid + (order.adminWaiver || 0)));
           const pDate = p.timestamp || p.date || order.createdAt;
@@ -281,8 +301,9 @@ const getPaymentHistoryReport = async (query = {}) => {
             phone: order.phone,
             notes: order.purpose ? `Event: ${order.purpose}` : "Event Booking",
             totalAmount,
-            installmentNo: index + 1,
+            installmentNo: instNo,
             date: pDate,
+            dateFormatted: formatIST(pDate),
             amountPaid: Number(p.amount || 0),
             method: p.method || "cash",
             cumulativePaid,
