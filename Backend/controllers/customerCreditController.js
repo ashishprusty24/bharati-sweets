@@ -1,4 +1,5 @@
 const CustomerCredit = require("../models/CustomerCredit");
+const EventOrder = require("../models/EventOrder");
 const { sendWhatsApp, sendWhatsAppTemplate } = require("../utils/whatsappService");
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
@@ -161,7 +162,7 @@ const deleteBakkiEntry = async (id) => {
   return { message: "Bakki entry deleted successfully" };
 };
 
-// ─── GET PAYMENT HISTORY TABULAR REPORT ──────────────────────
+// ─── GET PAYMENT HISTORY TABULAR REPORT (COMBINED BAKKI + EVENT ORDERS) ──
 const getPaymentHistoryReport = async (query = {}) => {
   const filter = {};
   if (query.customerId) {
@@ -189,9 +190,10 @@ const getPaymentHistoryReport = async (query = {}) => {
     }
   }
 
-  const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
   const paymentRows = [];
 
+  // 1. Customer Credit Payments
+  const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
   credits.forEach((credit) => {
     const totalAmount = credit.totalAmount || 0;
     let cumulativePaid = 0;
@@ -218,6 +220,7 @@ const getPaymentHistoryReport = async (query = {}) => {
 
       paymentRows.push({
         recordId: credit._id.toString(),
+        source: "customer_credit",
         customerName: credit.customerName,
         phone: credit.phone,
         notes: credit.notes || "Bakki Dues",
@@ -232,6 +235,59 @@ const getPaymentHistoryReport = async (query = {}) => {
       });
     });
   });
+
+  // 2. Event Order Payments (unless explicitly requested customer_credit_only)
+  if (query.source !== "customer_credit_only" && !query.customerId) {
+    try {
+      const orders = await EventOrder.find(filter).sort({ createdAt: -1 });
+      orders.forEach((order) => {
+        const totalAmount = order.totalAmount || 0;
+        let cumulativePaid = 0;
+
+        let payments = order.payments || [];
+        if (payments.length === 0 && order.paidAmount > 0) {
+          payments = [{
+            amount: order.paidAmount,
+            method: "cash",
+            timestamp: order.createdAt || new Date(),
+          }];
+        }
+
+        payments.forEach((p, index) => {
+          cumulativePaid += Number(p.amount || 0);
+          const remainingBalance = Math.max(0, totalAmount - (cumulativePaid + (order.adminWaiver || 0)));
+          const pDate = p.timestamp || p.date || order.createdAt;
+
+          if (pDate && !isNaN(new Date(pDate).getTime())) {
+            const paymentDate = new Date(pDate);
+            if (startDate && paymentDate < startDate) return;
+            if (endDate && paymentDate > endDate) return;
+          }
+
+          paymentRows.push({
+            recordId: order._id.toString(),
+            source: "event_order",
+            customerName: order.customerName,
+            phone: order.phone,
+            notes: order.purpose ? `Event: ${order.purpose}` : "Event Booking",
+            totalAmount,
+            installmentNo: index + 1,
+            date: pDate,
+            amountPaid: Number(p.amount || 0),
+            method: p.method || "cash",
+            cumulativePaid,
+            remainingBalance,
+            status: remainingBalance === 0 ? "Fully Paid" : "Partial",
+          });
+        });
+      });
+    } catch (orderErr) {
+      console.error("⚠️ Failed to load Event Orders for payment history:", orderErr.message);
+    }
+  }
+
+  // Sort combined payment rows by date descending
+  paymentRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
   return {
     totalRecords: paymentRows.length,
