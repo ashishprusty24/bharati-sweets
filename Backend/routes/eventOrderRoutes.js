@@ -32,6 +32,15 @@ router.get("/preparation-report", async (req, res) => {
   }
 });
 
+router.get("/payment-history", async (req, res) => {
+  try {
+    const report = await eventOrderController.getEventOrderPaymentHistory(req.query);
+    res.json(report);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 // ─── TEST WHATSAPP (must be before /:id) ──────────────────────
 // GET /event-orders/test-whatsapp?phone=91XXXXXXXXXX
 router.get("/test-whatsapp", async (req, res) => {

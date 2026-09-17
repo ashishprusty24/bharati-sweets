@@ -24,7 +24,7 @@ const EventOrderDetails = ({ record }) => {
   );
 
   const renderPayments = (payments = []) => (
-    <Card title="Payment History" size="small" style={{ marginBottom: 16 }}>
+    <Card title="💳 Payment Installment History" size="small" style={{ marginBottom: 16 }}>
       <div style={{ overflowX: "auto" }}>
         <Table
           dataSource={payments}
@@ -32,9 +32,41 @@ const EventOrderDetails = ({ record }) => {
           rowKey={(record, index) => index}
           size="small"
           columns={[
-            { title: "Date", dataIndex: "date", key: "date", render: (d) => new Date(d).toLocaleDateString() },
-            { title: "Amount", dataIndex: "amount", key: "amount", render: (a) => `₹${a}` },
-            { title: "Method", dataIndex: "method", key: "method" },
+            { title: "#", key: "index", width: 50, render: (_, __, i) => i + 1 },
+            {
+              title: "Date & Time",
+              dataIndex: "date",
+              key: "date",
+              render: (d, r) => {
+                const dateVal = d || r.timestamp || r.date;
+                if (!dateVal) return "N/A";
+                const dt = new Date(dateVal);
+                return isNaN(dt.getTime()) ? "N/A" : dt.toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+              },
+            },
+            {
+              title: "Amount Paid",
+              dataIndex: "amount",
+              key: "amount",
+              render: (a) => <Tag color="green" style={{ fontWeight: 700 }}>₹{Number(a || 0).toLocaleString("en-IN")}</Tag>,
+            },
+            {
+              title: "Payment Method",
+              dataIndex: "method",
+              key: "method",
+              render: (m) => (
+                <Tag color="blue" style={{ textTransform: "uppercase", fontWeight: 600 }}>
+                  {m === "phonepay" ? "📱 PhonePe" : m === "gpay" ? "📱 GPay" : m === "card" ? "💳 Card" : m === "upi" ? "📱 UPI" : `💵 ${(m || "cash").toUpperCase()}`}
+                </Tag>
+              ),
+            },
           ]}
         />
       </div>

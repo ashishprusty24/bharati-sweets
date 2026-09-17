@@ -12,6 +12,16 @@ router.get("/list", async (req, res) => {
   }
 });
 
+// GET payment history tabular report
+router.get("/payment-history", async (req, res) => {
+  try {
+    const report = await customerCreditController.getPaymentHistoryReport(req.query);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // CREATE standalone Bakki entry
 router.post("/create", async (req, res) => {
   try {

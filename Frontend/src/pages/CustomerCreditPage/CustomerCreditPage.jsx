@@ -444,6 +444,76 @@ const CustomerCreditPage = () => {
             pagination={{ pageSize: 10, showSizeChanger: true }}
             scroll={{ x: 850 }}
             size="middle"
+            expandable={{
+              expandedRowRender: (record) => {
+                const payments = record.payments || [];
+                if (payments.length === 0) {
+                  return (
+                    <div style={{ padding: "8px 16px", color: "#94a3b8", fontStyle: "italic" }}>
+                      No payment installments recorded yet.
+                    </div>
+                  );
+                }
+                let cumulative = 0;
+                const historyData = payments.map((p, idx) => {
+                  cumulative += Number(p.amount || 0);
+                  const rem = Math.max(0, (record.totalAmount || 0) - cumulative);
+                  return { ...p, index: idx + 1, cumulative, remaining: rem };
+                });
+
+                return (
+                  <div style={{ background: "#f8fafc", padding: "12px", borderRadius: 8, margin: "4px 0" }}>
+                    <Text strong style={{ fontSize: 13, color: "#334155", display: "block", marginBottom: 8 }}>
+                      💳 Payment Installment History for {record.customerName}:
+                    </Text>
+                    <Table
+                      dataSource={historyData}
+                      pagination={false}
+                      size="small"
+                      rowKey={(_, idx) => idx}
+                      columns={[
+                        { title: "Installment #", dataIndex: "index", key: "index", width: 110, render: (i) => `Payment #${i}` },
+                        {
+                          title: "Date & Time",
+                          dataIndex: "date",
+                          key: "date",
+                          render: (d) => (d ? dayjs(d).format("DD MMM YYYY, hh:mm A") : "N/A"),
+                        },
+                        {
+                          title: "Amount Received",
+                          dataIndex: "amount",
+                          key: "amount",
+                          render: (amt) => (
+                            <Text style={{ color: "#16a34a", fontWeight: 700 }}>₹{Number(amt || 0).toLocaleString("en-IN")}</Text>
+                          ),
+                        },
+                        {
+                          title: "Payment Method",
+                          dataIndex: "method",
+                          key: "method",
+                          render: (m) => (
+                            <Tag color="blue" style={{ textTransform: "uppercase", fontWeight: 600 }}>
+                              {m === "phonepay" ? "📱 PhonePe" : m === "gpay" ? "📱 GPay" : m === "upi" ? "📱 UPI" : m === "bank" ? "🏦 Bank" : `💵 ${(m || "cash").toUpperCase()}`}
+                            </Tag>
+                          ),
+                        },
+                        {
+                          title: "Balance After Payment",
+                          dataIndex: "remaining",
+                          key: "remaining",
+                          render: (rem) => (
+                            <Text style={{ color: rem > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>
+                              {rem > 0 ? `₹${rem.toLocaleString("en-IN")}` : "✅ Settled"}
+                            </Text>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                );
+              },
+              rowExpandable: (record) => true,
+            }}
           />
         </div>
       </Card>

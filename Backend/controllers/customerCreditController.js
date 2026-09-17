@@ -17,6 +17,7 @@ const getAllBakkiEntries = async () => {
     dueDate: c.dueDate,
     autoReminderEnabled: c.autoReminderEnabled !== false,
     status: c.status,
+    payments: c.payments || [],
     createdAt: c.createdAt,
   }));
 
@@ -149,6 +150,50 @@ const deleteBakkiEntry = async (id) => {
   return { message: "Bakki entry deleted successfully" };
 };
 
+// ─── GET PAYMENT HISTORY TABULAR REPORT ──────────────────────
+const getPaymentHistoryReport = async (query = {}) => {
+  const filter = {};
+  if (query.customerId) {
+    filter._id = query.customerId;
+  }
+  if (query.phone) {
+    filter.phone = new RegExp(query.phone, "i");
+  }
+
+  const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
+  const paymentRows = [];
+
+  credits.forEach((credit) => {
+    const totalAmount = credit.totalAmount || 0;
+    let cumulativePaid = 0;
+
+    (credit.payments || []).forEach((p, index) => {
+      cumulativePaid += Number(p.amount || 0);
+      const remainingBalance = Math.max(0, totalAmount - cumulativePaid);
+
+      paymentRows.push({
+        recordId: credit._id.toString(),
+        customerName: credit.customerName,
+        phone: credit.phone,
+        notes: credit.notes || "Bakki Dues",
+        totalAmount,
+        installmentNo: index + 1,
+        date: p.date || p.timestamp || credit.createdAt,
+        amountPaid: Number(p.amount || 0),
+        method: p.method || "cash",
+        cumulativePaid,
+        remainingBalance,
+        status: remainingBalance === 0 ? "Fully Paid" : "Partial",
+      });
+    });
+  });
+
+  return {
+    totalRecords: paymentRows.length,
+    paymentHistory: paymentRows,
+  };
+};
+
 module.exports = {
   getAllBakkiEntries,
   createBakkiEntry,
@@ -157,4 +202,6 @@ module.exports = {
   sendBakkiReminder,
   triggerWeeklyAutoReminders,
   deleteBakkiEntry,
+  getPaymentHistoryReport,
 };
+

@@ -643,6 +643,52 @@ const getPreparationReport = (startDateParam, endDateParam) => {
   });
 };
 
+// ─── GET EVENT ORDER PAYMENT HISTORY REPORT ─────────────────
+const getEventOrderPaymentHistory = (query = {}) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const filter = {};
+      if (query.orderId) filter._id = query.orderId;
+      if (query.phone) filter.phone = new RegExp(query.phone, "i");
+
+      const orders = await EventOrder.find(filter).sort({ createdAt: -1 });
+      const paymentRows = [];
+
+      orders.forEach((order) => {
+        const totalAmount = order.totalAmount || 0;
+        let cumulativePaid = 0;
+
+        (order.payments || []).forEach((p, index) => {
+          cumulativePaid += Number(p.amount || 0);
+          const remainingBalance = Math.max(0, totalAmount - (cumulativePaid + (order.adminWaiver || 0)));
+
+          paymentRows.push({
+            orderId: order._id.toString(),
+            customerName: order.customerName,
+            phone: order.phone,
+            purpose: order.purpose || "Event",
+            totalAmount,
+            installmentNo: index + 1,
+            date: p.timestamp || p.date || order.createdAt,
+            amountPaid: Number(p.amount || 0),
+            method: p.method || "cash",
+            cumulativePaid,
+            remainingBalance,
+            paymentStatus: order.paymentStatus,
+          });
+        });
+      });
+
+      resolve({
+        totalRecords: paymentRows.length,
+        paymentHistory: paymentRows,
+      });
+    } catch (err) {
+      reject({ status: 500, message: err.message });
+    }
+  });
+};
+
 module.exports = {
   createEventOrder,
   getAllEventOrders,
@@ -652,4 +698,6 @@ module.exports = {
   updateEventOrder,
   deleteEventOrder,
   getPreparationReport,
+  getEventOrderPaymentHistory,
 };
+
