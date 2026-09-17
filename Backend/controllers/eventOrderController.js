@@ -651,11 +651,23 @@ const getEventOrderPaymentHistory = (query = {}) => {
       if (query.orderId) filter._id = query.orderId;
       if (query.phone) filter.phone = new RegExp(query.phone, "i");
 
-      const startDate = query.startDate ? new Date(query.startDate) : null;
-      if (startDate) startDate.setHours(0, 0, 0, 0);
+      let startDate = null;
+      if (query.startDate && query.startDate !== "undefined" && query.startDate !== "null" && query.startDate !== "all") {
+        const d = new Date(query.startDate);
+        if (!isNaN(d.getTime())) {
+          d.setHours(0, 0, 0, 0);
+          startDate = d;
+        }
+      }
 
-      const endDate = query.endDate ? new Date(query.endDate) : null;
-      if (endDate) endDate.setHours(23, 59, 59, 999);
+      let endDate = null;
+      if (query.endDate && query.endDate !== "undefined" && query.endDate !== "null" && query.endDate !== "all") {
+        const d = new Date(query.endDate);
+        if (!isNaN(d.getTime())) {
+          d.setHours(23, 59, 59, 999);
+          endDate = d;
+        }
+      }
 
       const orders = await EventOrder.find(filter).sort({ createdAt: -1 });
       const paymentRows = [];
@@ -664,15 +676,25 @@ const getEventOrderPaymentHistory = (query = {}) => {
         const totalAmount = order.totalAmount || 0;
         let cumulativePaid = 0;
 
-        (order.payments || []).forEach((p, index) => {
+        let payments = order.payments || [];
+        if (payments.length === 0 && order.paidAmount > 0) {
+          payments = [{
+            amount: order.paidAmount,
+            method: "cash",
+            timestamp: order.createdAt || new Date(),
+          }];
+        }
+
+        payments.forEach((p, index) => {
           cumulativePaid += Number(p.amount || 0);
           const remainingBalance = Math.max(0, totalAmount - (cumulativePaid + (order.adminWaiver || 0)));
           const pDate = p.timestamp || p.date || order.createdAt;
-          const paymentDate = new Date(pDate);
 
-          // Date range filter check
-          if (startDate && paymentDate < startDate) return;
-          if (endDate && paymentDate > endDate) return;
+          if (pDate && !isNaN(new Date(pDate).getTime())) {
+            const paymentDate = new Date(pDate);
+            if (startDate && paymentDate < startDate) return;
+            if (endDate && paymentDate > endDate) return;
+          }
 
           paymentRows.push({
             orderId: order._id.toString(),

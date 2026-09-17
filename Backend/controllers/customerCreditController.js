@@ -5,21 +5,32 @@ const { sendWhatsApp, sendWhatsAppTemplate } = require("../utils/whatsappService
 const getAllBakkiEntries = async () => {
   const credits = await CustomerCredit.find().sort({ createdAt: -1 });
 
-  const entries = credits.map((c) => ({
-    _id: c._id.toString(),
-    source: "customer_credit",
-    customerName: c.customerName,
-    phone: c.phone,
-    totalAmount: c.totalAmount,
-    paidAmount: c.paidAmount,
-    balance: c.balance,
-    notes: c.notes || "Counter Credit (Bakki)",
-    dueDate: c.dueDate,
-    autoReminderEnabled: c.autoReminderEnabled !== false,
-    status: c.status,
-    payments: c.payments || [],
-    createdAt: c.createdAt,
-  }));
+  const entries = credits.map((c) => {
+    let payments = c.payments || [];
+    if (payments.length === 0 && (c.paidAmount > 0)) {
+      payments = [{
+        amount: c.paidAmount,
+        method: "cash",
+        date: c.createdAt || new Date(),
+      }];
+    }
+
+    return {
+      _id: c._id.toString(),
+      source: "customer_credit",
+      customerName: c.customerName,
+      phone: c.phone,
+      totalAmount: c.totalAmount,
+      paidAmount: c.paidAmount,
+      balance: c.balance,
+      notes: c.notes || "Counter Credit (Bakki)",
+      dueDate: c.dueDate,
+      autoReminderEnabled: c.autoReminderEnabled !== false,
+      status: c.status,
+      payments: payments,
+      createdAt: c.createdAt,
+    };
+  });
 
   const totalDues = entries.reduce((sum, item) => sum + item.balance, 0);
   const totalCustomers = entries.length;
@@ -160,11 +171,23 @@ const getPaymentHistoryReport = async (query = {}) => {
     filter.phone = new RegExp(query.phone, "i");
   }
 
-  const startDate = query.startDate ? new Date(query.startDate) : null;
-  if (startDate) startDate.setHours(0, 0, 0, 0);
+  let startDate = null;
+  if (query.startDate && query.startDate !== "undefined" && query.startDate !== "null" && query.startDate !== "all") {
+    const d = new Date(query.startDate);
+    if (!isNaN(d.getTime())) {
+      d.setHours(0, 0, 0, 0);
+      startDate = d;
+    }
+  }
 
-  const endDate = query.endDate ? new Date(query.endDate) : null;
-  if (endDate) endDate.setHours(23, 59, 59, 999);
+  let endDate = null;
+  if (query.endDate && query.endDate !== "undefined" && query.endDate !== "null" && query.endDate !== "all") {
+    const d = new Date(query.endDate);
+    if (!isNaN(d.getTime())) {
+      d.setHours(23, 59, 59, 999);
+      endDate = d;
+    }
+  }
 
   const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
   const paymentRows = [];
@@ -173,15 +196,25 @@ const getPaymentHistoryReport = async (query = {}) => {
     const totalAmount = credit.totalAmount || 0;
     let cumulativePaid = 0;
 
-    (credit.payments || []).forEach((p, index) => {
+    let payments = credit.payments || [];
+    if (payments.length === 0 && credit.paidAmount > 0) {
+      payments = [{
+        amount: credit.paidAmount,
+        method: "cash",
+        date: credit.createdAt || new Date(),
+      }];
+    }
+
+    payments.forEach((p, index) => {
       cumulativePaid += Number(p.amount || 0);
       const remainingBalance = Math.max(0, totalAmount - cumulativePaid);
       const pDate = p.date || p.timestamp || credit.createdAt;
-      const paymentDate = new Date(pDate);
 
-      // Date range filter check
-      if (startDate && paymentDate < startDate) return;
-      if (endDate && paymentDate > endDate) return;
+      if (pDate && !isNaN(new Date(pDate).getTime())) {
+        const paymentDate = new Date(pDate);
+        if (startDate && paymentDate < startDate) return;
+        if (endDate && paymentDate > endDate) return;
+      }
 
       paymentRows.push({
         recordId: credit._id.toString(),
