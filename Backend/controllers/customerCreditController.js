@@ -173,20 +173,30 @@ const getPaymentHistoryReport = async (query = {}) => {
   }
 
   let startDate = null;
-  if (query.startDate && query.startDate !== "undefined" && query.startDate !== "null" && query.startDate !== "all") {
-    const d = new Date(query.startDate);
-    if (!isNaN(d.getTime())) {
-      d.setHours(0, 0, 0, 0);
-      startDate = d;
-    }
-  }
-
   let endDate = null;
-  if (query.endDate && query.endDate !== "undefined" && query.endDate !== "null" && query.endDate !== "all") {
-    const d = new Date(query.endDate);
-    if (!isNaN(d.getTime())) {
-      d.setHours(23, 59, 59, 999);
-      endDate = d;
+
+  if (query.year === "current" || query.period === "this_year" || query.startDate === "this_year" || query.startDate === "current_year") {
+    const now = new Date();
+    startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  } else if (query.year && !isNaN(Number(query.year))) {
+    const yr = Number(query.year);
+    startDate = new Date(yr, 0, 1, 0, 0, 0, 0);
+    endDate = new Date(yr, 11, 31, 23, 59, 59, 999);
+  } else {
+    if (query.startDate && query.startDate !== "undefined" && query.startDate !== "null" && query.startDate !== "all") {
+      const d = new Date(query.startDate);
+      if (!isNaN(d.getTime())) {
+        d.setHours(0, 0, 0, 0);
+        startDate = d;
+      }
+    }
+    if (query.endDate && query.endDate !== "undefined" && query.endDate !== "null" && query.endDate !== "all") {
+      const d = new Date(query.endDate);
+      if (!isNaN(d.getTime())) {
+        d.setHours(23, 59, 59, 999);
+        endDate = d;
+      }
     }
   }
 
