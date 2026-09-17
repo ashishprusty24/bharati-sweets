@@ -160,6 +160,12 @@ const getPaymentHistoryReport = async (query = {}) => {
     filter.phone = new RegExp(query.phone, "i");
   }
 
+  const startDate = query.startDate ? new Date(query.startDate) : null;
+  if (startDate) startDate.setHours(0, 0, 0, 0);
+
+  const endDate = query.endDate ? new Date(query.endDate) : null;
+  if (endDate) endDate.setHours(23, 59, 59, 999);
+
   const credits = await CustomerCredit.find(filter).sort({ createdAt: -1 });
   const paymentRows = [];
 
@@ -170,6 +176,12 @@ const getPaymentHistoryReport = async (query = {}) => {
     (credit.payments || []).forEach((p, index) => {
       cumulativePaid += Number(p.amount || 0);
       const remainingBalance = Math.max(0, totalAmount - cumulativePaid);
+      const pDate = p.date || p.timestamp || credit.createdAt;
+      const paymentDate = new Date(pDate);
+
+      // Date range filter check
+      if (startDate && paymentDate < startDate) return;
+      if (endDate && paymentDate > endDate) return;
 
       paymentRows.push({
         recordId: credit._id.toString(),
@@ -178,7 +190,7 @@ const getPaymentHistoryReport = async (query = {}) => {
         notes: credit.notes || "Bakki Dues",
         totalAmount,
         installmentNo: index + 1,
-        date: p.date || p.timestamp || credit.createdAt,
+        date: pDate,
         amountPaid: Number(p.amount || 0),
         method: p.method || "cash",
         cumulativePaid,

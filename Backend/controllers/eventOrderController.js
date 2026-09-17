@@ -651,6 +651,12 @@ const getEventOrderPaymentHistory = (query = {}) => {
       if (query.orderId) filter._id = query.orderId;
       if (query.phone) filter.phone = new RegExp(query.phone, "i");
 
+      const startDate = query.startDate ? new Date(query.startDate) : null;
+      if (startDate) startDate.setHours(0, 0, 0, 0);
+
+      const endDate = query.endDate ? new Date(query.endDate) : null;
+      if (endDate) endDate.setHours(23, 59, 59, 999);
+
       const orders = await EventOrder.find(filter).sort({ createdAt: -1 });
       const paymentRows = [];
 
@@ -661,6 +667,12 @@ const getEventOrderPaymentHistory = (query = {}) => {
         (order.payments || []).forEach((p, index) => {
           cumulativePaid += Number(p.amount || 0);
           const remainingBalance = Math.max(0, totalAmount - (cumulativePaid + (order.adminWaiver || 0)));
+          const pDate = p.timestamp || p.date || order.createdAt;
+          const paymentDate = new Date(pDate);
+
+          // Date range filter check
+          if (startDate && paymentDate < startDate) return;
+          if (endDate && paymentDate > endDate) return;
 
           paymentRows.push({
             orderId: order._id.toString(),
@@ -669,7 +681,7 @@ const getEventOrderPaymentHistory = (query = {}) => {
             purpose: order.purpose || "Event",
             totalAmount,
             installmentNo: index + 1,
-            date: p.timestamp || p.date || order.createdAt,
+            date: pDate,
             amountPaid: Number(p.amount || 0),
             method: p.method || "cash",
             cumulativePaid,
