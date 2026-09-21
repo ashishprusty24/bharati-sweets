@@ -12,4 +12,9 @@ web-app/out/
 *.log
 Frontend/android/app/build/
 Frontend/android/app/src/main/assets/public/
+Backend/.env
+web-app/.env
 .env
+!Frontend/.env
+
+

@@ -9,8 +9,8 @@ export const getEnvironment = () => {
   if (import.meta.env.VITE_ENV) {
     const e = import.meta.env.VITE_ENV.toLowerCase();
     if (e.includes("prod")) return "prod";
-    if (e.includes("qa") || e.includes("staging")) return "qa";
-    return "dev";
+    if (e.includes("dev")) return "dev";
+    return "qa";
   }
 
   // 2. Runtime browser hostname inspection
@@ -19,17 +19,16 @@ export const getEnvironment = () => {
     if (host === "localhost" || host === "127.0.0.1" || host.startsWith("192.168.")) {
       return "dev";
     }
-    if (host.includes("qa") || host.includes("staging") || host.includes("dev")) {
-      return "qa";
+    if (host.includes("prod")) {
+      return "prod";
     }
-    return "prod";
+    return "qa";
   }
 
   // 3. Vite MODE fallback
   const mode = (import.meta.env.MODE || "").toLowerCase();
-  if (mode === "production") return "prod";
-  if (mode === "staging" || mode === "qa") return "qa";
-  return "dev";
+  if (mode === "dev" || mode === "development") return "dev";
+  return "qa";
 };
 
 export const getEnvironmentMetadata = () => {
