@@ -108,4 +108,14 @@ router.post("/:id/bill-payments", async (req, res) => {
   }
 });
 
+// DELETE /api/credit-cards/:id/bill-payments/:pId — delete a bill payment
+router.delete("/:id/bill-payments/:pId", async (req, res) => {
+  try {
+    const card = await creditCardController.deleteBillPayment(req.params.id, req.params.pId);
+    res.json(card);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

@@ -150,7 +150,6 @@ const CreditCardPage = () => {
     }
   };
 
-  // --- Bill Payment ---
   const handleBillSubmit = async () => {
     if (submitting) return;
     try {
@@ -168,6 +167,17 @@ const CreditCardPage = () => {
       message.error(err.response?.data?.message || "Failed to record bill payment");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteBillPayment = async (cardId, paymentId) => {
+    try {
+      await api.delete(`/credit-cards/${cardId}/bill-payments/${paymentId}`);
+      message.success("Bill payment deleted");
+      fetchCards();
+      fetchSummary();
+    } catch (err) {
+      message.error("Failed to delete bill payment");
     }
   };
 
@@ -413,6 +423,15 @@ const CreditCardPage = () => {
         title: "Notes",
         dataIndex: "notes",
         ellipsis: true,
+      },
+      {
+        title: "",
+        width: 50,
+        render: (_, record) => (
+          <Popconfirm title="Delete this bill payment?" onConfirm={() => handleDeleteBillPayment(card._id, record._id)}>
+            <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+          </Popconfirm>
+        ),
       },
     ];
 

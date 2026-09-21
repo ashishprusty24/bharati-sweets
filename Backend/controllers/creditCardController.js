@@ -66,7 +66,6 @@ const deleteCard = (id) => {
 
 // --- Transaction operations ---
 
-const DailyLedger = require("../models/DailyLedger");
 const HomeExpense = require("../models/HomeExpense");
 
 const addTransaction = (cardId, txnData) => {
@@ -134,13 +133,69 @@ const addTransaction = (cardId, txnData) => {
   });
 };
 
+const dayjs = require("dayjs");
+
 const deleteTransaction = (cardId, txnId) => {
   return new Promise(async (resolve, reject) => {
     try {
       const card = await CreditCard.findById(cardId);
       if (!card) return reject({ status: 404, message: "Card not found" });
 
-      card.transactions.id(txnId).deleteOne();
+      const txn = card.transactions.id(txnId);
+      if (txn) {
+        // Cascade delete corresponding HomeExpense
+        try {
+          const HomeExpense = require("../models/HomeExpense");
+          const targetDate = dayjs(txn.date).startOf("day").toDate();
+          const nextDay = dayjs(txn.date).endOf("day").toDate();
+          await HomeExpense.findOneAndDelete({
+            creditCardId: card._id,
+            amount: txn.amount,
+            date: { $gte: targetDate, $lte: nextDay },
+          });
+        } catch (hErr) {
+          console.error("Failed to delete matching HomeExpense on CC transaction delete:", hErr);
+        }
+        card.transactions.pull(txnId);
+      }
+
+      await card.save();
+      resolve(card);
+    } catch (err) {
+      reject({ status: 400, message: err.message });
+    }
+  });
+};
+
+const deleteBillPayment = (cardId, paymentId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const card = await CreditCard.findById(cardId);
+      if (!card) return reject({ status: 404, message: "Card not found" });
+
+      const payment = card.billPayments.id(paymentId);
+      if (payment) {
+        const pDate = payment.date ? new Date(payment.date) : new Date();
+        const pAmount = payment.amount;
+
+        // Cascade delete corresponding HomeExpense
+        try {
+          const HomeExpense = require("../models/HomeExpense");
+          const targetDate = dayjs(pDate).startOf("day").toDate();
+          const nextDay = dayjs(pDate).endOf("day").toDate();
+          await HomeExpense.findOneAndDelete({
+            creditCardId: card._id,
+            amount: pAmount,
+            category: "credit_card_bill",
+            date: { $gte: targetDate, $lte: nextDay },
+          });
+        } catch (hErr) {
+          console.error("Failed to delete matching HomeExpense on CC bill payment delete:", hErr);
+        }
+
+        card.billPayments.pull(paymentId);
+      }
+
       await card.save();
       resolve(card);
     } catch (err) {
@@ -242,46 +297,6 @@ const addBillPayment = (cardId, paymentData) => {
         console.error("Failed to sync CC bill payment to HomeExpense:", hErr);
       }
 
-      // Sync to Daily Ledger (deducts from shop cash or bank balance)
-      try {
-        const dayjs = require("dayjs");
-        const DailyLedger = require("../models/DailyLedger");
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-        const prevLedger = await DailyLedger.findOne({ date: prevDay });
-        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
-
-        if (!ledger) {
-          ledger = new DailyLedger({
-            date: targetDate,
-            openingBalance,
-            openingBankBalance,
-            items: [],
-          });
-        } else if (prevLedger) {
-          ledger.openingBalance = openingBalance;
-          ledger.openingBankBalance = openingBankBalance;
-        }
-
-        const paymentMode = paidFrom === "bank_account" ? "bank" : "cash";
-        ledger.items.push({
-          description: `Credit Card Bill: ${card.cardName} (Ending ${card.last4Digits})`,
-          amount: totalAmount,
-          type: "expense",
-          category: "credit_card_bill",
-          paymentMode,
-        });
-
-        ledger.totalExpenses = ledger.items
-          .filter((i) => i.type === "expense")
-          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-
-        await ledger.save();
-      } catch (lErr) {
-        console.error("Failed to sync CC bill payment to DailyLedger:", lErr);
-      }
       resolve(card);
     } catch (err) {
       reject({ status: 400, message: err.message });
@@ -325,5 +340,6 @@ module.exports = {
   deleteTransaction,
   getAllTransactions,
   addBillPayment,
+  deleteBillPayment,
   getCardSummary,
 };

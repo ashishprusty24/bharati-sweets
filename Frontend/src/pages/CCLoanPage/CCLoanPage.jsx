@@ -179,6 +179,17 @@ const CCLoanPage = () => {
     }
   };
 
+  const handleDeleteRepayment = async (accountId, rId) => {
+    try {
+      await api.delete(`/cc-loans/${accountId}/repayments/${rId}`);
+      message.success("Repayment deleted");
+      fetchAccounts();
+      fetchSummary();
+    } catch (err) {
+      message.error("Failed to delete repayment");
+    }
+  };
+
   const openWithdrawalModal = (accountId) => {
     setSelectedAccountId(accountId);
     withdrawalForm.resetFields();
@@ -442,6 +453,15 @@ const CCLoanPage = () => {
         dataIndex: "notes",
         ellipsis: true,
         render: (n) => n || <Text type="secondary" style={{ fontSize: 12 }}>—</Text>,
+      },
+      {
+        title: "",
+        width: 50,
+        render: (_, record) => (
+          <Popconfirm title="Delete repayment?" onConfirm={() => handleDeleteRepayment(acc._id, record._id)}>
+            <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+          </Popconfirm>
+        ),
       },
     ];
 

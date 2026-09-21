@@ -319,6 +319,7 @@ const DailyLedgerPage = () => {
         <InputNumber
           value={amount === 0 ? null : amount}
           onChange={(value) => updateItem(index, "amount", value)}
+          onFocus={(e) => e.target.select()}
           style={{ width: "100%" }}
           prefix="₹"
           min={0}
@@ -370,6 +371,7 @@ const DailyLedgerPage = () => {
         <InputNumber
           value={val === 0 ? null : val}
           onChange={(v) => updateSweetRow(i, "quantity", v)}
+          onFocus={(e) => e.target.select()}
           style={{ width: "100%" }}
           min={0}
           precision={0}
@@ -404,6 +406,7 @@ const DailyLedgerPage = () => {
           <InputNumber
             value={val === 0 ? null : val}
             onChange={(v) => updateSweetRow(i, "actualSold", v)}
+            onFocus={(e) => e.target.select()}
             style={{ width: "100%" }}
             min={0}
             precision={0}
@@ -649,8 +652,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash</Text>
             </div>
             <InputNumber
-              value={ledgerData.openingBalance}
-              onChange={(v) => setLedgerData({ ...ledgerData, openingBalance: v || 0 })}
+              value={ledgerData.openingBalance === 0 ? null : ledgerData.openingBalance}
+              onChange={(v) => setLedgerData({ ...ledgerData, openingBalance: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8 }}
               prefix="₹" min={0} precision={0} controls={false}
             />
@@ -661,8 +666,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>P/P (Digital)</Text>
             </div>
             <InputNumber
-              value={ledgerData.openingBankBalance}
-              onChange={(v) => setLedgerData({ ...ledgerData, openingBankBalance: v || 0 })}
+              value={ledgerData.openingBankBalance === 0 ? null : ledgerData.openingBankBalance}
+              onChange={(v) => setLedgerData({ ...ledgerData, openingBankBalance: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8 }}
               prefix="₹" min={0} precision={0} controls={false}
             />
@@ -885,8 +892,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash to Home</Text>
             </div>
             <InputNumber
-              value={ledgerData.cashToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v || 0 })}
+              value={ledgerData.cashToHome === 0 ? null : ledgerData.cashToHome}
+              onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
               prefix="₹" min={0} precision={0} controls={false}
             />
@@ -897,8 +906,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Account to Home</Text>
             </div>
             <InputNumber
-              value={ledgerData.digitalToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v || 0 })}
+              value={ledgerData.digitalToHome === 0 ? null : ledgerData.digitalToHome}
+              onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
               prefix="₹" min={0} precision={0} controls={false}
             />
@@ -925,8 +936,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash</Text>
             </div>
             <InputNumber
-              value={ledgerData.closingBalance}
-              onChange={(v) => setLedgerData({ ...ledgerData, closingBalance: v || 0 })}
+              value={ledgerData.closingBalance === 0 ? null : ledgerData.closingBalance}
+              onChange={(v) => setLedgerData({ ...ledgerData, closingBalance: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#fffbeb", borderColor: "#fcd34d" }}
               prefix="₹" min={0} precision={0} controls={false}
             />
@@ -937,8 +950,10 @@ const DailyLedgerPage = () => {
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>P/P (Digital)</Text>
             </div>
             <InputNumber
-              value={ledgerData.closingBankBalance}
-              onChange={(v) => setLedgerData({ ...ledgerData, closingBankBalance: v || 0 })}
+              value={ledgerData.closingBankBalance === 0 ? null : ledgerData.closingBankBalance}
+              onChange={(v) => setLedgerData({ ...ledgerData, closingBankBalance: v ?? 0 })}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#fffbeb", borderColor: "#fcd34d" }}
               prefix="₹" min={0} precision={0} controls={false}
             />

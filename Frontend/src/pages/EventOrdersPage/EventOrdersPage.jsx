@@ -49,6 +49,14 @@ const PAYMENT_STATUS_OPTIONS = [
   { value: "paid", label: "Paid", color: "#10b981" },
 ];
 
+const PAYMENT_FILTER_OPTIONS = [
+  { value: "all", label: "All Payments" },
+  { value: "unpaid_partial", label: "⚠️ Unpaid / Partial Paid" },
+  { value: "pending", label: "🟡 Pending (Unpaid)" },
+  { value: "partial", label: "🔵 Partial Paid" },
+  { value: "paid", label: "🟢 Fully Paid" },
+];
+
 const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },
   { value: "phonepay", label: "PhonePe" },
@@ -67,6 +75,7 @@ const EventOrdersPage = () => {
 
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
   const [occasionFilter, setOccasionFilter] = useState("all");
   const [dateRange, setDateRange] = useState(null);
   const [sortBy, setSortBy] = useState("deliveryDate_asc");
@@ -78,6 +87,17 @@ const EventOrdersPage = () => {
 
   const [editingOrder, setEditingOrder] = useState(null);
   const [currentOrder, setCurrentOrder] = useState(null);
+
+  const getOrderPaymentStatus = (o) => {
+    const paid = Number(o.paidAmount || (o.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0);
+    const waiver = Number(o.adminWaiver || 0);
+    const total = Number(o.totalAmount || 0);
+    const settled = paid + waiver;
+
+    if (settled >= total && total > 0) return "paid";
+    if (settled > 0) return "partial";
+    return "pending";
+  };
 
   const allPurposeOptions = useMemo(() => {
     const DEFAULT_PURPOSES = [
@@ -114,6 +134,16 @@ const EventOrdersPage = () => {
 
     if (statusFilter !== "all") {
       result = result.filter((o) => o.orderStatus === statusFilter || o.status === statusFilter);
+    }
+
+    if (paymentFilter !== "all") {
+      result = result.filter((o) => {
+        const pStatus = getOrderPaymentStatus(o);
+        if (paymentFilter === "unpaid_partial") {
+          return pStatus === "pending" || pStatus === "partial";
+        }
+        return pStatus === paymentFilter;
+      });
     }
 
     if (occasionFilter !== "all") {
@@ -153,7 +183,7 @@ const EventOrdersPage = () => {
     });
 
     return result;
-  }, [orders, searchText, statusFilter, occasionFilter, dateRange, sortBy]);
+  }, [orders, searchText, statusFilter, paymentFilter, occasionFilter, dateRange, sortBy]);
 
   const handleAddEdit = (order = null) => {
     setEditingOrder(order);
@@ -313,8 +343,8 @@ const EventOrdersPage = () => {
       </div>
 
       <Card bordered={false} style={{ borderRadius: 20 }}>
-        <Row gutter={[16, 16]} className="search-filter-row">
-          <Col xs={24} md={6}>
+        <Row gutter={[12, 12]} className="search-filter-row">
+          <Col xs={24} md={5}>
             <Input
               placeholder="Search orders..."
               prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
@@ -323,7 +353,7 @@ const EventOrdersPage = () => {
               onChange={e => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={24} sm={12} md={4}>
+          <Col xs={12} sm={8} md={3}>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
@@ -334,7 +364,19 @@ const EventOrdersPage = () => {
               {ORDER_STATUS_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={4}>
+          <Col xs={12} sm={8} md={4}>
+            <Select
+              value={paymentFilter}
+              onChange={setPaymentFilter}
+              style={{ width: "100%", height: 45 }}
+              dropdownStyle={{ borderRadius: 12 }}
+            >
+              {PAYMENT_FILTER_OPTIONS.map(p => (
+                <Option key={p.value} value={p.value}>{p.label}</Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={12} sm={8} md={4}>
             <Select
               value={occasionFilter}
               onChange={setOccasionFilter}
@@ -345,7 +387,7 @@ const EventOrdersPage = () => {
               {allPurposeOptions.map(p => <Option key={p} value={p}>{p}</Option>)}
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={5}>
+          <Col xs={12} sm={12} md={4}>
             <Select
               value={sortBy}
               onChange={setSortBy}
@@ -360,7 +402,7 @@ const EventOrdersPage = () => {
               <Option value="totalAmount_asc">💰 Amount (Low → High)</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={5}>
+          <Col xs={24} sm={12} md={4}>
             <RangePicker
               onChange={setDateRange}
               style={{ width: "100%", height: 45, borderRadius: 12 }}

@@ -130,6 +130,8 @@ const addWithdrawal = (accountId, withdrawalData) => {
   });
 };
 
+const dayjs = require("dayjs");
+
 const deleteWithdrawal = (accountId, withdrawalId) => {
   return new Promise(async (resolve, reject) => {
     try {
@@ -141,18 +143,54 @@ const deleteWithdrawal = (accountId, withdrawalId) => {
         // Also remove from HomeExpense
         try {
           const HomeExpense = require("../models/HomeExpense");
-          await HomeExpense.deleteMany({
+          const targetDate = dayjs(item.date).startOf("day").toDate();
+          const nextDay = dayjs(item.date).endOf("day").toDate();
+          await HomeExpense.findOneAndDelete({
             ccLoanId: account._id,
             amount: item.amount,
-            $or: [
-              { description: item.description },
-              { description: `CC Loan: ${item.description}` }
-            ]
+            date: { $gte: targetDate, $lte: nextDay },
           });
         } catch (hErr) {
           console.error("Failed to delete matching HomeExpense for CC Loan withdrawal:", hErr);
         }
-        item.deleteOne();
+        account.withdrawals.pull(withdrawalId);
+      }
+
+      await account.save();
+      resolve(account);
+    } catch (err) {
+      reject({ status: 400, message: err.message });
+    }
+  });
+};
+
+const deleteRepayment = (accountId, repaymentId) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const account = await CCLoan.findById(accountId);
+      if (!account) return reject({ status: 404, message: "CC Loan account not found" });
+
+      const item = account.repayments.id(repaymentId);
+      if (item) {
+        const rDate = item.date ? new Date(item.date) : new Date();
+        const rAmount = item.amount;
+
+        // Cascade delete corresponding HomeExpense
+        try {
+          const HomeExpense = require("../models/HomeExpense");
+          const targetDate = dayjs(rDate).startOf("day").toDate();
+          const nextDay = dayjs(rDate).endOf("day").toDate();
+          await HomeExpense.findOneAndDelete({
+            ccLoanId: account._id,
+            amount: rAmount,
+            category: "cc_loan_repayment",
+            date: { $gte: targetDate, $lte: nextDay },
+          });
+        } catch (hErr) {
+          console.error("Failed to delete matching HomeExpense on CC Loan repayment delete:", hErr);
+        }
+
+        account.repayments.pull(repaymentId);
       }
 
       await account.save();
@@ -203,47 +241,6 @@ const addRepayment = (accountId, repaymentData) => {
         });
       } catch (hErr) {
         console.error("Failed to sync CC Loan repayment to HomeExpense:", hErr);
-      }
-
-      // Sync to Daily Ledger (deducts from shop cash or bank balance)
-      try {
-        const dayjs = require("dayjs");
-        const DailyLedger = require("../models/DailyLedger");
-        const targetDate = dayjs(txDate).startOf("day").toDate();
-        let ledger = await DailyLedger.findOne({ date: targetDate });
-        const prevDay = dayjs(targetDate).subtract(1, "day").startOf("day").toDate();
-        const prevLedger = await DailyLedger.findOne({ date: prevDay });
-        const openingBalance = prevLedger ? (prevLedger.closingBalance || 0) : 0;
-        const openingBankBalance = prevLedger ? (prevLedger.closingBankBalance || 0) : 0;
-
-        if (!ledger) {
-          ledger = new DailyLedger({
-            date: targetDate,
-            openingBalance,
-            openingBankBalance,
-            items: [],
-          });
-        } else if (prevLedger) {
-          ledger.openingBalance = openingBalance;
-          ledger.openingBankBalance = openingBankBalance;
-        }
-
-        const paymentMode = paidFrom === "bank_account" ? "bank" : "cash";
-        ledger.items.push({
-          description: `CC Loan Repayment: ${account.accountName} (${account.bankName})`,
-          amount: totalAmount,
-          type: "expense",
-          category: "cc_loan_repayment",
-          paymentMode,
-        });
-
-        ledger.totalExpenses = ledger.items
-          .filter((i) => i.type === "expense")
-          .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-
-        await ledger.save();
-      } catch (lErr) {
-        console.error("Failed to sync CC Loan repayment to DailyLedger:", lErr);
       }
 
       resolve(account);
@@ -298,5 +295,7 @@ module.exports = {
   addWithdrawal,
   deleteWithdrawal,
   addRepayment,
+  deleteRepayment,
   getAccountSummary,
 };
+

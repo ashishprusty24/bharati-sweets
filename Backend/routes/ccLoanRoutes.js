@@ -92,4 +92,15 @@ router.post("/:id/repayments", async (req, res) => {
   }
 });
 
+// DELETE /api/cc-loans/:id/repayments/:rId — delete repayment
+router.delete("/:id/repayments/:rId", async (req, res) => {
+  try {
+    const account = await ccLoanController.deleteRepayment(req.params.id, req.params.rId);
+    res.json(account);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
+
