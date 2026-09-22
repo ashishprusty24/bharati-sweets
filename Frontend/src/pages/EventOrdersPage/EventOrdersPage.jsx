@@ -21,6 +21,31 @@ const { Option } = Select;
 
 const { Title, Text } = Typography;
 
+export const normalizePurpose = (str = "") => {
+  if (!str) return "Other Celebration";
+  const trimmed = str.trim();
+  const lower = trimmed.toLowerCase();
+  if (/vishwakarma|viswakarama|biswakarma|viswakarma|viswkarma/i.test(lower)) return "Vishwakarma Puja";
+  if (/diwali|duwali|deepavali/i.test(lower)) return "Diwali";
+  if (/ganesh|ganapati/i.test(lower)) return "Ganesh Puja";
+  if (/durga|dussehra|dashami|vijayadashami/i.test(lower)) return "Durga Puja";
+  if (/laxmi|lakshmi/i.test(lower)) return "Laxmi Puja";
+  if (/saraswati/i.test(lower)) return "Saraswati Puja";
+  if (/janmashtami/i.test(lower)) return "Janmashtami";
+  if (/rakhi|raksha/i.test(lower)) return "Raksha Bandhan";
+  if (/marriage|wedding/i.test(lower)) return "Marriage";
+  if (/reception/i.test(lower)) return "Reception";
+  if (/engagement|ring/i.test(lower)) return "Engagement / Ring Ceremony";
+  if (/birthday/i.test(lower)) return "Birthday Party";
+  if (/anniversary/i.test(lower)) return "Anniversary";
+  if (/thread|upanayana|brata/i.test(lower)) return "Thread Ceremony (Upanayana)";
+  if (/baby shower|sadh/i.test(lower)) return "Baby Shower (Sadh)";
+  if (/corporate/i.test(lower)) return "Corporate Event";
+  if (/safety week/i.test(lower)) return "Safety Week";
+  if (/municipality/i.test(lower)) return "Municipality Function";
+  return trimmed;
+};
+
 const DEFAULT_PURPOSE_OPTIONS = [
   "Marriage",
   "Reception",
@@ -30,6 +55,15 @@ const DEFAULT_PURPOSE_OPTIONS = [
   "Thread Ceremony (Upanayana)",
   "Baby Shower (Sadh)",
   "Corporate Event",
+  "Ganesh Puja",
+  "Vishwakarma Puja",
+  "Durga Puja",
+  "Diwali",
+  "Laxmi Puja",
+  "Saraswati Puja",
+  "Janmashtami",
+  "Raksha Bandhan",
+  "Safety Week",
   "Festival Celebration",
   "Other Celebration",
 ];
@@ -100,20 +134,10 @@ const EventOrdersPage = () => {
   };
 
   const allPurposeOptions = useMemo(() => {
-    const DEFAULT_PURPOSES = [
-      "Marriage",
-      "Reception",
-      "Engagement / Ring Ceremony",
-      "Birthday Party",
-      "Anniversary",
-      "Thread Ceremony (Upanayana)",
-      "Baby Shower (Sadh)",
-      "Corporate Event",
-      "Festival Celebration",
-      "Other Celebration",
-    ];
-    const fromOrders = (orders || []).map((o) => (o.purpose || "").trim()).filter(Boolean);
-    return Array.from(new Set([...DEFAULT_PURPOSES, ...fromOrders]));
+    const fromOrders = (orders || [])
+      .map((o) => normalizePurpose(o.purpose))
+      .filter(Boolean);
+    return Array.from(new Set([...DEFAULT_PURPOSE_OPTIONS, ...fromOrders]));
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
@@ -222,6 +246,7 @@ const EventOrdersPage = () => {
 
       const orderData = {
         ...values,
+        purpose: normalizePurpose(values.purpose),
         items,
         subtotal,
         totalAmount,
