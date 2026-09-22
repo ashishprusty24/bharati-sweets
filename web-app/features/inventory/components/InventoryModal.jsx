@@ -10,6 +10,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     if (item) return "Edit Item";
     if (defaultType === "Snacks") return "Add New Snack";
     if (defaultType === "Namkeens") return "Add New Namkeen";
+    if (defaultType === "Packaging") return "Add New Packaging Item";
     return "Add New Sweet";
   };
 
@@ -19,6 +20,9 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     }
     if (defaultType === "Namkeens") {
       return ["Bhujia", "Mixture", "Sev", "Gathiya", "Chivda", "Papdi", "Namkeens", "Others"];
+    }
+    if (defaultType === "Packaging") {
+      return ["Boxes", "Bags", "Containers", "Wrapping", "Packaging", "Others"];
     }
     return ["Milk-based", "Flour-based", "Dry fruits", "Fried sweets", "Sweets", "Others"];
   };
@@ -30,12 +34,16 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     if (defaultType === "Snacks") {
       return ["Hot Snack", "Fried Snack", "Evening Snack", "Other Snack"];
     }
+    if (defaultType === "Packaging") {
+      return ["Sweet Box", "Namkeen Box", "Gift Box", "Carry Bag", "Other Packaging"];
+    }
     return ["Special Sweet", "Traditional Sweet", "Dry Sweet", "Bengali Sweet", "Other Sweet"];
   };
 
   const getDefaultKitchenSection = () => {
     if (defaultType === "Snacks") return "Samosa Section";
     if (defaultType === "Namkeens") return "Namkeen Section";
+    if (defaultType === "Packaging") return "Packaging";
     return "Sweets";
   };
 
@@ -91,6 +99,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
             <Option value="Samosa Section">Samosa Section</Option>
             <Option value="Bara Section">Bara Section</Option>
             <Option value="Namkeen Section">Namkeen Section</Option>
+            <Option value="Packaging">Packaging</Option>
             <Option value="Uncategorized">Uncategorized</Option>
           </Select>
         </Form.Item>

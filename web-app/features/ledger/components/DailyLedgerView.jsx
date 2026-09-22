@@ -8,7 +8,8 @@ import {
 import {
   SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined,
   BankOutlined, HomeOutlined, ShoppingCartOutlined, StarOutlined,
-  GiftOutlined, ExperimentOutlined, TrophyOutlined, FileTextOutlined
+  GiftOutlined, ExperimentOutlined, TrophyOutlined, FileTextOutlined,
+  FundOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import FestivalAnalyticsModal from "./FestivalAnalyticsModal";
@@ -84,6 +85,7 @@ export default function DailyLedgerView() {
     festival: "",
     notes: "",
     sweetProduction: [],
+    investments: [],
     items: [],
   });
 
@@ -128,6 +130,7 @@ export default function DailyLedgerView() {
         festival: data.festival || "",
         notes: data.notes || "",
         sweetProduction: data.sweetProduction || [],
+        investments: data.investments || [],
         items: (data.items || []).filter((item) => !isCCItem(item)),
       });
     } catch (error) {
@@ -158,6 +161,7 @@ export default function DailyLedgerView() {
       const payload = {
         ...ledgerData,
         items: (ledgerData.items || []).filter((item) => !isCCItem(item)),
+        investments: ledgerData.investments || [],
       };
       await fetch(`/api/ledger/${date.format("YYYY-MM-DD")}`, {
         method: "POST",
@@ -218,6 +222,29 @@ export default function DailyLedgerView() {
     const arr = [...ledgerData.sweetProduction];
     arr[index][field] = value;
     setLedgerData({ ...ledgerData, sweetProduction: arr });
+  };
+
+  // ── Investments ───────────────────────────────────────────────────
+  const addInvestmentRow = () => {
+    setLedgerData({
+      ...ledgerData,
+      investments: [
+        ...(ledgerData.investments || []),
+        { name: "", amount: null, type: "SIP", notes: "" },
+      ],
+    });
+  };
+
+  const removeInvestmentRow = (index) => {
+    const arr = [...(ledgerData.investments || [])];
+    arr.splice(index, 1);
+    setLedgerData({ ...ledgerData, investments: arr });
+  };
+
+  const updateInvestmentRow = (index, field, value) => {
+    const arr = [...(ledgerData.investments || [])];
+    arr[index][field] = value;
+    setLedgerData({ ...ledgerData, investments: arr });
   };
 
   // ── Totals ────────────────────────────────────────────────────────
@@ -889,6 +916,149 @@ export default function DailyLedgerView() {
           placeholder="e.g., Heavy rain in afternoon, extra 50kg samosa prepared for evening rush, staff advance given..."
           style={{ borderRadius: 10, fontSize: 13, padding: "10px 14px" }}
         />
+      </Card>
+
+      {/* ── INVESTMENT TRACKING ── */}
+      <Card
+        variant="borderless"
+        title={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <FundOutlined style={{ fontSize: 18, color: "#0d9488" }} />
+              <div>
+                <Title level={4} style={{ margin: 0 }}>Investment Tracking</Title>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Track SIP, FD, and other investments — manual entry for how much invested.
+                </Text>
+              </div>
+            </div>
+            <Button
+              onClick={addInvestmentRow}
+              icon={<PlusOutlined />}
+              style={{
+                borderRadius: 8,
+                background: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
+                color: "#fff",
+                border: "none",
+                fontWeight: 600,
+              }}
+            >
+              Add Investment
+            </Button>
+          </div>
+        }
+        style={{
+          borderRadius: 20,
+          marginBottom: 20,
+          borderLeft: "4px solid #0d9488",
+        }}
+      >
+        {(ledgerData.investments || []).length === 0 ? (
+          <div style={{ textAlign: "center", padding: "24px 0", color: "#94a3b8" }}>
+            <FundOutlined style={{ fontSize: 32, marginBottom: 8, display: "block" }} />
+            <Text type="secondary">
+              No investments logged today. Click "Add Investment" to record SIP, FD, or other investments.
+            </Text>
+          </div>
+        ) : (
+          <Table
+            dataSource={ledgerData.investments || []}
+            columns={[
+              {
+                title: "#",
+                width: 40,
+                render: (_, __, i) => <Text type="secondary" style={{ fontWeight: 600 }}>{i + 1}</Text>,
+              },
+              {
+                title: "Investment Name",
+                dataIndex: "name",
+                render: (val, _, i) => (
+                  <AutoComplete
+                    options={[
+                      { value: "SIP Investment" },
+                      { value: "FD Investment" },
+                      { value: "Mutual Fund" },
+                      { value: "Gold Savings" },
+                      { value: "PPF" },
+                      { value: "LIC Premium" },
+                    ]}
+                    value={val}
+                    onChange={(v) => updateInvestmentRow(i, "name", v)}
+                    placeholder="e.g. SIP Investment, FD..."
+                    filterOption={(inp, opt) => opt.value.toLowerCase().includes(inp.toLowerCase())}
+                    style={{ width: "100%" }}
+                  />
+                ),
+              },
+              {
+                title: "Type",
+                dataIndex: "type",
+                width: 120,
+                render: (val, _, i) => (
+                  <Select
+                    value={val || "SIP"}
+                    onChange={(v) => updateInvestmentRow(i, "type", v)}
+                    style={{ width: "100%" }}
+                  >
+                    <Option value="SIP">💰 SIP</Option>
+                    <Option value="FD">🏦 FD</Option>
+                    <Option value="Other">📋 Other</Option>
+                  </Select>
+                ),
+              },
+              {
+                title: "Amount (₹)",
+                dataIndex: "amount",
+                width: 150,
+                render: (val, _, i) => (
+                  <InputNumber
+                    value={val === 0 ? null : val}
+                    onChange={(v) => updateInvestmentRow(i, "amount", v)}
+                    style={{ width: "100%" }}
+                    prefix="₹"
+                    min={0}
+                    precision={0}
+                    placeholder="0"
+                    controls={false}
+                  />
+                ),
+              },
+              {
+                title: "Notes",
+                dataIndex: "notes",
+                render: (val, _, i) => (
+                  <Input
+                    value={val}
+                    onChange={(e) => updateInvestmentRow(i, "notes", e.target.value)}
+                    placeholder="e.g. Monthly SIP for Sep..."
+                  />
+                ),
+              },
+              {
+                title: "",
+                width: 45,
+                render: (_, __, i) => (
+                  <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeInvestmentRow(i)} />
+                ),
+              },
+            ]}
+            pagination={false}
+            rowKey={(_, index) => index}
+            size="middle"
+            footer={() => {
+              const totalInvestment = (ledgerData.investments || []).reduce(
+                (sum, inv) => sum + (Number(inv.amount) || 0), 0
+              );
+              return (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Text style={{ fontWeight: 700, fontSize: 15 }}>
+                    Total Investment: <Text strong style={{ color: "#0d9488", fontSize: 16 }}>₹{fmt(totalInvestment)}</Text>
+                  </Text>
+                </div>
+              );
+            }}
+          />
+        )}
       </Card>
 
       {/* ── SWEET PRODUCTION TABLE ── */}

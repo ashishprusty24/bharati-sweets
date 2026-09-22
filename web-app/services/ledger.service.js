@@ -40,6 +40,7 @@ export class LedgerService {
         date: targetDate,
         festival: "",
         sweetProduction: [],
+        investments: [],
         openingBalance: prevClosingCash,
         openingBankBalance: prevClosingBank,
         cashSales: 0,
@@ -117,6 +118,7 @@ export class LedgerService {
       items = [],
       festival = "",
       sweetProduction = [],
+      investments = [],
       openingBalance = 0,
       openingBankBalance = 0,
       otherIncome = 0,
@@ -133,6 +135,7 @@ export class LedgerService {
     const updatePayload = {
       festival: festival || "",
       sweetProduction: sweetProduction || [],
+      investments: investments || [],
       openingBalance: Number(openingBalance),
       openingBankBalance: Number(openingBankBalance),
       otherIncome: Number(otherIncome),

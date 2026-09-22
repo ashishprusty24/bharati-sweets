@@ -17,11 +17,19 @@ const sweetProductionSchema = new mongoose.Schema({
   notes: { type: String, default: "" },
 });
 
+const investmentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  amount: { type: Number, required: true },
+  type: { type: String, enum: ["SIP", "FD", "Other"], default: "SIP" },
+  notes: { type: String, default: "" },
+});
+
 const dailyLedgerSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, unique: true },
     festival: { type: String, default: "" },
     sweetProduction: [sweetProductionSchema],
+    investments: [investmentSchema],
     openingBalance: { type: Number, default: 0 },
     openingBankBalance: { type: Number, default: 0 },
     cashSales: { type: Number, default: 0 },

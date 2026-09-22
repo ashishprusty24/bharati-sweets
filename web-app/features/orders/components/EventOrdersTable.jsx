@@ -93,7 +93,7 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions = [], payment
       width: 120,
       render: (_, record) => (
         <Space direction="vertical" size={4}>
-          {getStatusTag(record.status, orderStatusOptions)}
+          {getStatusTag(record.orderStatus || record.status, orderStatusOptions)}
           {getStatusTag(getPaymentStatus(record.advancePaid || record.paidAmount, record.totalAmount), paymentStatusOptions)}
         </Space>
       ),

@@ -120,6 +120,15 @@ export default function InventoryView() {
           >
             Add Namkeens
           </Button>
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            onClick={() => openAddEdit(null, "Packaging")}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#0d9488", borderColor: "#0d9488" }}
+          >
+            Add Packaging
+          </Button>
         </Space>
       </div>
 

@@ -17,7 +17,7 @@ const inventorySchema = new mongoose.Schema({
   },
   kitchenSection: {
     type: String,
-    enum: ["Sweets", "Samosa Section", "Bara Section", "Namkeen Section", "Uncategorized"],
+    enum: ["Sweets", "Samosa Section", "Bara Section", "Namkeen Section", "Packaging", "Uncategorized"],
     default: "Uncategorized",
   },
 });
