@@ -186,12 +186,14 @@ const HomeExpensesPage = () => {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
+      const rawLoanId = values.ccLoanId || (editingExpense && editingExpense.ccLoanId);
+      const rawCardId = values.creditCardId || (editingExpense && editingExpense.creditCardId);
       const payload = {
         ...values,
         category: values.category || (editingExpense && editingExpense.category) || "other",
         date: values.date.format("YYYY-MM-DD"),
-        ccLoanId: values.ccLoanId || undefined,
-        creditCardId: values.creditCardId || undefined,
+        ccLoanId: (typeof rawLoanId === "object" ? rawLoanId?._id : rawLoanId) || undefined,
+        creditCardId: (typeof rawCardId === "object" ? rawCardId?._id : rawCardId) || undefined,
       };
 
       if (editingExpense) {
@@ -228,10 +230,19 @@ const HomeExpensesPage = () => {
 
   const openEditModal = (expense) => {
     setEditingExpense(expense);
-    setSelectedPaymentSource(expense.paymentSource || "home_cash");
+    const pSource = expense.paymentSource || "home_cash";
+    setSelectedPaymentSource(pSource);
+    const rawLoanId = expense.ccLoanId?._id || expense.ccLoanId;
+    const rawCardId = expense.creditCardId?._id || expense.creditCardId;
+    const defaultLoanId = rawLoanId || (pSource === "cc_loan" && ccLoanAccounts.length > 0 ? ccLoanAccounts[0]._id : undefined);
+    const defaultCardId = rawCardId || (pSource === "credit_card" && creditCards.length > 0 ? creditCards[0]._id : undefined);
+
     form.setFieldsValue({
       ...expense,
       date: dayjs(expense.date),
+      paymentSource: pSource,
+      ccLoanId: defaultLoanId,
+      creditCardId: defaultCardId,
     });
     setModalVisible(true);
   };
@@ -239,7 +250,13 @@ const HomeExpensesPage = () => {
   const openAddModal = () => {
     setEditingExpense(null);
     form.resetFields();
-    form.setFieldsValue({ date: dayjs(), paymentSource: "home_cash" });
+    form.setFieldsValue({
+      date: dayjs(),
+      paymentSource: "home_cash",
+      category: "other",
+      ccLoanId: ccLoanAccounts.length > 0 ? ccLoanAccounts[0]._id : undefined,
+      creditCardId: creditCards.length > 0 ? creditCards[0]._id : undefined,
+    });
     setSelectedPaymentSource("home_cash");
     setModalVisible(true);
   };
@@ -761,6 +778,12 @@ const HomeExpensesPage = () => {
                   style={{ height: 42 }}
                   onChange={(val) => {
                     setSelectedPaymentSource(val);
+                    if (val === "cc_loan" && !form.getFieldValue("ccLoanId") && ccLoanAccounts.length > 0) {
+                      form.setFieldsValue({ ccLoanId: ccLoanAccounts[0]._id });
+                    }
+                    if (val === "credit_card" && !form.getFieldValue("creditCardId") && creditCards.length > 0) {
+                      form.setFieldsValue({ creditCardId: creditCards[0]._id });
+                    }
                   }}
                 >
                   {Object.entries(SOURCE_CONFIG).map(([key, cfg]) => (
