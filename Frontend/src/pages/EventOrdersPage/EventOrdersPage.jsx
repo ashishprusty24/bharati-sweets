@@ -47,25 +47,7 @@ export const normalizePurpose = (str = "") => {
 };
 
 const DEFAULT_PURPOSE_OPTIONS = [
-  "Marriage",
-  "Reception",
-  "Engagement / Ring Ceremony",
-  "Birthday Party",
-  "Anniversary",
-  "Thread Ceremony (Upanayana)",
-  "Baby Shower (Sadh)",
-  "Corporate Event",
-  "Ganesh Puja",
   "Vishwakarma Puja",
-  "Durga Puja",
-  "Diwali",
-  "Laxmi Puja",
-  "Saraswati Puja",
-  "Janmashtami",
-  "Raksha Bandhan",
-  "Safety Week",
-  "Festival Celebration",
-  "Other Celebration",
 ];
 
 const ORDER_STATUS_OPTIONS = [
@@ -134,11 +116,8 @@ const EventOrdersPage = () => {
   };
 
   const allPurposeOptions = useMemo(() => {
-    const fromOrders = (orders || [])
-      .map((o) => normalizePurpose(o.purpose))
-      .filter(Boolean);
-    return Array.from(new Set([...DEFAULT_PURPOSE_OPTIONS, ...fromOrders]));
-  }, [orders]);
+    return ["Vishwakarma Puja"];
+  }, []);
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];

@@ -38,6 +38,7 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
       } else {
         form.resetFields();
         form.setFieldsValue({
+          purpose: "Vishwakarma Puja",
           deliveryDate: dayjs(),
           orderStatus: "pending",
           packets: 1,
@@ -62,7 +63,7 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
     }
   };
 
-  const autoPurposeOptions = purposeOptions.map(p => ({ value: p }));
+  const autoPurposeOptions = (purposeOptions && purposeOptions.length > 0 ? purposeOptions : ["Vishwakarma Puja"]).map(p => ({ value: p }));
 
   return (
     <Modal
@@ -103,10 +104,10 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
         </Row>
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="purpose" label="Event Purpose (Select or Type Custom)" rules={[{ required: true, message: "Required" }]}>
+            <Form.Item name="purpose" label="Event Purpose" initialValue="Vishwakarma Puja" rules={[{ required: true, message: "Required" }]}>
               <AutoComplete
                 options={autoPurposeOptions}
-                placeholder="Type or select purpose (e.g. Wedding, Birthday, Sacred Thread...)"
+                placeholder="Vishwakarma Puja"
                 filterOption={(inputValue, option) =>
                   option.value.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
                 }
