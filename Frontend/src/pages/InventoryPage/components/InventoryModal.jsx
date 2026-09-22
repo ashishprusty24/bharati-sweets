@@ -11,6 +11,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     if (item) return "Edit Item";
     if (defaultType === "Snacks") return "Add New Snack";
     if (defaultType === "Namkeens") return "Add New Namkeen";
+    if (defaultType === "Packaging") return "Add New Packaging Item";
     return "Add New Sweet";
   };
 
@@ -20,6 +21,9 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     }
     if (defaultType === "Namkeens") {
       return ["Bhujia", "Mixture", "Sev", "Gathiya", "Chivda", "Papdi", "Namkeens", "Others"];
+    }
+    if (defaultType === "Packaging") {
+      return ["Boxes", "Carry Bags", "Containers", "Pouch", "Tapes & Wraps", "Packaging", "Others"];
     }
     return ["Milk-based", "Flour-based", "Dry fruits", "Fried sweets", "Sweets", "Others"];
   };
@@ -31,12 +35,16 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     if (defaultType === "Snacks") {
       return ["Hot Snack", "Fried Snack", "Evening Snack", "Other Snack"];
     }
+    if (defaultType === "Packaging") {
+      return ["Sweet Box", "Snack Box", "Plastic Box", "Paper Bag", "Silver Foil", "Other Packaging"];
+    }
     return ["Special Sweet", "Traditional Sweet", "Dry Sweet", "Bengali Sweet", "Other Sweet"];
   };
 
   const getDefaultKitchenSection = () => {
     if (defaultType === "Snacks") return "Samosa Section";
     if (defaultType === "Namkeens") return "Namkeen Section";
+    if (defaultType === "Packaging") return "Packaging";
     return "Sweets";
   };
 
@@ -104,7 +112,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
     >
       <Form form={form} layout="vertical">
         <Form.Item name="name" label="Item Name" rules={[{ required: true, message: "Please enter item name" }]}>
-          <Input placeholder={defaultType === "Snacks" ? "e.g. Samosa, Bara" : defaultType === "Namkeens" ? "e.g. Mixture, Bhujia" : "e.g. Malai Barfi"} />
+          <Input placeholder={defaultType === "Snacks" ? "e.g. Samosa, Bara" : defaultType === "Namkeens" ? "e.g. Mixture, Bhujia" : defaultType === "Packaging" ? "e.g. 1kg Sweet Box, 500g Container" : "e.g. Malai Barfi"} />
         </Form.Item>
         <Form.Item name="kitchenSection" label="Kitchen Section" rules={[{ required: true, message: "Please select kitchen section" }]}>
           <Select placeholder="Select kitchen section">
@@ -112,6 +120,7 @@ const InventoryModal = ({ visible, item, defaultType = "Sweets", onCancel, onOk,
             <Option value="Samosa Section">Samosa Section</Option>
             <Option value="Bara Section">Bara Section</Option>
             <Option value="Namkeen Section">Namkeen Section</Option>
+            <Option value="Packaging">Packaging</Option>
             <Option value="Uncategorized">Uncategorized</Option>
           </Select>
         </Form.Item>

@@ -91,6 +91,15 @@ const InventoryPage = () => {
           >
             Add Namkeens
           </Button>
+          <Button 
+            type="primary" 
+            size="large"
+            icon={<PlusOutlined />} 
+            onClick={() => handleAddEdit(null, "Packaging")}
+            style={{ borderRadius: 10, height: 42, padding: "0 18px", fontWeight: 600, background: "#10b981", borderColor: "#10b981" }}
+          >
+            Add Packaging
+          </Button>
         </Space>
       </div>
 

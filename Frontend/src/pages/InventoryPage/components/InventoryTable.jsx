@@ -49,7 +49,8 @@ const InventoryTable = ({ data, loading, onEdit, onDelete }) => {
           "Sweets": "magenta",
           "Samosa Section": "orange",
           "Bara Section": "cyan",
-          "Namkeen Section": "purple"
+          "Namkeen Section": "purple",
+          "Packaging": "green"
         };
         return <Tag color={colorMap[sec] || "default"} style={{ borderRadius: 4, margin: 0 }}>{sec || "Uncategorized"}</Tag>;
       }
