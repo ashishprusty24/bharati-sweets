@@ -105,20 +105,8 @@ export default function EventOrdersView() {
   }, []);
 
   const allPurposeOptions = useMemo(() => {
-    const DEFAULT_PURPOSES = [
-      "Marriage",
-      "Reception",
-      "Engagement / Ring Ceremony",
-      "Birthday Party",
-      "Anniversary",
-      "Thread Ceremony (Upanayana)",
-      "Baby Shower (Sadh)",
-      "Corporate Event",
-      "Festival Celebration",
-      "Other Celebration",
-    ];
     const fromOrders = (orders || []).map((o) => (o.purpose || "").trim()).filter(Boolean);
-    return Array.from(new Set([...DEFAULT_PURPOSES, ...fromOrders]));
+    return Array.from(new Set(fromOrders)).sort();
   }, [orders]);
 
   const filteredOrders = useMemo(() => {

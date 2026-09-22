@@ -90,14 +90,8 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
         </Row>
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item name="purpose" label="Event Purpose (Select or Type Custom)" rules={[{ required: true, message: "Required" }]}>
-              <AutoComplete
-                options={autoPurposeOptions}
-                placeholder="Type or select purpose (e.g. Wedding, Birthday, Thread Ceremony...)"
-                filterOption={(inputValue, option) =>
-                  option.value.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
-                }
-              />
+            <Form.Item name="purpose" label="Event Purpose" rules={[{ required: true, message: "Required" }]}>
+              <Input placeholder="e.g. Birthday, Marriage, Puja" />
             </Form.Item>
           </Col>
           <Col xs={12} sm={6}>
