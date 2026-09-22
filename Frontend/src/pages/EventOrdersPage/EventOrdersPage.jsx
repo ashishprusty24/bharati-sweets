@@ -22,16 +22,11 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 
 export const normalizePurpose = (str = "") => {
-  if (!str) return "Vishwakarma Puja";
-  const trimmed = str.trim();
-  const lower = trimmed.toLowerCase();
-  if (/vishwakarma|viswakarama|biswakarma|viswakarma|viswkarma/i.test(lower)) return "Vishwakarma Puja";
-  return "Vishwakarma Puja";
+  if (!str) return "Other Celebration";
+  return str.trim();
 };
 
-const DEFAULT_PURPOSE_OPTIONS = [
-  "Vishwakarma Puja",
-];
+const DEFAULT_PURPOSE_OPTIONS = [];
 
 const ORDER_STATUS_OPTIONS = [
   { value: "pending", label: "Pending", color: "#f59e0b" },
@@ -99,8 +94,14 @@ const EventOrdersPage = () => {
   };
 
   const allPurposeOptions = useMemo(() => {
-    return ["Vishwakarma Puja"];
-  }, []);
+    const list = new Set();
+    (orders || []).forEach((o) => {
+      if (o.purpose && o.purpose.trim()) {
+        list.add(o.purpose.trim());
+      }
+    });
+    return Array.from(list).sort();
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];

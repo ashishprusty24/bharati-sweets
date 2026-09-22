@@ -23,13 +23,10 @@ const parseDeliveryDate = (d) => {
   return new Date(`${dayStr}T00:00:00.000Z`);
 };
 
-// Helper to normalize event purpose (collapsing typos/variations)
+// Helper to normalize event purpose (trimming string, preserving user input)
 const normalizePurpose = (str = "") => {
-  if (!str) return "Vishwakarma Puja";
-  const trimmed = str.trim();
-  const lower = trimmed.toLowerCase();
-  if (/vishwakarma|viswakarama|biswakarma|viswakarma|viswkarma/i.test(lower)) return "Vishwakarma Puja";
-  return "Vishwakarma Puja";
+  if (!str) return "Other Celebration";
+  return str.trim();
 };
 
 // ─── CREATE EVENT ORDER ───────────────────────────────────────
