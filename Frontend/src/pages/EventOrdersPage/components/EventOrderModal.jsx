@@ -105,13 +105,9 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="purpose" label="Event Purpose" initialValue="Vishwakarma Puja" rules={[{ required: true, message: "Required" }]}>
-              <AutoComplete
-                options={autoPurposeOptions}
-                placeholder="Vishwakarma Puja"
-                filterOption={(inputValue, option) =>
-                  option.value.toLowerCase().indexOf(inputValue.toLowerCase()) !== -1
-                }
-              />
+              <Select placeholder="Vishwakarma Puja">
+                <Option value="Vishwakarma Puja">Vishwakarma Puja</Option>
+              </Select>
             </Form.Item>
           </Col>
           <Col xs={12} sm={6}>

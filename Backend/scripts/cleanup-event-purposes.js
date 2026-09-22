@@ -34,23 +34,12 @@ async function cleanupEventPurposes() {
   const orders = await collection.find({}).toArray();
   console.log(`Found ${orders.length} total event orders.`);
 
-  let updatedCount = 0;
+  const result = await collection.updateMany(
+    {},
+    { $set: { purpose: "Vishwakarma Puja" } }
+  );
 
-  for (const order of orders) {
-    const rawPurpose = order.purpose || "";
-    const cleanPurpose = normalizePurpose(rawPurpose);
-
-    if (rawPurpose !== cleanPurpose) {
-      await collection.updateOne(
-        { _id: order._id },
-        { $set: { purpose: cleanPurpose } }
-      );
-      console.log(`Updated Order #${order._id}: "${rawPurpose}" -> "${cleanPurpose}"`);
-      updatedCount++;
-    }
-  }
-
-  console.log(`Migration complete! Updated ${updatedCount} orders.`);
+  console.log(`Migration complete! Modified ${result.modifiedCount} orders.`);
 
   const distinctPurposes = await collection.distinct("purpose");
   console.log("Distinct purposes now in DB:", distinctPurposes);
