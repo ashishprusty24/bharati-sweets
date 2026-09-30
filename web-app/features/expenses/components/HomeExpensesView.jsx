@@ -909,7 +909,7 @@ const HomeExpensesView = () => {
       >
         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", margin: "16px 0" }}>
           <Text style={{ fontSize: 12, color: "#166534" }}>
-            💡 <b>Cutoff Balance Reconciliation</b>: Setting an Opening Balance as of <b>01 Oct 2026</b> sets the true baseline cash & bank at home, eliminating historical deficits while keeping past months untouched.
+            💡 <b>Opening Balance</b>: Set your home cash & bank balance as a starting point. All intake and expenses after this date will be tracked from this baseline.
           </Text>
         </div>
 
@@ -919,8 +919,8 @@ const HomeExpensesView = () => {
           initialValues={{
             cashOpeningBalance: 0,
             bankOpeningBalance: 0,
-            effectiveDate: dayjs("2026-10-01"),
-            notes: "Home Intake Opening Balance as of 01 Oct 2026",
+            effectiveDate: dayjs(),
+            notes: "",
           }}
         >
           <Row gutter={16}>
@@ -970,7 +970,7 @@ const HomeExpensesView = () => {
               >
                 <Input.TextArea
                   rows={2}
-                  placeholder="e.g. Physical cash count & bank balance reconciled starting Oct 1st"
+                  placeholder="e.g. Physical cash count & bank balance reconciled"
                   style={{ borderRadius: 8 }}
                 />
               </Form.Item>

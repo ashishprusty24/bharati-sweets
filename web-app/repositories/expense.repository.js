@@ -239,7 +239,7 @@ export class ExpenseRepository {
         cashOpeningBalance: 0,
         bankOpeningBalance: 0,
         effectiveDate: new Date("2026-10-01T00:00:00.000Z"),
-        notes: "Initial Home Intake Opening Balance as of 01 Oct 2026",
+        notes: "",
       });
     }
     return setting;

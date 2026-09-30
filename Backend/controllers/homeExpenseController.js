@@ -661,14 +661,8 @@ const getHomeExpenseSummary = (query = {}) => {
         ? dayjs(setting.effectiveDate).startOf("day")
         : dayjs("2026-10-01").startOf("day");
 
-      // Opening balance applies if queried period includes or follows the effective cutoff date
-      const isCutoffApplicable =
-        dayjs(endDate).isAfter(effectiveCutoff) ||
-        dayjs(endDate).isSame(effectiveCutoff, "day") ||
-        dayjs(startDate).isSame(effectiveCutoff, "month");
-
-      const cashOpening = isCutoffApplicable ? Number(setting?.cashOpeningBalance || 0) : 0;
-      const bankOpening = isCutoffApplicable ? Number(setting?.bankOpeningBalance || 0) : 0;
+      const cashOpening = Number(setting?.cashOpeningBalance || 0);
+      const bankOpening = Number(setting?.bankOpeningBalance || 0);
 
       const remainingCash = cashOpening + receivedCash - spentCash;
       const remainingBank = bankOpening + receivedBank - spentBank;
@@ -688,7 +682,7 @@ const getHomeExpenseSummary = (query = {}) => {
             total: Number(setting?.cashOpeningBalance || 0) + Number(setting?.bankOpeningBalance || 0),
             effectiveDate: effectiveCutoff.format("YYYY-MM-DD"),
             notes: setting?.notes || "",
-            isApplied: isCutoffApplicable,
+            isApplied: true,
           },
           received: { cash: receivedCash, bank: receivedBank },
           spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
@@ -719,7 +713,7 @@ const getHomeIntakeSetting = () => {
           cashOpeningBalance: 0,
           bankOpeningBalance: 0,
           effectiveDate: new Date("2026-10-01T00:00:00.000Z"),
-          notes: "Initial Home Intake Opening Balance as of 01 Oct 2026",
+          notes: "",
         });
       }
       resolve(setting);
