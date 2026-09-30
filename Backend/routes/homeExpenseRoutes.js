@@ -22,6 +22,36 @@ router.get("/summary", async (req, res) => {
   }
 });
 
+// GET /api/home-expenses/opening-balance — get home intake opening balance setting
+router.get("/opening-balance", async (req, res) => {
+  try {
+    const setting = await homeExpenseController.getHomeIntakeSetting();
+    res.json(setting);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// POST /api/home-expenses/opening-balance — save/update home intake opening balance setting
+router.post("/opening-balance", async (req, res) => {
+  try {
+    const setting = await homeExpenseController.saveHomeIntakeSetting(req.body);
+    res.json(setting);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
+// PUT /api/home-expenses/opening-balance — save/update home intake opening balance setting
+router.put("/opening-balance", async (req, res) => {
+  try {
+    const setting = await homeExpenseController.saveHomeIntakeSetting(req.body);
+    res.json(setting);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/home-expenses/cleanup-ledger-sync
 // ONE-TIME migration: scans all DailyLedger items and marks any matching

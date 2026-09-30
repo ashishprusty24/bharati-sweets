@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Card, Row, Col, Table, Button, InputNumber, Input, Select, DatePicker,
   Modal, Form, message, Typography, Space, Tag, Statistic, Popconfirm,
-  Grid, Progress, Badge, Avatar
+  Grid, Progress, Badge, Avatar, Tooltip
 } from "antd";
 import {
   PlusOutlined, DeleteOutlined, EditOutlined, HomeOutlined,
   TeamOutlined, ShoppingOutlined, CreditCardOutlined, UserOutlined,
   WalletOutlined, BankOutlined, SearchOutlined, CalendarOutlined,
-  BellOutlined, ArrowUpOutlined, FolderOutlined, DollarOutlined
+  BellOutlined, ArrowUpOutlined, FolderOutlined, DollarOutlined,
+  SettingOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
@@ -83,6 +84,55 @@ const HomeExpensesPage = () => {
   const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
 
   const [form] = Form.useForm();
+  const [openingBalanceModalOpen, setOpeningBalanceModalOpen] = useState(false);
+  const [openingBalanceForm] = Form.useForm();
+  const [savingOpeningBalance, setSavingOpeningBalance] = useState(false);
+
+  const handleOpenOpeningBalanceModal = async () => {
+    try {
+      const res = await api.get("/home-expenses/opening-balance");
+      if (res) {
+        openingBalanceForm.setFieldsValue({
+          cashOpeningBalance: res.cashOpeningBalance || 0,
+          bankOpeningBalance: res.bankOpeningBalance || 0,
+          effectiveDate: res.effectiveDate ? dayjs(res.effectiveDate) : dayjs("2026-10-01"),
+          notes: res.notes || "",
+        });
+      }
+    } catch (e) {
+      const currentOp = summary?.homeIntakeSummary?.openingBalance;
+      openingBalanceForm.setFieldsValue({
+        cashOpeningBalance: currentOp?.cash || 0,
+        bankOpeningBalance: currentOp?.bank || 0,
+        effectiveDate: currentOp?.effectiveDate ? dayjs(currentOp.effectiveDate) : dayjs("2026-10-01"),
+        notes: currentOp?.notes || "",
+      });
+    }
+    setOpeningBalanceModalOpen(true);
+  };
+
+  const handleSaveOpeningBalance = async () => {
+    try {
+      const values = await openingBalanceForm.validateFields();
+      setSavingOpeningBalance(true);
+      const payload = {
+        cashOpeningBalance: values.cashOpeningBalance || 0,
+        bankOpeningBalance: values.bankOpeningBalance || 0,
+        effectiveDate: values.effectiveDate ? values.effectiveDate.format("YYYY-MM-DD") : "2026-10-01",
+        notes: values.notes || "",
+      };
+      await api.post("/home-expenses/opening-balance", payload);
+      message.success("Home Intake Opening Balance updated successfully!");
+      setOpeningBalanceModalOpen(false);
+      fetchSummary();
+      fetchExpenses();
+    } catch (err) {
+      console.error("Error saving opening balance:", err);
+      message.error(err.message || "Failed to save opening balance");
+    } finally {
+      setSavingOpeningBalance(false);
+    }
+  };
 
   const handlePresetChange = (preset) => {
     setDatePreset(preset);
@@ -481,16 +531,41 @@ const HomeExpensesPage = () => {
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
                 <HomeOutlined />
               </div>
-              <HomeOutlined style={{ color: "#ec4899", fontSize: 16 }} />
+              <Tooltip title="Set / Reconcile Home Intake Opening Balance">
+                <Button
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={handleOpenOpeningBalanceModal}
+                  style={{
+                    height: 26,
+                    width: 26,
+                    padding: 0,
+                    borderRadius: 8,
+                    background: "#fce7f3",
+                    color: "#ec4899",
+                    borderColor: "#fbcfe8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                />
+              </Tooltip>
             </div>
             <div style={{ marginTop: 8 }}>
               <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>HOME INTAKE BALANCE</Text>
               <div style={{ marginTop: 2 }}>
-                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: (summary?.homeIntakeSummary?.remaining?.total || 0) >= 0 ? "#0f172a" : "#e11d48" }}>
                   ₹{(summary?.homeIntakeSummary?.remaining?.total || 0).toLocaleString("en-IN")}
                 </Title>
                 <Text style={{ color: "#94a3b8", fontSize: 10, display: "block" }}>Remaining Balance</Text>
               </div>
+              {summary?.homeIntakeSummary?.openingBalance?.total > 0 && (
+                <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <Tag color="magenta" style={{ fontSize: 10, borderRadius: 8, padding: "1px 6px", margin: 0, fontWeight: 600 }}>
+                    Base from {dayjs(summary.homeIntakeSummary.openingBalance.effectiveDate).format("DD MMM")}: 💵 ₹{(summary.homeIntakeSummary.openingBalance.cash || 0).toLocaleString("en-IN")} | 🏦 ₹{(summary.homeIntakeSummary.openingBalance.bank || 0).toLocaleString("en-IN")}
+                  </Tag>
+                </div>
+              )}
             </div>
             <div style={{ borderTop: "1px dashed #f1f5f9", marginTop: 8, paddingTop: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginBottom: 2 }}>
@@ -848,6 +923,103 @@ const HomeExpensesPage = () => {
           <Form.Item name="notes" label="Notes (Optional)">
             <Input.TextArea rows={2} placeholder="Any additional payment details..." style={{ borderRadius: 10 }} />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ─── HOME INTAKE OPENING BALANCE MODAL ─── */}
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+              <HomeOutlined />
+            </div>
+            <div>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>Home Intake Opening Balance</span>
+              <span style={{ display: "block", fontSize: 11, color: "#64748b", fontWeight: 400 }}>
+                Reconcile & start tracking fresh from a cutoff date
+              </span>
+            </div>
+          </div>
+        }
+        open={openingBalanceModalOpen}
+        onCancel={() => setOpeningBalanceModalOpen(false)}
+        onOk={handleSaveOpeningBalance}
+        confirmLoading={savingOpeningBalance}
+        okText="Save & Reconcile"
+        cancelText="Cancel"
+        destroyOnClose
+        centered
+        width={480}
+      >
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", margin: "16px 0" }}>
+          <Text style={{ fontSize: 12, color: "#166534" }}>
+            💡 <b>Cutoff Balance Reconciliation</b>: Setting an Opening Balance as of <b>01 Oct 2026</b> sets the true baseline cash & bank at home, eliminating historical deficits while keeping past months untouched.
+          </Text>
+        </div>
+
+        <Form
+          form={openingBalanceForm}
+          layout="vertical"
+          initialValues={{
+            cashOpeningBalance: 0,
+            bankOpeningBalance: 0,
+            effectiveDate: dayjs("2026-10-01"),
+            notes: "Home Intake Opening Balance as of 01 Oct 2026",
+          }}
+        >
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                name="effectiveDate"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>Effective Cutoff Date</span>}
+                rules={[{ required: true, message: "Please select effective date" }]}
+              >
+                <DatePicker format="DD MMM YYYY" style={{ width: "100%", height: 40, borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="cashOpeningBalance"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>💵 Home Cash Base (₹)</span>}
+                rules={[{ required: true, message: "Please enter cash opening balance" }]}
+              >
+                <InputNumber
+                  style={{ width: "100%", height: 40, borderRadius: 8, fontSize: 15, fontWeight: 700 }}
+                  prefix="₹"
+                  placeholder="0"
+                  min={0}
+                  precision={0}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="bankOpeningBalance"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>🏦 Home Bank Base (₹)</span>}
+                rules={[{ required: true, message: "Please enter bank opening balance" }]}
+              >
+                <InputNumber
+                  style={{ width: "100%", height: 40, borderRadius: 8, fontSize: 15, fontWeight: 700 }}
+                  prefix="₹"
+                  placeholder="0"
+                  min={0}
+                  precision={0}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item
+                name="notes"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>Notes / Description (Optional)</span>}
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="e.g. Physical cash count & bank balance reconciled starting Oct 1st"
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
     </div>

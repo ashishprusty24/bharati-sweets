@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { LedgerRepository } from "../repositories/ledger.repository";
 import connectDB from "../database/mongodb";
 import HomeExpense from "../models/HomeExpense";
+import HomeIntakeSetting from "../models/HomeIntakeSetting";
 import Vendor from "../models/Vendor";
 
 export class LedgerService {
@@ -106,8 +107,8 @@ export class LedgerService {
     ledgerObj.totalExpenses = totalExpenses;
     ledgerObj.totalInvestments = totalInvestments;
 
-    // Helper to compute home intake summary
-    const computeHomeIntakeSummary = (expenses = []) => {
+    // Helper to compute home intake summary (with opening balance reconciliation)
+    const computeHomeIntakeSummary = (expenses = [], setting = null, periodDate = null) => {
       const isIntakeCat = (c = "") => {
         const n = String(c).toLowerCase().trim();
         return n === "home_intake" || n === "home intake" || n === "personal" || n === "intake";
@@ -134,12 +135,33 @@ export class LedgerService {
         .filter((e) => e.paymentSource === "cc_loan")
         .reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
-      const remCash = receivedCash - spentCash;
-      const remBank = receivedBank - spentBank;
+      const effectiveCutoff = setting?.effectiveDate
+        ? dayjs(setting.effectiveDate).startOf("day")
+        : dayjs("2026-10-01").startOf("day");
+
+      // Opening balance applies if all-time (periodDate is null) or if the month is on/after cutoff month
+      const isCutoffApplicable =
+        !periodDate ||
+        dayjs(periodDate).endOf("month").isAfter(effectiveCutoff) ||
+        dayjs(periodDate).isSame(effectiveCutoff, "month");
+
+      const cashOpening = isCutoffApplicable ? Number(setting?.cashOpeningBalance || 0) : 0;
+      const bankOpening = isCutoffApplicable ? Number(setting?.bankOpeningBalance || 0) : 0;
+
+      const remCash = cashOpening + receivedCash - spentCash;
+      const remBank = bankOpening + receivedBank - spentBank;
 
       return {
         totalReceived: receivedCash + receivedBank,
         totalSpent: spentCash + spentBank,
+        openingBalance: {
+          cash: Number(setting?.cashOpeningBalance || 0),
+          bank: Number(setting?.bankOpeningBalance || 0),
+          total: Number(setting?.cashOpeningBalance || 0) + Number(setting?.bankOpeningBalance || 0),
+          effectiveDate: effectiveCutoff.format("YYYY-MM-DD"),
+          notes: setting?.notes || "",
+          isApplied: isCutoffApplicable,
+        },
         received: { cash: receivedCash, bank: receivedBank },
         spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
         remaining: {
@@ -155,6 +177,17 @@ export class LedgerService {
 
     try {
       await connectDB();
+      let setting = null;
+      try {
+        setting = await HomeIntakeSetting.findOne();
+      } catch (sErr) {
+        console.error("Error loading HomeIntakeSetting in web-app ledger:", sErr);
+      }
+
+      const effectiveCutoff = setting?.effectiveDate
+        ? dayjs(setting.effectiveDate).startOf("day")
+        : dayjs("2026-10-01").startOf("day");
+
       const startOfMonth = dayjs(date).startOf("month").toDate();
       const endOfMonth = dayjs(date).endOf("month").toDate();
 
@@ -165,18 +198,19 @@ export class LedgerService {
           $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
         }),
         HomeExpense.find({
+          date: { $gte: effectiveCutoff.toDate() },
           sourceTag: { $ne: "daily_ledger" },
           $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
         }),
       ]);
 
       ledgerObj.homeIntakeSummary = {
-        ...computeHomeIntakeSummary(monthExpenses),
+        ...computeHomeIntakeSummary(monthExpenses, setting, date),
         periodName: dayjs(date).format("MMMM YYYY"),
       };
       ledgerObj.allTimeHomeIntakeSummary = {
-        ...computeHomeIntakeSummary(allExpenses),
-        periodName: "All-Time",
+        ...computeHomeIntakeSummary(allExpenses, setting, null),
+        periodName: `All-Time (from ${effectiveCutoff.format("DD MMM YYYY")})`,
       };
     } catch (sumErr) {
       console.error("Error computing home intake summary in web-app ledger service:", sumErr);

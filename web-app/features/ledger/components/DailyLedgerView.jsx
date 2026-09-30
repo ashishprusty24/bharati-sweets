@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Card, Row, Col, DatePicker, Table, Button, InputNumber, AutoComplete, Select,
-  message, Typography, Space, Divider, Tag, Input, Tooltip
+  message, Typography, Space, Divider, Tag, Input, Tooltip, Modal, Form
 } from "antd";
 import {
   SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined,
   BankOutlined, HomeOutlined, ShoppingCartOutlined, StarOutlined,
   GiftOutlined, ExperimentOutlined, TrophyOutlined, FileTextOutlined,
-  FundOutlined
+  FundOutlined, SettingOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import FestivalAnalyticsModal from "./FestivalAnalyticsModal";
@@ -157,6 +157,59 @@ export default function DailyLedgerView() {
       message.error("Failed to fetch ledger data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [openingBalanceModalOpen, setOpeningBalanceModalOpen] = useState(false);
+  const [openingBalanceForm] = Form.useForm();
+  const [savingOpeningBalance, setSavingOpeningBalance] = useState(false);
+
+  const handleOpenOpeningBalanceModal = async () => {
+    try {
+      const res = await fetch("/api/expenses/opening-balance").then((r) => r.json());
+      if (res) {
+        openingBalanceForm.setFieldsValue({
+          cashOpeningBalance: res.cashOpeningBalance || 0,
+          bankOpeningBalance: res.bankOpeningBalance || 0,
+          effectiveDate: res.effectiveDate ? dayjs(res.effectiveDate) : dayjs("2026-10-01"),
+          notes: res.notes || "",
+        });
+      }
+    } catch (e) {
+      const currentOp = activeHomeIntakeSummary?.openingBalance;
+      openingBalanceForm.setFieldsValue({
+        cashOpeningBalance: currentOp?.cash || 0,
+        bankOpeningBalance: currentOp?.bank || 0,
+        effectiveDate: currentOp?.effectiveDate ? dayjs(currentOp.effectiveDate) : dayjs("2026-10-01"),
+        notes: currentOp?.notes || "",
+      });
+    }
+    setOpeningBalanceModalOpen(true);
+  };
+
+  const handleSaveOpeningBalance = async () => {
+    try {
+      const values = await openingBalanceForm.validateFields();
+      setSavingOpeningBalance(true);
+      const payload = {
+        cashOpeningBalance: values.cashOpeningBalance || 0,
+        bankOpeningBalance: values.bankOpeningBalance || 0,
+        effectiveDate: values.effectiveDate ? values.effectiveDate.format("YYYY-MM-DD") : "2026-10-01",
+        notes: values.notes || "",
+      };
+      await fetch("/api/expenses/opening-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      message.success("Home Intake Opening Balance updated successfully!");
+      setOpeningBalanceModalOpen(false);
+      fetchLedger(date);
+    } catch (err) {
+      console.error("Error saving opening balance:", err);
+      message.error(err.message || "Failed to save opening balance");
+    } finally {
+      setSavingOpeningBalance(false);
     }
   };
 
@@ -842,45 +895,67 @@ export default function DailyLedgerView() {
                   </div>
                 </div>
 
-                {/* Period Selector: Month / All-Time */}
-                <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
-                  <Button
-                    size="small"
-                    type={homeIntakePeriod === "month" ? "primary" : "text"}
-                    onClick={() => setHomeIntakePeriod("month")}
-                    style={{
-                      height: 24,
-                      padding: "0 8px",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      borderRadius: 10,
-                      background: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
-                      borderColor: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
-                    }}
-                  >
-                    {date.format("MMM")}
-                  </Button>
-                  <Button
-                    size="small"
-                    type={homeIntakePeriod === "all_time" ? "primary" : "text"}
-                    onClick={() => setHomeIntakePeriod("all_time")}
-                    style={{
-                      height: 24,
-                      padding: "0 8px",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      borderRadius: 10,
-                      background: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
-                      borderColor: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
-                    }}
-                  >
-                    All Time
-                  </Button>
+                {/* Period Selector & Settings Button */}
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
+                    <Button
+                      size="small"
+                      type={homeIntakePeriod === "month" ? "primary" : "text"}
+                      onClick={() => setHomeIntakePeriod("month")}
+                      style={{
+                        height: 24,
+                        padding: "0 8px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        borderRadius: 10,
+                        background: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                        borderColor: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                      }}
+                    >
+                      {date.format("MMM")}
+                    </Button>
+                    <Button
+                      size="small"
+                      type={homeIntakePeriod === "all_time" ? "primary" : "text"}
+                      onClick={() => setHomeIntakePeriod("all_time")}
+                      style={{
+                        height: 24,
+                        padding: "0 8px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        borderRadius: 10,
+                        background: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                        borderColor: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                      }}
+                    >
+                      All Time
+                    </Button>
+                  </div>
+
+                  <Tooltip title="Set / Reconcile Home Intake Opening Balance">
+                    <Button
+                      size="small"
+                      icon={<SettingOutlined />}
+                      onClick={handleOpenOpeningBalanceModal}
+                      style={{
+                        height: 26,
+                        width: 26,
+                        padding: 0,
+                        borderRadius: 8,
+                        background: "#fce7f3",
+                        color: "#ec4899",
+                        borderColor: "#fbcfe8",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    />
+                  </Tooltip>
                 </div>
               </div>
 
               <div style={{ marginTop: 8 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                   <Title
                     level={3}
                     style={{
@@ -894,6 +969,13 @@ export default function DailyLedgerView() {
                   </Title>
                   <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Remaining Balance</Text>
                 </div>
+                {activeHomeIntakeSummary?.openingBalance?.total > 0 && (
+                  <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <Tag color="magenta" style={{ fontSize: 10, borderRadius: 8, padding: "1px 6px", margin: 0, fontWeight: 600 }}>
+                      Base from {dayjs(activeHomeIntakeSummary.openingBalance.effectiveDate).format("DD MMM")}: 💵 ₹{fmt(activeHomeIntakeSummary.openingBalance.cash)} | 🏦 ₹{fmt(activeHomeIntakeSummary.openingBalance.bank)}
+                    </Tag>
+                  </div>
+                )}
               </div>
 
               <div style={{ borderTop: "1px dashed #fbcfe8", marginTop: 10, paddingTop: 8 }}>
@@ -1331,6 +1413,103 @@ export default function DailyLedgerView() {
         onClose={() => setAnalyticsModalOpen(false)}
         defaultFestival={ledgerData.festival || "Rakhi Purnima"}
       />
+
+      {/* ── HOME INTAKE OPENING BALANCE MODAL ── */}
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+              <HomeOutlined />
+            </div>
+            <div>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>Home Intake Opening Balance</span>
+              <span style={{ display: "block", fontSize: 11, color: "#64748b", fontWeight: 400 }}>
+                Reconcile & start tracking fresh from a cutoff date
+              </span>
+            </div>
+          </div>
+        }
+        open={openingBalanceModalOpen}
+        onCancel={() => setOpeningBalanceModalOpen(false)}
+        onOk={handleSaveOpeningBalance}
+        confirmLoading={savingOpeningBalance}
+        okText="Save & Reconcile"
+        cancelText="Cancel"
+        destroyOnClose
+        centered
+        width={480}
+      >
+        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 14px", margin: "16px 0" }}>
+          <Text style={{ fontSize: 12, color: "#166534" }}>
+            💡 <b>Cutoff Balance Reconciliation</b>: Setting an Opening Balance as of <b>01 Oct 2026</b> sets the true baseline cash & bank at home, eliminating historical deficits while keeping past months untouched.
+          </Text>
+        </div>
+
+        <Form
+          form={openingBalanceForm}
+          layout="vertical"
+          initialValues={{
+            cashOpeningBalance: 0,
+            bankOpeningBalance: 0,
+            effectiveDate: dayjs("2026-10-01"),
+            notes: "Home Intake Opening Balance as of 01 Oct 2026",
+          }}
+        >
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                name="effectiveDate"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>Effective Cutoff Date</span>}
+                rules={[{ required: true, message: "Please select effective date" }]}
+              >
+                <DatePicker format="DD MMM YYYY" style={{ width: "100%", height: 40, borderRadius: 8 }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="cashOpeningBalance"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>💵 Home Cash Base (₹)</span>}
+                rules={[{ required: true, message: "Please enter cash opening balance" }]}
+              >
+                <InputNumber
+                  style={{ width: "100%", height: 40, borderRadius: 8, fontSize: 15, fontWeight: 700 }}
+                  prefix="₹"
+                  placeholder="0"
+                  min={0}
+                  precision={0}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="bankOpeningBalance"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>🏦 Home Bank Base (₹)</span>}
+                rules={[{ required: true, message: "Please enter bank opening balance" }]}
+              >
+                <InputNumber
+                  style={{ width: "100%", height: 40, borderRadius: 8, fontSize: 15, fontWeight: 700 }}
+                  prefix="₹"
+                  placeholder="0"
+                  min={0}
+                  precision={0}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item
+                name="notes"
+                label={<span style={{ fontWeight: 600, fontSize: 13 }}>Notes / Description (Optional)</span>}
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="e.g. Physical cash count & bank balance reconciled starting Oct 1st"
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   );
 }

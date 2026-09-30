@@ -1,5 +1,5 @@
 const HomeExpense = require("../models/HomeExpense");
-
+const HomeIntakeSetting = require("../models/HomeIntakeSetting");
 const Vendor = require("../models/Vendor");
 const Staff = require("../models/Staff");
 const CreditCard = require("../models/CreditCard");
@@ -615,7 +615,14 @@ const getHomeExpenseSummary = (query = {}) => {
         return acc;
       }, {});
 
-      // ── HOME INTAKE BALANCE CALCULATION ──
+      // ── HOME INTAKE BALANCE CALCULATION (WITH OPENING BALANCE RECONCILIATION) ──
+      let setting = null;
+      try {
+        setting = await HomeIntakeSetting.findOne();
+      } catch (sErr) {
+        console.error("Error loading HomeIntakeSetting:", sErr);
+      }
+
       const isIntakeCategory = (cat = "") => {
         const norm = String(cat).toLowerCase().trim();
         return (
@@ -650,8 +657,21 @@ const getHomeExpenseSummary = (query = {}) => {
         .filter((e) => e.paymentSource === "cc_loan")
         .reduce((s, e) => s + (e.amount || 0), 0);
 
-      const remainingCash = receivedCash - spentCash;
-      const remainingBank = receivedBank - spentBank;
+      const effectiveCutoff = setting?.effectiveDate
+        ? dayjs(setting.effectiveDate).startOf("day")
+        : dayjs("2026-10-01").startOf("day");
+
+      // Opening balance applies if queried period includes or follows the effective cutoff date
+      const isCutoffApplicable =
+        dayjs(endDate).isAfter(effectiveCutoff) ||
+        dayjs(endDate).isSame(effectiveCutoff, "day") ||
+        dayjs(startDate).isSame(effectiveCutoff, "month");
+
+      const cashOpening = isCutoffApplicable ? Number(setting?.cashOpeningBalance || 0) : 0;
+      const bankOpening = isCutoffApplicable ? Number(setting?.bankOpeningBalance || 0) : 0;
+
+      const remainingCash = cashOpening + receivedCash - spentCash;
+      const remainingBank = bankOpening + receivedBank - spentBank;
 
       resolve({
         total,
@@ -662,6 +682,14 @@ const getHomeExpenseSummary = (query = {}) => {
         homeIntakeSummary: {
           totalReceived: receivedCash + receivedBank,
           totalSpent: spentCash + spentBank,
+          openingBalance: {
+            cash: Number(setting?.cashOpeningBalance || 0),
+            bank: Number(setting?.bankOpeningBalance || 0),
+            total: Number(setting?.cashOpeningBalance || 0) + Number(setting?.bankOpeningBalance || 0),
+            effectiveDate: effectiveCutoff.format("YYYY-MM-DD"),
+            notes: setting?.notes || "",
+            isApplied: isCutoffApplicable,
+          },
           received: { cash: receivedCash, bank: receivedBank },
           spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
           remaining: {
@@ -682,10 +710,53 @@ const getHomeExpenseSummary = (query = {}) => {
   });
 };
 
+const getHomeIntakeSetting = () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let setting = await HomeIntakeSetting.findOne();
+      if (!setting) {
+        setting = await HomeIntakeSetting.create({
+          cashOpeningBalance: 0,
+          bankOpeningBalance: 0,
+          effectiveDate: new Date("2026-10-01T00:00:00.000Z"),
+          notes: "Initial Home Intake Opening Balance as of 01 Oct 2026",
+        });
+      }
+      resolve(setting);
+    } catch (err) {
+      reject({ status: 500, message: err.message });
+    }
+  });
+};
+
+const saveHomeIntakeSetting = (data) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const payload = {
+        cashOpeningBalance: Number(data.cashOpeningBalance || 0),
+        bankOpeningBalance: Number(data.bankOpeningBalance || 0),
+        effectiveDate: data.effectiveDate ? new Date(data.effectiveDate) : new Date("2026-10-01T00:00:00.000Z"),
+        notes: data.notes || "",
+      };
+      let setting = await HomeIntakeSetting.findOne();
+      if (setting) {
+        setting = await HomeIntakeSetting.findByIdAndUpdate(setting._id, payload, { new: true, upsert: true });
+      } else {
+        setting = await HomeIntakeSetting.create(payload);
+      }
+      resolve(setting);
+    } catch (err) {
+      reject({ status: 500, message: err.message });
+    }
+  });
+};
+
 module.exports = {
   getHomeExpenses,
   createHomeExpense,
   updateHomeExpense,
   deleteHomeExpense,
   getHomeExpenseSummary,
+  getHomeIntakeSetting,
+  saveHomeIntakeSetting,
 };

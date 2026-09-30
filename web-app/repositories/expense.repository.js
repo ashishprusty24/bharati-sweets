@@ -1,6 +1,7 @@
 import connectDB from "../database/mongodb";
 import Expense from "../models/Expense";
 import HomeExpense from "../models/HomeExpense";
+import HomeIntakeSetting from "../models/HomeIntakeSetting";
 import Vendor from "../models/Vendor";
 
 export class ExpenseRepository {
@@ -123,9 +124,21 @@ export class ExpenseRepository {
       $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
     };
 
+    let setting = null;
+    try {
+      setting = await HomeIntakeSetting.findOne();
+    } catch (sErr) {
+      console.error("Error loading HomeIntakeSetting in web-app repository:", sErr);
+    }
+
+    const effectiveCutoff = setting?.effectiveDate
+      ? dayjs(setting.effectiveDate).startOf("day")
+      : dayjs("2026-10-01").startOf("day");
+
     let startDate, endDate;
     if (query.allTime === "true" || query.period === "all" || (!query.startDate && query.allTime)) {
-      // All time
+      // For all time, start from effective cutoff date to reconcile historical unrecorded deficits
+      filter.date = { $gte: effectiveCutoff.toDate() };
     } else {
       startDate = query.startDate
         ? dayjs(query.startDate).startOf("day").toDate()
@@ -174,8 +187,18 @@ export class ExpenseRepository {
       .filter((e) => e.paymentSource === "cc_loan")
       .reduce((s, e) => s + (Number(e.amount) || 0), 0);
 
-    const remainingCash = receivedCash - spentCash;
-    const remainingBank = receivedBank - spentBank;
+    // Opening balance applies if all-time or queried period includes/follows the cutoff date
+    const isCutoffApplicable =
+      !startDate ||
+      dayjs(endDate).isAfter(effectiveCutoff) ||
+      dayjs(endDate).isSame(effectiveCutoff, "day") ||
+      dayjs(startDate).isSame(effectiveCutoff, "month");
+
+    const cashOpening = isCutoffApplicable ? Number(setting?.cashOpeningBalance || 0) : 0;
+    const bankOpening = isCutoffApplicable ? Number(setting?.bankOpeningBalance || 0) : 0;
+
+    const remainingCash = cashOpening + receivedCash - spentCash;
+    const remainingBank = bankOpening + receivedBank - spentBank;
 
     return {
       total,
@@ -185,6 +208,14 @@ export class ExpenseRepository {
       homeIntakeSummary: {
         totalReceived: receivedCash + receivedBank,
         totalSpent: spentCash + spentBank,
+        openingBalance: {
+          cash: Number(setting?.cashOpeningBalance || 0),
+          bank: Number(setting?.bankOpeningBalance || 0),
+          total: Number(setting?.cashOpeningBalance || 0) + Number(setting?.bankOpeningBalance || 0),
+          effectiveDate: effectiveCutoff.format("YYYY-MM-DD"),
+          notes: setting?.notes || "",
+          isApplied: isCutoffApplicable,
+        },
         received: { cash: receivedCash, bank: receivedBank },
         spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
         remaining: {
@@ -198,5 +229,36 @@ export class ExpenseRepository {
       },
       period: { startDate, endDate },
     };
+  }
+
+  static async getHomeIntakeSetting() {
+    await connectDB();
+    let setting = await HomeIntakeSetting.findOne();
+    if (!setting) {
+      setting = await HomeIntakeSetting.create({
+        cashOpeningBalance: 0,
+        bankOpeningBalance: 0,
+        effectiveDate: new Date("2026-10-01T00:00:00.000Z"),
+        notes: "Initial Home Intake Opening Balance as of 01 Oct 2026",
+      });
+    }
+    return setting;
+  }
+
+  static async saveHomeIntakeSetting(data) {
+    await connectDB();
+    const payload = {
+      cashOpeningBalance: Number(data.cashOpeningBalance || 0),
+      bankOpeningBalance: Number(data.bankOpeningBalance || 0),
+      effectiveDate: data.effectiveDate ? new Date(data.effectiveDate) : new Date("2026-10-01T00:00:00.000Z"),
+      notes: data.notes || "",
+    };
+    let setting = await HomeIntakeSetting.findOne();
+    if (setting) {
+      setting = await HomeIntakeSetting.findByIdAndUpdate(setting._id, payload, { new: true, upsert: true });
+    } else {
+      setting = await HomeIntakeSetting.create(payload);
+    }
+    return setting;
   }
 }

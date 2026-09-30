@@ -20,4 +20,12 @@ export class ExpenseService {
   static async getExpenseSummary(query) {
     return await ExpenseRepository.getHomeExpenseSummary(query);
   }
+
+  static async getHomeIntakeSetting() {
+    return await ExpenseRepository.getHomeIntakeSetting();
+  }
+
+  static async saveHomeIntakeSetting(data) {
+    return await ExpenseRepository.saveHomeIntakeSetting(data);
+  }
 }
