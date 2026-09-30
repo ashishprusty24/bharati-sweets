@@ -1,6 +1,7 @@
 const DailyLedger = require("../models/DailyLedger");
 const HomeExpense = require("../models/HomeExpense");
 const Vendor = require("../models/Vendor");
+const CustomerCredit = require("../models/CustomerCredit");
 const dayjs = require("dayjs");
 
 const isIntakeCategory = (cat = "") => {
@@ -11,6 +12,50 @@ const isIntakeCategory = (cat = "") => {
     norm === "personal" ||
     norm === "intake"
   );
+};
+
+const computeHomeIntakeSummary = (expenses = []) => {
+  const intakeEntries = expenses.filter((e) => isIntakeCategory(e.category));
+  const receivedCash = intakeEntries
+    .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const receivedBank = intakeEntries
+    .filter((e) => e.paymentSource === "bank_account")
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+  const spentEntries = expenses.filter((e) => !isIntakeCategory(e.category));
+  const spentCash = spentEntries
+    .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const spentBank = spentEntries
+    .filter((e) => e.paymentSource === "bank_account")
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const spentCreditCard = spentEntries
+    .filter((e) => e.paymentSource === "credit_card")
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const spentCCLoan = spentEntries
+    .filter((e) => e.paymentSource === "cc_loan")
+    .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+  const remainingCash = receivedCash - spentCash;
+  const remainingBank = receivedBank - spentBank;
+  const remainingTotal = remainingCash + remainingBank;
+
+  return {
+    totalReceived: receivedCash + receivedBank,
+    totalSpent: spentCash + spentBank,
+    received: { cash: receivedCash, bank: receivedBank },
+    spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
+    remaining: {
+      cash: remainingCash,
+      bank: remainingBank,
+      total: remainingTotal,
+    },
+    // Compatibility fields
+    total: receivedCash + receivedBank,
+    cash: receivedCash,
+    bank: receivedBank,
+  };
 };
 
 const getLedgerByDate = (date) => {
@@ -106,42 +151,68 @@ const getLedgerByDate = (date) => {
       // Expense module and Daily Ledger are kept completely separate per customer requirement.
 
       const cashExpenseTotal = items
-        .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+        .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode !== "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
       const bankExpenseTotal = items
-        .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+        .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode === "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
-      const cashIncomeTotal = items
-        .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+      const totalExpenses = items
+        .filter((i) => i.type === "expense")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const bankIncomeTotal = items
-        .filter((i) => i.type === "income" && i.paymentMode === "bank")
+      const totalInvestments = items
+        .filter((i) => i.type === "investment")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-
-      const totalExpenses = cashExpenseTotal + bankExpenseTotal;
 
       // Derived sell formula:
-      // Cash Sell = Closing Cash + Cash Expenses + Cash to Home - Opening Cash - Other Income
+      // Cash Sell = Closing Cash + Cash Outflows (Expenses + Investments) + Cash to Home - Opening Cash - Other Income
       const derivedCashSales =
         Number(ledgerObj.closingBalance || 0) +
         cashExpenseTotal +
         Number(ledgerObj.cashToHome || 0) -
         Number(ledgerObj.openingBalance || 0) -
-        Number(ledgerObj.otherIncome || 0) -
-        cashIncomeTotal;
+        Number(ledgerObj.otherIncome || 0);
 
       const derivedDigitalSales =
         Number(ledgerObj.closingBankBalance || 0) +
         bankExpenseTotal +
         Number(ledgerObj.digitalToHome || 0) -
-        Number(ledgerObj.openingBankBalance || 0) -
-        bankIncomeTotal;
+        Number(ledgerObj.openingBankBalance || 0);
 
       ledgerObj.derivedCashSales = derivedCashSales;
       ledgerObj.derivedDigitalSales = derivedDigitalSales;
       ledgerObj.derivedTotalSales = derivedCashSales + derivedDigitalSales;
       ledgerObj.totalExpenses = totalExpenses;
+      ledgerObj.totalInvestments = totalInvestments;
+
+      // Compute Home Intake Summary for the month of ledger date & all-time
+      try {
+        const startOfMonth = dayjs(date).startOf("month").toDate();
+        const endOfMonth = dayjs(date).endOf("month").toDate();
+
+        const [monthExpenses, allExpenses] = await Promise.all([
+          HomeExpense.find({
+            date: { $gte: startOfMonth, $lte: endOfMonth },
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          }),
+          HomeExpense.find({
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          }),
+        ]);
+
+        ledgerObj.homeIntakeSummary = {
+          ...computeHomeIntakeSummary(monthExpenses),
+          periodName: dayjs(date).format("MMMM YYYY"),
+        };
+        ledgerObj.allTimeHomeIntakeSummary = {
+          ...computeHomeIntakeSummary(allExpenses),
+          periodName: "All-Time",
+        };
+      } catch (sumErr) {
+        console.error("Error computing home intake summary for ledger:", sumErr);
+      }
 
       resolve(ledgerObj);
     } catch (err) {
@@ -163,6 +234,7 @@ const saveLedger = (date, payload) => {
         notes = "",
         sweetProduction = [],
         investments = [],
+        customerCredits = [],
         openingBalance = 0,
         openingBankBalance = 0,
         otherIncome = 0,
@@ -189,21 +261,90 @@ const saveLedger = (date, payload) => {
       };
       const sanitizedItems = (items || []).filter((item) => !isCCExpenseItem(item));
 
+      // Auto-sync items with type === "investment" into investments array
+      let syncedInvestments = [...(investments || [])];
+      for (const item of sanitizedItems) {
+        if (item.type === "investment" && item.description && Number(item.amount) > 0) {
+          const itemDesc = item.description.trim();
+          const itemAmt = Number(item.amount);
+          const alreadyExists = syncedInvestments.some(
+            (inv) => inv.name?.toLowerCase().trim() === itemDesc.toLowerCase() && Number(inv.amount) === itemAmt
+          );
+          if (!alreadyExists) {
+            let invType = "SIP";
+            if (/fd|fixed deposit/i.test(itemDesc)) invType = "FD";
+            else if (/sip|mutual fund|mf/i.test(itemDesc)) invType = "SIP";
+            else invType = "Other";
+
+            syncedInvestments.push({
+              name: itemDesc,
+              amount: itemAmt,
+              type: invType,
+              notes: `From daily ledger (${item.paymentMode || "cash"})`,
+            });
+          }
+        }
+      }
+
+      // Auto-sync customer credits into CustomerCredit model and persist in DailyLedger.customerCredits
+      let syncedCustomerCredits = [];
+      for (const item of customerCredits || []) {
+        if (item.customerName && Number(item.amount) > 0) {
+          const custName = item.customerName.trim();
+          const custPhone = item.phone ? item.phone.trim() : "N/A";
+          const custAmount = Number(item.amount);
+          const custNotes = item.notes || `Counter Bakki from Daily Ledger (${dateStr})`;
+
+          let creditDoc = null;
+          if (item.creditId) {
+            creditDoc = await CustomerCredit.findById(item.creditId);
+          }
+          if (!creditDoc) {
+            creditDoc = await CustomerCredit.findOne({
+              customerName: new RegExp(`^${custName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+              createdAt: { $gte: targetDate, $lte: endOfDay },
+            });
+          }
+
+          if (creditDoc) {
+            creditDoc.customerName = custName;
+            if (custPhone && custPhone !== "N/A") creditDoc.phone = custPhone;
+            creditDoc.totalAmount = custAmount;
+            if (item.notes) creditDoc.notes = item.notes;
+            await creditDoc.save();
+          } else {
+            creditDoc = new CustomerCredit({
+              customerName: custName,
+              phone: custPhone,
+              totalAmount: custAmount,
+              notes: custNotes,
+              autoReminderEnabled: Boolean(custPhone && custPhone !== "N/A" && custPhone.length >= 10),
+              createdAt: targetDate,
+            });
+            await creditDoc.save();
+          }
+
+          syncedCustomerCredits.push({
+            customerName: custName,
+            phone: custPhone,
+            amount: custAmount,
+            notes: item.notes || "",
+            creditId: creditDoc._id,
+          });
+        }
+      }
+
       // Compute derived sales to persist in MongoDB
       const cashExpenseTotal = sanitizedItems
-        .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+        .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode !== "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
       const bankExpenseTotal = sanitizedItems
-        .filter((i) => i.type === "expense" && i.paymentMode === "bank")
-        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const cashIncomeTotal = sanitizedItems
-        .filter((i) => i.type === "income" && i.paymentMode !== "bank")
-        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-      const bankIncomeTotal = sanitizedItems
-        .filter((i) => i.type === "income" && i.paymentMode === "bank")
+        .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode === "bank")
         .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
-      const totalExpenses = cashExpenseTotal + bankExpenseTotal;
+      const totalExpenses = sanitizedItems
+        .filter((i) => i.type === "expense")
+        .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
       const cashSales = Math.max(
         0,
@@ -211,8 +352,7 @@ const saveLedger = (date, payload) => {
           cashExpenseTotal +
           Number(cashToHome || 0) -
           Number(openingBalance || 0) -
-          Number(otherIncome || 0) -
-          cashIncomeTotal
+          Number(otherIncome || 0)
       );
 
       const digitalSales = Math.max(
@@ -220,8 +360,7 @@ const saveLedger = (date, payload) => {
         Number(closingBankBalance || 0) +
           bankExpenseTotal +
           Number(digitalToHome || 0) -
-          Number(openingBankBalance || 0) -
-          bankIncomeTotal
+          Number(openingBankBalance || 0)
       );
 
       // Save as-is — closingBalance is the user's physical count, NOT computed
@@ -232,7 +371,8 @@ const saveLedger = (date, payload) => {
           festival: festival || "",
           notes: notes || "",
           sweetProduction: sweetProduction || [],
-          investments: investments || [],
+          investments: syncedInvestments,
+          customerCredits: syncedCustomerCredits,
           openingBalance: Number(openingBalance),
           openingBankBalance: Number(openingBankBalance),
           cashSales,
@@ -398,7 +538,36 @@ const saveLedger = (date, payload) => {
         console.error("Ledger save auto-sync error:", syncErr);
       }
 
-      resolve(ledger);
+      const ledgerResult = ledger.toObject ? ledger.toObject() : { ...ledger };
+      try {
+        const startOfMonth = dayjs(date).startOf("month").toDate();
+        const endOfMonth = dayjs(date).endOf("month").toDate();
+
+        const [monthExpenses, allExpenses] = await Promise.all([
+          HomeExpense.find({
+            date: { $gte: startOfMonth, $lte: endOfMonth },
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          }),
+          HomeExpense.find({
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          }),
+        ]);
+
+        ledgerResult.homeIntakeSummary = {
+          ...computeHomeIntakeSummary(monthExpenses),
+          periodName: dayjs(date).format("MMMM YYYY"),
+        };
+        ledgerResult.allTimeHomeIntakeSummary = {
+          ...computeHomeIntakeSummary(allExpenses),
+          periodName: "All-Time",
+        };
+      } catch (sumErr) {
+        console.error("Error computing home intake summary on save:", sumErr);
+      }
+
+      resolve(ledgerResult);
     } catch (err) {
       reject({ status: 400, message: err.message });
     }

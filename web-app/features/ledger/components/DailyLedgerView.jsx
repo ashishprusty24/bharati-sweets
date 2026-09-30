@@ -74,6 +74,9 @@ export default function DailyLedgerView() {
   const [loading, setLoading] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [homeIntakePeriod, setHomeIntakePeriod] = useState("month");
+  const [homeIntakeSummary, setHomeIntakeSummary] = useState(null);
+  const [allTimeHomeIntakeSummary, setAllTimeHomeIntakeSummary] = useState(null);
   const [ledgerData, setLedgerData] = useState({
     openingBalance: 0,
     openingBankBalance: 0,
@@ -133,6 +136,22 @@ export default function DailyLedgerView() {
         investments: data.investments || [],
         items: (data.items || []).filter((item) => !isCCItem(item)),
       });
+
+      if (data.homeIntakeSummary) setHomeIntakeSummary(data.homeIntakeSummary);
+      if (data.allTimeHomeIntakeSummary) setAllTimeHomeIntakeSummary(data.allTimeHomeIntakeSummary);
+
+      try {
+        const startOfMonth = targetDate.startOf("month").format("YYYY-MM-DD");
+        const endOfMonth = targetDate.endOf("month").format("YYYY-MM-DD");
+        const [monthRes, allRes] = await Promise.all([
+          fetch(`/api/expenses/summary?startDate=${startOfMonth}&endDate=${endOfMonth}`).then((r) => r.json()),
+          fetch(`/api/expenses/summary?allTime=true`).then((r) => r.json()),
+        ]);
+        if (monthRes?.homeIntakeSummary) setHomeIntakeSummary(monthRes.homeIntakeSummary);
+        if (allRes?.homeIntakeSummary) setAllTimeHomeIntakeSummary(allRes.homeIntakeSummary);
+      } catch (sumErr) {
+        // Fallback to ledger endpoint summary
+      }
     } catch (error) {
       console.error(error);
       message.error("Failed to fetch ledger data");
@@ -140,6 +159,10 @@ export default function DailyLedgerView() {
       setLoading(false);
     }
   };
+
+  const activeHomeIntakeSummary = homeIntakePeriod === "all_time"
+    ? (allTimeHomeIntakeSummary || homeIntakeSummary)
+    : (homeIntakeSummary || allTimeHomeIntakeSummary);
 
   useEffect(() => {
     fetchLedger(date);
@@ -252,19 +275,21 @@ export default function DailyLedgerView() {
     const items = ledgerData.items || [];
 
     const cashExpenses = items
-      .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+      .filter((i) => (i.type === "expense" || !i.type) && i.paymentMode !== "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
     const bankExpenses = items
-      .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+      .filter((i) => (i.type === "expense" || !i.type) && i.paymentMode === "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const cashIncome = items
-      .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+    const cashInvestments = items
+      .filter((i) => i.type === "investment" && i.paymentMode !== "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const bankIncome = items
-      .filter((i) => i.type === "income" && i.paymentMode === "bank")
+    const bankInvestments = items
+      .filter((i) => i.type === "investment" && i.paymentMode === "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
     const totalExpenses = cashExpenses + bankExpenses;
+    const totalInvestments = cashInvestments + bankInvestments;
+    const totalOutflows = totalExpenses + totalInvestments;
 
     const opening = Number(ledgerData.openingBalance || 0);
     const openingBank = Number(ledgerData.openingBankBalance || 0);
@@ -274,8 +299,11 @@ export default function DailyLedgerView() {
     const digitalHome = Number(ledgerData.digitalToHome || 0);
     const otherInc = Number(ledgerData.otherIncome || 0);
 
-    const derivedCashSell = closing + cashExpenses + cashHome - opening - otherInc - cashIncome;
-    const derivedDigitalSell = closingBank + bankExpenses + digitalHome - openingBank - bankIncome;
+    const cashOutflows = cashExpenses + cashInvestments;
+    const bankOutflows = bankExpenses + bankInvestments;
+
+    const derivedCashSell = closing + cashOutflows + cashHome - opening - otherInc;
+    const derivedDigitalSell = closingBank + bankOutflows + digitalHome - openingBank;
     const derivedTotalSell = derivedCashSell + derivedDigitalSell;
 
     const hasClosing = closing > 0 || closingBank > 0;
@@ -284,6 +312,10 @@ export default function DailyLedgerView() {
       cashExpenses,
       bankExpenses,
       totalExpenses,
+      cashInvestments,
+      bankInvestments,
+      totalInvestments,
+      totalOutflows,
       derivedCashSell,
       derivedDigitalSell,
       derivedTotalSell,
@@ -323,15 +355,15 @@ export default function DailyLedgerView() {
     {
       title: "Type",
       dataIndex: "type",
-      width: 110,
+      width: 130,
       render: (type, _, index) => (
         <Select
-          value={type}
+          value={type || "expense"}
           onChange={(value) => updateItem(index, "type", value)}
           style={{ width: "100%" }}
         >
-          <Option value="expense">Expense</Option>
-          <Option value="income">Income</Option>
+          <Option value="expense">💸 Expense</Option>
+          <Option value="investment">💰 Investment</Option>
         </Select>
       ),
     },
@@ -658,14 +690,14 @@ export default function DailyLedgerView() {
         </Row>
       </Card>
 
-      {/* ── DAILY EXPENSES & INCOME TABLE ── */}
+      {/* ── DAILY EXPENSES & INVESTMENTS TABLE ── */}
       <Card
         variant="borderless"
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
             <div>
-              <Title level={4} style={{ margin: 0 }}>Daily Expenses & Income</Title>
-              <Text type="secondary" style={{ fontSize: 11 }}>Type vendor name or items to trigger smart predictions.</Text>
+              <Title level={4} style={{ margin: 0 }}>Daily Expenses & Investments</Title>
+              <Text type="secondary" style={{ fontSize: 11 }}>Type vendor name or items to trigger smart predictions. Select Investment to auto-track in investments ledger.</Text>
             </div>
             <Button
               type="primary"
@@ -686,74 +718,203 @@ export default function DailyLedgerView() {
           rowKey={(_, index) => index}
           size="middle"
           footer={() => (
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 24 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 24, flexWrap: "wrap" }}>
               <Text type="secondary" style={{ fontWeight: 600 }}>
-                Cash Expenses: <Text strong style={{ color: "#ef4444" }}>₹{fmt(totals.cashExpenses)}</Text>
+                Expenses: <Text strong style={{ color: "#ef4444" }}>₹{fmt(totals.totalExpenses)}</Text>
               </Text>
-              <Text type="secondary" style={{ fontWeight: 600 }}>
-                Bank Expenses: <Text strong style={{ color: "#7c3aed" }}>₹{fmt(totals.bankExpenses)}</Text>
-              </Text>
+              {totals.totalInvestments > 0 && (
+                <Text type="secondary" style={{ fontWeight: 600 }}>
+                  Investments: <Text strong style={{ color: "#0d9488" }}>₹{fmt(totals.totalInvestments)}</Text>
+                </Text>
+              )}
               <Text style={{ fontWeight: 700, fontSize: 15 }}>
-                Total: <Text strong style={{ color: "#ef4444", fontSize: 16 }}>₹{fmt(totals.totalExpenses)}</Text>
+                Total Outflow: <Text strong style={{ color: "#ef4444", fontSize: 16 }}>₹{fmt(totals.totalOutflows)}</Text>
               </Text>
             </div>
           )}
         />
       </Card>
 
-      {/* ── MAA / HOME INTAKE ── */}
+      {/* ── MAA / HOME & HOME INTAKE BALANCE ── */}
       <Card
         variant="borderless"
         style={{
-          borderRadius: 16, marginBottom: 20,
+          borderRadius: 16,
+          marginBottom: 20,
           borderLeft: "4px solid #8b5cf6",
+          background: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
-        <Row gutter={[20, 16]} align="middle">
-          <Col xs={24} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <HomeOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />
-              <div>
-                <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                  Maa / Home
-                </Text>
-                <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-                  Cash & digital taken home (auto-synced from Home Expenses)
-                </Text>
+        <Row gutter={[20, 16]} align="stretch">
+          {/* Left Column: Today's Home Intake Transfer */}
+          <Col xs={24} lg={13} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                    <HomeOutlined />
+                  </div>
+                  <div>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Maa / Home Intake
+                    </Text>
+                    <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
+                      Cash & digital taken home today (auto-synced from Home Expenses)
+                    </Text>
+                  </div>
+                </div>
+                {((Number(ledgerData.cashToHome) || 0) + (Number(ledgerData.digitalToHome) || 0)) > 0 && (
+                  <Tag color="purple" style={{ borderRadius: 10, fontWeight: 700, fontSize: 12, padding: "2px 10px", margin: 0 }}>
+                    Today: ₹{fmt((Number(ledgerData.cashToHome) || 0) + (Number(ledgerData.digitalToHome) || 0))}
+                  </Tag>
+                )}
               </div>
+
+              <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
+                <Col xs={12}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <WalletOutlined style={{ color: "#8b5cf6" }} />
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash to Home</Text>
+                  </div>
+                  <InputNumber
+                    value={ledgerData.cashToHome === 0 ? null : ledgerData.cashToHome}
+                    onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v ?? 0 })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
+                    style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
+                    prefix="₹"
+                    min={0}
+                    precision={0}
+                  />
+                </Col>
+                <Col xs={12}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <BankOutlined style={{ color: "#8b5cf6" }} />
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Account to Home</Text>
+                  </div>
+                  <InputNumber
+                    value={ledgerData.digitalToHome === 0 ? null : ledgerData.digitalToHome}
+                    onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v ?? 0 })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
+                    style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
+                    prefix="₹"
+                    min={0}
+                    precision={0}
+                  />
+                </Col>
+              </Row>
+            </div>
+
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#faf5ff", borderRadius: 8, border: "1px dashed #e9d5ff" }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                💡 Any amount entered here auto-updates the Home Intake ledger upon saving.
+              </Text>
             </div>
           </Col>
-          <Col xs={12} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <WalletOutlined style={{ color: "#8b5cf6" }} />
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash to Home</Text>
-            </div>
-            <InputNumber
-              value={ledgerData.cashToHome === 0 ? null : ledgerData.cashToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v ?? 0 })}
-              onFocus={(e) => e.target.select()}
-              placeholder="0"
-              style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹"
-              min={0}
-              precision={0}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <BankOutlined style={{ color: "#8b5cf6" }} />
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Account to Home</Text>
-            </div>
-            <InputNumber
-              value={ledgerData.digitalToHome === 0 ? null : ledgerData.digitalToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v ?? 0 })}
-              onFocus={(e) => e.target.select()}
-              placeholder="0"
-              style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹"
-              min={0}
-              precision={0}
-            />
+
+          {/* Right Column: HOME INTAKE BALANCE CARD (Exact match to Expense page) */}
+          <Col xs={24} lg={11}>
+            <Card
+              bordered={false}
+              style={{
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)",
+                boxShadow: "0 2px 10px rgba(236, 72, 153, 0.08)",
+                border: "1px solid #fce7f3",
+                height: "100%",
+              }}
+              bodyStyle={{ padding: "14px 16px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                    <HomeOutlined />
+                  </div>
+                  <div>
+                    <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>
+                      HOME INTAKE BALANCE
+                    </Text>
+                    <Text type="secondary" style={{ display: "block", fontSize: 10 }}>
+                      {homeIntakePeriod === "all_time" ? "All-Time Overall" : `Period: ${date.format("MMMM YYYY")}`}
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Period Selector: Month / All-Time */}
+                <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
+                  <Button
+                    size="small"
+                    type={homeIntakePeriod === "month" ? "primary" : "text"}
+                    onClick={() => setHomeIntakePeriod("month")}
+                    style={{
+                      height: 24,
+                      padding: "0 8px",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      background: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                      borderColor: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                    }}
+                  >
+                    {date.format("MMM")}
+                  </Button>
+                  <Button
+                    size="small"
+                    type={homeIntakePeriod === "all_time" ? "primary" : "text"}
+                    onClick={() => setHomeIntakePeriod("all_time")}
+                    style={{
+                      height: 24,
+                      padding: "0 8px",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      background: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                      borderColor: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                    }}
+                  >
+                    All Time
+                  </Button>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <Title
+                    level={3}
+                    style={{
+                      margin: 0,
+                      fontWeight: 800,
+                      fontSize: 24,
+                      color: (activeHomeIntakeSummary?.remaining?.total || 0) >= 0 ? "#0f172a" : "#e11d48",
+                    }}
+                  >
+                    ₹{fmt(activeHomeIntakeSummary?.remaining?.total || 0)}
+                  </Title>
+                  <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Remaining Balance</Text>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px dashed #fbcfe8", marginTop: 10, paddingTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                  <span style={{ color: "#10b981", fontWeight: 700 }}>
+                    📥 Received: ₹{fmt(activeHomeIntakeSummary?.totalReceived || 0)}
+                  </span>
+                  <span style={{ color: "#ef4444", fontWeight: 700 }}>
+                    📤 Spent: ₹{fmt(activeHomeIntakeSummary?.totalSpent || 0)}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                  <span style={{ color: (activeHomeIntakeSummary?.remaining?.cash || 0) >= 0 ? "#10b981" : "#e11d48", fontWeight: 600 }}>
+                    💵 Cash: ₹{fmt(activeHomeIntakeSummary?.remaining?.cash || 0)}
+                  </span>
+                  <span style={{ color: (activeHomeIntakeSummary?.remaining?.bank || 0) >= 0 ? "#3b82f6" : "#e11d48", fontWeight: 600 }}>
+                    🏦 Bank: ₹{fmt(activeHomeIntakeSummary?.remaining?.bank || 0)}
+                  </span>
+                </div>
+              </div>
+            </Card>
           </Col>
         </Row>
       </Card>
@@ -884,7 +1045,7 @@ export default function DailyLedgerView() {
 
               <div style={{ marginTop: 16, padding: "10px 16px", background: "rgba(255,255,255,0.04)", borderRadius: 8 }}>
                 <Text style={{ color: "#64748b", fontSize: 11, fontFamily: "monospace" }}>
-                  Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Expenses ({fmt(totals.totalExpenses)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
+                  Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Outflows ({fmt(totals.totalOutflows)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
                 </Text>
               </div>
             </>

@@ -356,9 +356,18 @@ const CreditCardPage = () => {
         sorter: (a, b) => new Date(a.date) - new Date(b.date),
       },
       {
-        title: "Description",
+        title: "Description & Details",
         dataIndex: "description",
-        ellipsis: true,
+        render: (text, record) => (
+          <div>
+            <Text strong style={{ color: "#1e293b", fontSize: 13 }}>{text}</Text>
+            {record.notes && record.notes.trim() !== String(text || "").trim() && (
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: "#94a3b8" }}>📝</span> {record.notes}
+              </div>
+            )}
+          </div>
+        ),
       },
       {
         title: "Category",
@@ -605,6 +614,9 @@ const CreditCardPage = () => {
                 <Option key={key} value={key}>{cfg.label}</Option>
               ))}
             </Select>
+          </Form.Item>
+          <Form.Item name="notes" label="Notes / Details (Optional)">
+            <Input.TextArea rows={2} placeholder="e.g., Additional details, invoice #, or purpose..." />
           </Form.Item>
         </Form>
       </Modal>

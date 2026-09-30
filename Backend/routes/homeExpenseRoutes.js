@@ -325,6 +325,65 @@ router.get("/fix-cc-visibility", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/home-expenses/sync-expense-notes-to-cc
+// Backfills notes and descriptions from HomeExpense into CreditCard transactions
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/sync-expense-notes-to-cc", async (req, res) => {
+  try {
+    const HomeExpense = require("../models/HomeExpense");
+    const CreditCard = require("../models/CreditCard");
+    const dayjs = require("dayjs");
+
+    const ccExpenses = await HomeExpense.find({ paymentSource: "credit_card" });
+    let updatedTxns = 0;
+
+    const cards = await CreditCard.find({});
+    for (const card of cards) {
+      let cardChanged = false;
+      for (const txn of card.transactions) {
+        // Find matching HomeExpense by expenseId or amount + date
+        const match = ccExpenses.find(
+          (e) =>
+            (txn.expenseId && String(txn.expenseId) === String(e._id)) ||
+            (Number(e.amount) === Number(txn.amount) &&
+              dayjs(e.date).isSame(dayjs(txn.date), "day") &&
+              (String(e.creditCardId) === String(card._id) || !e.creditCardId))
+        );
+
+        if (match) {
+          if (!txn.notes && (match.notes || match.description)) {
+            txn.notes = match.notes || match.description;
+            cardChanged = true;
+          }
+          if (match.description && (!txn.description || txn.description === "Credit Card Transaction" || txn.description === "Expense via Credit Card")) {
+            txn.description = match.description.replace(/^CC:\s*/i, "");
+            cardChanged = true;
+          }
+          if (!txn.expenseId) {
+            txn.expenseId = match._id;
+            cardChanged = true;
+          }
+          if (cardChanged) updatedTxns++;
+        }
+      }
+
+      if (cardChanged) {
+        await card.save();
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully synchronized notes and descriptions for ${updatedTxns} credit card transactions.`,
+      updatedTxns,
+    });
+  } catch (err) {
+    console.error("Error syncing expense notes to CC:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/home-expenses/analyze-ledger-categories
 // Diagnostic: Groups all daily ledger expense descriptions to understand
 // what users actually enter, so we can design proper categories.

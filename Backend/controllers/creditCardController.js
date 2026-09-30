@@ -109,6 +109,7 @@ const addTransaction = (cardId, txnData) => {
 
       // Sync to HomeExpense with paymentSource = "credit_card"
       // Visible in expenses table, but excluded from net profit & daily ledger until bill is paid!
+      let savedExpenseId = null;
       try {
         const desc = merchantName ? `CC: ${merchantName}` : (txnData.description || "Credit Card Transaction");
         const homeExp = new HomeExpense({
@@ -118,13 +119,23 @@ const addTransaction = (cardId, txnData) => {
           category: txnData.category === "vendor_payment" ? "supplier_payment" : (txnData.category || "credit_card"),
           paymentSource: "credit_card",
           creditCardId: card._id,
+          notes: txnData.notes || "",
         });
-        await homeExp.save();
+        const savedExp = await homeExp.save();
+        savedExpenseId = savedExp._id;
       } catch (hErr) {
         console.error("CC txn home expense sync error:", hErr);
       }
 
-      card.transactions.push(txnData);
+      card.transactions.push({
+        date: txDate,
+        description: txnData.description || merchantName || "Credit Card Transaction",
+        amount: Number(txnData.amount) || 0,
+        category: txnData.category || "other",
+        notes: txnData.notes || "",
+        expenseId: savedExpenseId,
+        isSettled: Boolean(txnData.isSettled),
+      });
       await card.save();
       resolve(card);
     } catch (err) {
@@ -222,6 +233,7 @@ const getAllTransactions = (query = {}) => {
             description: txn.description,
             amount: txn.amount,
             category: txn.category,
+            notes: txn.notes || "",
             isSettled: txn.isSettled,
           });
         });

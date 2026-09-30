@@ -71,43 +71,116 @@ export class LedgerService {
     const items = ledgerObj.items || [];
 
     const cashExpenseTotal = items
-      .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+      .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode !== "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
     const bankExpenseTotal = items
-      .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+      .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode === "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
-    const cashIncomeTotal = items
-      .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+    const totalExpenses = items
+      .filter((i) => i.type === "expense")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const bankIncomeTotal = items
-      .filter((i) => i.type === "income" && i.paymentMode === "bank")
+    const totalInvestments = items
+      .filter((i) => i.type === "investment")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-
-    const totalExpenses = cashExpenseTotal + bankExpenseTotal;
 
     // Derived sell formula:
-    // Cash Sell = Closing Cash + Cash Expenses + Cash to Home - Opening Cash - Other Income - Cash Income
+    // Cash Sell = Closing Cash + Cash Expenses + Cash Investments + Cash to Home - Opening Cash - Other Income
     const derivedCashSales =
       Number(ledgerObj.closingBalance || 0) +
       cashExpenseTotal +
       Number(ledgerObj.cashToHome || 0) -
       Number(ledgerObj.openingBalance || 0) -
-      Number(ledgerObj.otherIncome || 0) -
-      cashIncomeTotal;
+      Number(ledgerObj.otherIncome || 0);
 
-    // Digital Sell = Closing Bank + Bank Expenses + Account to Home - Opening Bank - Bank Income
+    // Digital Sell = Closing Bank + Bank Expenses + Bank Investments + Account to Home - Opening Bank
     const derivedDigitalSales =
       Number(ledgerObj.closingBankBalance || 0) +
       bankExpenseTotal +
       Number(ledgerObj.digitalToHome || 0) -
-      Number(ledgerObj.openingBankBalance || 0) -
-      bankIncomeTotal;
+      Number(ledgerObj.openingBankBalance || 0);
 
     ledgerObj.derivedCashSales = derivedCashSales;
     ledgerObj.derivedDigitalSales = derivedDigitalSales;
     ledgerObj.derivedTotalSales = derivedCashSales + derivedDigitalSales;
     ledgerObj.totalExpenses = totalExpenses;
+    ledgerObj.totalInvestments = totalInvestments;
+
+    // Helper to compute home intake summary
+    const computeHomeIntakeSummary = (expenses = []) => {
+      const isIntakeCat = (c = "") => {
+        const n = String(c).toLowerCase().trim();
+        return n === "home_intake" || n === "home intake" || n === "personal" || n === "intake";
+      };
+      const intakeEntries = expenses.filter((e) => isIntakeCat(e.category));
+      const receivedCash = intakeEntries
+        .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const receivedBank = intakeEntries
+        .filter((e) => e.paymentSource === "bank_account")
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+      const spentEntries = expenses.filter((e) => !isIntakeCat(e.category));
+      const spentCash = spentEntries
+        .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const spentBank = spentEntries
+        .filter((e) => e.paymentSource === "bank_account")
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const spentCreditCard = spentEntries
+        .filter((e) => e.paymentSource === "credit_card")
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const spentCCLoan = spentEntries
+        .filter((e) => e.paymentSource === "cc_loan")
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+      const remCash = receivedCash - spentCash;
+      const remBank = receivedBank - spentBank;
+
+      return {
+        totalReceived: receivedCash + receivedBank,
+        totalSpent: spentCash + spentBank,
+        received: { cash: receivedCash, bank: receivedBank },
+        spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
+        remaining: {
+          cash: remCash,
+          bank: remBank,
+          total: remCash + remBank,
+        },
+        total: receivedCash + receivedBank,
+        cash: receivedCash,
+        bank: receivedBank,
+      };
+    };
+
+    try {
+      await connectDB();
+      const startOfMonth = dayjs(date).startOf("month").toDate();
+      const endOfMonth = dayjs(date).endOf("month").toDate();
+
+      const [monthExpenses, allExpenses] = await Promise.all([
+        HomeExpense.find({
+          date: { $gte: startOfMonth, $lte: endOfMonth },
+          sourceTag: { $ne: "daily_ledger" },
+          $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+        }),
+        HomeExpense.find({
+          sourceTag: { $ne: "daily_ledger" },
+          $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+        }),
+      ]);
+
+      ledgerObj.homeIntakeSummary = {
+        ...computeHomeIntakeSummary(monthExpenses),
+        periodName: dayjs(date).format("MMMM YYYY"),
+      };
+      ledgerObj.allTimeHomeIntakeSummary = {
+        ...computeHomeIntakeSummary(allExpenses),
+        periodName: "All-Time",
+      };
+    } catch (sumErr) {
+      console.error("Error computing home intake summary in web-app ledger service:", sumErr);
+    }
 
     return ledgerObj;
   }
@@ -119,6 +192,7 @@ export class LedgerService {
       festival = "",
       sweetProduction = [],
       investments = [],
+      customerCredits = [],
       openingBalance = 0,
       openingBankBalance = 0,
       otherIncome = 0,
@@ -128,6 +202,88 @@ export class LedgerService {
       closingBankBalance = 0,
     } = payload;
 
+    // Auto-sync items with type === "investment" into investments array
+    let syncedInvestments = [...(investments || [])];
+    for (const item of items) {
+      if (item.type === "investment" && item.description && Number(item.amount) > 0) {
+        const itemDesc = item.description.trim();
+        const itemAmt = Number(item.amount);
+        const alreadyExists = syncedInvestments.some(
+          (inv) => inv.name?.toLowerCase().trim() === itemDesc.toLowerCase() && Number(inv.amount) === itemAmt
+        );
+        if (!alreadyExists) {
+          let invType = "SIP";
+          if (/fd|fixed deposit/i.test(itemDesc)) invType = "FD";
+          else if (/sip|mutual fund|mf/i.test(itemDesc)) invType = "SIP";
+          else invType = "Other";
+
+          syncedInvestments.push({
+            name: itemDesc,
+            amount: itemAmt,
+            type: invType,
+            notes: `From daily ledger (${item.paymentMode || "cash"})`,
+          });
+        }
+      }
+    }
+
+    // Auto-sync customer credits into CustomerCredit model and persist in DailyLedger.customerCredits
+    let syncedCustomerCredits = [];
+    try {
+      await connectDB();
+      const CustomerCredit = (await import("../models/CustomerCredit")).default;
+      const endOfDay = dayjs(date).endOf("day").toDate();
+      const dateStr = dayjs(date).format("YYYY-MM-DD");
+
+      for (const item of customerCredits || []) {
+        if (item.customerName && Number(item.amount) > 0) {
+          const custName = item.customerName.trim();
+          const custPhone = item.phone ? item.phone.trim() : "N/A";
+          const custAmount = Number(item.amount);
+          const custNotes = item.notes || `Counter Bakki from Daily Ledger (${dateStr})`;
+
+          let creditDoc = null;
+          if (item.creditId) {
+            creditDoc = await CustomerCredit.findById(item.creditId);
+          }
+          if (!creditDoc) {
+            creditDoc = await CustomerCredit.findOne({
+              customerName: new RegExp(`^${custName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+              createdAt: { $gte: targetDate, $lte: endOfDay },
+            });
+          }
+
+          if (creditDoc) {
+            creditDoc.customerName = custName;
+            if (custPhone && custPhone !== "N/A") creditDoc.phone = custPhone;
+            creditDoc.totalAmount = custAmount;
+            if (item.notes) creditDoc.notes = item.notes;
+            await creditDoc.save();
+          } else {
+            creditDoc = new CustomerCredit({
+              customerName: custName,
+              phone: custPhone,
+              totalAmount: custAmount,
+              notes: custNotes,
+              autoReminderEnabled: Boolean(custPhone && custPhone !== "N/A" && custPhone.length >= 10),
+              createdAt: targetDate,
+            });
+            await creditDoc.save();
+          }
+
+          syncedCustomerCredits.push({
+            customerName: custName,
+            phone: custPhone,
+            amount: custAmount,
+            notes: item.notes || "",
+            creditId: creditDoc._id,
+          });
+        }
+      }
+    } catch (ccErr) {
+      console.error("Error auto-syncing customer credits in ledger service:", ccErr);
+    }
+
     const totalExpenses = items
       .filter((i) => i.type === "expense")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
@@ -135,7 +291,8 @@ export class LedgerService {
     const updatePayload = {
       festival: festival || "",
       sweetProduction: sweetProduction || [],
-      investments: investments || [],
+      investments: syncedInvestments,
+      customerCredits: syncedCustomerCredits,
       openingBalance: Number(openingBalance),
       openingBankBalance: Number(openingBankBalance),
       otherIncome: Number(otherIncome),
@@ -241,11 +398,8 @@ export class LedgerService {
           }
         }
       }
-    } catch (syncErr) {
-      console.error("Web-app ledger save vendor-sync error:", syncErr);
-    }
-
-    return await LedgerRepository.saveOrUpdateLedger(targetDate, updatePayload);
+    await LedgerRepository.saveOrUpdateLedger(targetDate, updatePayload);
+    return await this.getLedgerByDate(date);
   }
 }
 

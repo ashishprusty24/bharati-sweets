@@ -41,4 +41,15 @@ export class ExpenseController {
       return NextResponse.json({ message: err.message }, { status: 500 });
     }
   }
+
+  static async getExpenseSummary(req) {
+    try {
+      const { searchParams } = new URL(req.url);
+      const query = Object.fromEntries(searchParams.entries());
+      const summary = await ExpenseService.getExpenseSummary(query);
+      return NextResponse.json(summary);
+    } catch (err) {
+      return NextResponse.json({ message: err.message }, { status: 500 });
+    }
+  }
 }

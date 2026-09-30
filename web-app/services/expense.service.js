@@ -16,4 +16,8 @@ export class ExpenseService {
   static async deleteExpense(id) {
     return await ExpenseRepository.deleteExpense(id);
   }
+
+  static async getExpenseSummary(query) {
+    return await ExpenseRepository.getHomeExpenseSummary(query);
+  }
 }

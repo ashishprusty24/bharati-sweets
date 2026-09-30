@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const ledgerItemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   amount: { type: Number, required: true },
-  type: { type: String, enum: ["income", "expense"], required: true },
+  type: { type: String, enum: ["expense", "investment", "income"], required: true, default: "expense" },
   category: { type: String, default: "other" },
   vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
   paymentMode: { type: String, enum: ["cash", "bank"], default: "cash" },
@@ -24,12 +24,21 @@ const investmentSchema = new mongoose.Schema({
   notes: { type: String, default: "" },
 });
 
+const customerCreditLedgerSchema = new mongoose.Schema({
+  customerName: { type: String, required: true },
+  phone: { type: String, default: "" },
+  amount: { type: Number, required: true },
+  notes: { type: String, default: "" },
+  creditId: { type: mongoose.Schema.Types.ObjectId, ref: "CustomerCredit" },
+});
+
 const dailyLedgerSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true, unique: true },
     festival: { type: String, default: "" },
     sweetProduction: [sweetProductionSchema],
     investments: [investmentSchema],
+    customerCredits: [customerCreditLedgerSchema],
     openingBalance: { type: Number, default: 0 },
     openingBankBalance: { type: Number, default: 0 },
     cashSales: { type: Number, default: 0 },

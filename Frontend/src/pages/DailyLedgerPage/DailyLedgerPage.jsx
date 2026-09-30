@@ -7,7 +7,7 @@ import {
   SaveOutlined, PlusOutlined, DeleteOutlined, WalletOutlined,
   BankOutlined, HomeOutlined, ShoppingCartOutlined,
   GiftOutlined, StarOutlined, ExperimentOutlined, TrophyOutlined, FileTextOutlined,
-  FundOutlined
+  FundOutlined, ContactsOutlined, UserOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
@@ -67,6 +67,10 @@ const DailyLedgerPage = () => {
   const [date, setDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [homeIntakePeriod, setHomeIntakePeriod] = useState("month");
+  const [homeIntakeSummary, setHomeIntakeSummary] = useState(null);
+  const [allTimeHomeIntakeSummary, setAllTimeHomeIntakeSummary] = useState(null);
+  const [bakkiCustomers, setBakkiCustomers] = useState([]);
   const [ledgerData, setLedgerData] = useState({
     openingBalance: 0,
     openingBankBalance: 0,
@@ -79,6 +83,7 @@ const DailyLedgerPage = () => {
     notes: "",
     sweetProduction: [],
     investments: [],
+    customerCredits: [],
     items: [],
   });
 
@@ -97,6 +102,16 @@ const DailyLedgerPage = () => {
     );
   };
 
+  const fetchBakkiCustomers = async () => {
+    try {
+      const res = await api.get("/customer-credit/list");
+      const list = res?.entries || res?.data?.entries || [];
+      setBakkiCustomers(list);
+    } catch (err) {
+      console.error("Failed to fetch customer credit list for autocomplete:", err);
+    }
+  };
+
   const fetchLedger = async (targetDate) => {
     setLoading(true);
     try {
@@ -113,8 +128,25 @@ const DailyLedgerPage = () => {
         notes: data.notes || "",
         sweetProduction: data.sweetProduction || [],
         investments: data.investments || [],
+        customerCredits: data.customerCredits || [],
         items: (data.items || []).filter((item) => !isCCItem(item)),
       });
+
+      if (data.homeIntakeSummary) setHomeIntakeSummary(data.homeIntakeSummary);
+      if (data.allTimeHomeIntakeSummary) setAllTimeHomeIntakeSummary(data.allTimeHomeIntakeSummary);
+
+      try {
+        const startOfMonth = targetDate.startOf("month").format("YYYY-MM-DD");
+        const endOfMonth = targetDate.endOf("month").format("YYYY-MM-DD");
+        const [monthRes, allRes] = await Promise.all([
+          api.get(`/home-expenses/summary?startDate=${startOfMonth}&endDate=${endOfMonth}`),
+          api.get(`/home-expenses/summary?allTime=true`),
+        ]);
+        if (monthRes?.homeIntakeSummary) setHomeIntakeSummary(monthRes.homeIntakeSummary);
+        if (allRes?.homeIntakeSummary) setAllTimeHomeIntakeSummary(allRes.homeIntakeSummary);
+      } catch (sumErr) {
+        // Fallback to ledger endpoint summary
+      }
     } catch (error) {
       console.error(error);
       message.error("Failed to fetch ledger data");
@@ -123,8 +155,13 @@ const DailyLedgerPage = () => {
     }
   };
 
+  const activeHomeIntakeSummary = homeIntakePeriod === "all_time"
+    ? (allTimeHomeIntakeSummary || homeIntakeSummary)
+    : (homeIntakeSummary || allTimeHomeIntakeSummary);
+
   useEffect(() => {
     fetchLedger(date);
+    fetchBakkiCustomers();
   }, [date]);
 
   const handleSave = async () => {
@@ -134,10 +171,12 @@ const DailyLedgerPage = () => {
         ...ledgerData,
         items: (ledgerData.items || []).filter((item) => !isCCItem(item)),
         investments: ledgerData.investments || [],
+        customerCredits: ledgerData.customerCredits || [],
       };
       await api.post(`/ledger/${date.format("YYYY-MM-DD")}`, payload);
       message.success("Ledger saved successfully");
       fetchLedger(date);
+      fetchBakkiCustomers();
     } catch (error) {
       console.error(error);
       message.error("Failed to save ledger");
@@ -215,24 +254,63 @@ const DailyLedgerPage = () => {
     setLedgerData({ ...ledgerData, investments: arr });
   };
 
+  // ── Customer Credit (Bakki) ───────────────────────────────────────
+  const addCustomerCreditRow = () => {
+    setLedgerData({
+      ...ledgerData,
+      customerCredits: [
+        ...(ledgerData.customerCredits || []),
+        { customerName: "", phone: "", amount: null, notes: "" },
+      ],
+    });
+  };
+
+  const removeCustomerCreditRow = (index) => {
+    const arr = [...(ledgerData.customerCredits || [])];
+    arr.splice(index, 1);
+    setLedgerData({ ...ledgerData, customerCredits: arr });
+  };
+
+  const updateCustomerCreditRow = (index, field, value) => {
+    const arr = [...(ledgerData.customerCredits || [])];
+    arr[index] = { ...arr[index], [field]: value };
+    setLedgerData({ ...ledgerData, customerCredits: arr });
+  };
+
+  const handleCustomerSelect = (index, value) => {
+    const found = bakkiCustomers.find(
+      (c) => c.customerName?.toLowerCase() === value?.toLowerCase()
+    );
+    const arr = [...(ledgerData.customerCredits || [])];
+    arr[index] = {
+      ...arr[index],
+      customerName: value,
+      phone: (found && found.phone && found.phone !== "N/A") ? found.phone : (arr[index].phone || ""),
+    };
+    setLedgerData({ ...ledgerData, customerCredits: arr });
+  };
+
   // ── Derived calculations ──────────────────────────────────────────
   const totals = useMemo(() => {
     const items = ledgerData.items || [];
 
     const cashExpenses = items
-      .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+      .filter((i) => (i.type === "expense" || !i.type) && i.paymentMode !== "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
     const bankExpenses = items
-      .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+      .filter((i) => (i.type === "expense" || !i.type) && i.paymentMode === "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const cashIncome = items
-      .filter((i) => i.type === "income" && i.paymentMode !== "bank")
+    const cashInvestments = items
+      .filter((i) => i.type === "investment" && i.paymentMode !== "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
-    const bankIncome = items
-      .filter((i) => i.type === "income" && i.paymentMode === "bank")
+    const bankInvestments = items
+      .filter((i) => i.type === "investment" && i.paymentMode === "bank")
       .reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
     const totalExpenses = cashExpenses + bankExpenses;
+    const totalInvestments = cashInvestments + bankInvestments;
+    const totalOutflows = totalExpenses + totalInvestments;
+
     const opening = Number(ledgerData.openingBalance || 0);
     const openingBank = Number(ledgerData.openingBankBalance || 0);
     const closing = Number(ledgerData.closingBalance || 0);
@@ -241,15 +319,20 @@ const DailyLedgerPage = () => {
     const digitalHome = Number(ledgerData.digitalToHome || 0);
     const otherInc = Number(ledgerData.otherIncome || 0);
 
-    // Cash Sell = Closing Cash + Cash Expenses + Cash to Home − Opening Cash − Other Cash Income
-    const derivedCashSell = closing + cashExpenses + cashHome - opening - otherInc - cashIncome;
-    // Digital Sell = Closing Digital + Digital Expenses + Digital Home − Opening Digital − Digital Income
-    const derivedDigitalSell = closingBank + bankExpenses + digitalHome - openingBank - bankIncome;
+    const cashOutflows = cashExpenses + cashInvestments;
+    const bankOutflows = bankExpenses + bankInvestments;
+
+    // Cash Sell = Closing Cash + Cash Outflows + Cash to Home − Opening Cash − Other Cash Income
+    const derivedCashSell = closing + cashOutflows + cashHome - opening - otherInc;
+    // Digital Sell = Closing Digital + Digital Outflows + Digital Home − Opening Digital
+    const derivedDigitalSell = closingBank + bankOutflows + digitalHome - openingBank;
     const derivedTotalSell = derivedCashSell + derivedDigitalSell;
     const hasClosing = closing > 0 || closingBank > 0;
 
     return {
       cashExpenses, bankExpenses, totalExpenses,
+      cashInvestments, bankInvestments, totalInvestments,
+      totalOutflows,
       derivedCashSell, derivedDigitalSell, derivedTotalSell,
       cashHome, digitalHome, hasClosing,
     };
@@ -288,15 +371,15 @@ const DailyLedgerPage = () => {
     {
       title: "Type",
       dataIndex: "type",
-      width: 120,
+      width: 130,
       render: (type, _, index) => (
         <Select
-          value={type}
+          value={type || "expense"}
           onChange={(value) => updateItem(index, "type", value)}
           style={{ width: "100%" }}
         >
-          <Option value="expense">Expense</Option>
-          <Option value="income">Income</Option>
+          <Option value="expense">💸 Expense</Option>
+          <Option value="investment">💰 Investment</Option>
         </Select>
       ),
     },
@@ -578,6 +661,89 @@ const DailyLedgerPage = () => {
     },
   ];
 
+  const customerCreditColumns = [
+    {
+      title: "#",
+      width: 50,
+      render: (_, __, i) => <Text type="secondary" style={{ fontWeight: 600 }}>{i + 1}</Text>,
+    },
+    {
+      title: "Customer Name",
+      dataIndex: "customerName",
+      render: (val, _, i) => (
+        <AutoComplete
+          options={bakkiCustomers.map((c) => ({
+            value: c.customerName,
+            label: (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 600 }}>{c.customerName}</span>
+                {c.phone && c.phone !== "N/A" && (
+                  <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 8 }}>{c.phone}</span>
+                )}
+              </div>
+            ),
+          }))}
+          value={val}
+          onSelect={(selectedVal) => handleCustomerSelect(i, selectedVal)}
+          onChange={(v) => updateCustomerCreditRow(i, "customerName", v)}
+          placeholder="e.g. Ramesh Kumar, Puja Sweets..."
+          filterOption={(inp, opt) =>
+            String(opt?.value || "").toLowerCase().includes(inp.toLowerCase())
+          }
+          style={{ width: "100%" }}
+        />
+      ),
+    },
+    {
+      title: "Phone Number",
+      dataIndex: "phone",
+      width: 170,
+      render: (val, _, i) => (
+        <Input
+          value={val}
+          onChange={(e) => updateCustomerCreditRow(i, "phone", e.target.value)}
+          placeholder="e.g. 9876543210"
+        />
+      ),
+    },
+    {
+      title: "Credit Amount (₹)",
+      dataIndex: "amount",
+      width: 160,
+      render: (val, _, i) => (
+        <InputNumber
+          value={val === 0 ? null : val}
+          onChange={(v) => updateCustomerCreditRow(i, "amount", v)}
+          onFocus={(e) => e.target.select()}
+          style={{ width: "100%" }}
+          prefix="₹"
+          min={0}
+          precision={0}
+          placeholder="0"
+          controls={false}
+        />
+      ),
+    },
+    {
+      title: "Notes / Items on Credit",
+      dataIndex: "notes",
+      render: (val, _, i) => (
+        <Input
+          value={val}
+          onChange={(e) => updateCustomerCreditRow(i, "notes", e.target.value)}
+          placeholder="e.g. 2kg Rasgolla, 1kg Chhena Poda..."
+        />
+      ),
+    },
+    {
+      title: "",
+      width: 45,
+      render: (_, __, i) => (
+        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeCustomerCreditRow(i)} />
+      ),
+    },
+  ];
+
   return (
     <div>
       {/* HEADER */}
@@ -785,15 +951,15 @@ const DailyLedgerPage = () => {
         </Row>
       </Card>
 
-      {/* ─── DAILY EXPENSES TABLE ─── */}
+      {/* ─── DAILY EXPENSES & INVESTMENTS TABLE ─── */}
       <Card
         bordered={false}
         className="ledger-details-card"
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Daily Expenses & Income</Title>
-              <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP, Home Loan, Supplier, etc.</Text>
+              <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Daily Expenses & Investments</Title>
+              <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP, Mutual Funds, Suppliers, etc.</Text>
             </div>
             <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
               Add Entry
@@ -815,13 +981,15 @@ const DailyLedgerPage = () => {
               footer={() => (
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 24, flexWrap: "wrap" }}>
                   <Text type="secondary" style={{ fontWeight: 600 }}>
-                    Cash Expenses: <Text strong style={{ color: "#ef4444" }}>₹{fmt(totals.cashExpenses)}</Text>
+                    Expenses: <Text strong style={{ color: "#ef4444" }}>₹{fmt(totals.totalExpenses)}</Text>
                   </Text>
-                  <Text type="secondary" style={{ fontWeight: 600 }}>
-                    Bank Expenses: <Text strong style={{ color: "#7c3aed" }}>₹{fmt(totals.bankExpenses)}</Text>
-                  </Text>
+                  {totals.totalInvestments > 0 && (
+                    <Text type="secondary" style={{ fontWeight: 600 }}>
+                      Investments: <Text strong style={{ color: "#0d9488" }}>₹{fmt(totals.totalInvestments)}</Text>
+                    </Text>
+                  )}
                   <Text style={{ fontWeight: 700, fontSize: 15 }}>
-                    Total: <Text strong style={{ color: "#ef4444", fontSize: 16 }}>₹{fmt(totals.totalExpenses)}</Text>
+                    Total Outflows: <Text strong style={{ color: "#ef4444", fontSize: 16 }}>₹{fmt(totals.totalOutflows)}</Text>
                   </Text>
                 </div>
               )}
@@ -831,15 +999,15 @@ const DailyLedgerPage = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ledgerData.items.length === 0 ? (
               <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-                <Text type="secondary">No expense or income entries yet. Tap "+ Add Entry" above.</Text>
+                <Text type="secondary">No expense or investment entries yet. Tap "+ Add Entry" above.</Text>
               </div>
             ) : (
               ledgerData.items.map((item, index) => (
                 <div
                   key={index}
                   style={{
-                    background: item.type === "income" ? "#f0fdf4" : "#ffffff",
-                    border: item.type === "income" ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                    background: item.type === "investment" ? "#f0fdfa" : "#ffffff",
+                    border: item.type === "investment" ? "1px solid #99f6e4" : "1px solid #e2e8f0",
                     borderRadius: 12,
                     padding: "10px 12px",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
@@ -849,8 +1017,8 @@ const DailyLedgerPage = () => {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
                       <span style={{
-                        background: "#f1f5f9",
-                        color: "#475569",
+                        background: item.type === "investment" ? "#ccfbf1" : "#f1f5f9",
+                        color: item.type === "investment" ? "#0f766e" : "#475569",
                         fontWeight: 700,
                         fontSize: 11,
                         padding: "2px 6px",
@@ -864,10 +1032,10 @@ const DailyLedgerPage = () => {
                         size="small"
                         value={item.type || "expense"}
                         onChange={(value) => updateItem(index, "type", value)}
-                        style={{ width: 95 }}
+                        style={{ width: 110 }}
                       >
-                        <Option value="expense">Expense</Option>
-                        <Option value="income">Income</Option>
+                        <Option value="expense">💸 Expense</Option>
+                        <Option value="investment">💰 Invest</Option>
                       </Select>
                       <Select
                         size="small"
@@ -901,7 +1069,7 @@ const DailyLedgerPage = () => {
                           updateItem(index, "category", suggested);
                         }
                       }}
-                      placeholder="e.g. Milk, Gas, Staff..."
+                      placeholder="e.g. Milk, Gas, Staff, SIP..."
                       style={{ flex: 1, borderRadius: 8, fontSize: 13 }}
                     />
                     <InputNumber
@@ -949,12 +1117,16 @@ const DailyLedgerPage = () => {
               border: "1px solid #e2e8f0"
             }}>
               <div style={{ background: "#fef2f2", padding: "8px 10px", borderRadius: 8, border: "1px solid #fecaca" }}>
-                <div style={{ fontSize: 10, color: "#991b1b", fontWeight: 700, textTransform: "uppercase" }}>Cash Expenses</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#ef4444", marginTop: 2 }}>₹{fmt(totals.cashExpenses)}</div>
+                <div style={{ fontSize: 10, color: "#991b1b", fontWeight: 700, textTransform: "uppercase" }}>Expenses</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#ef4444", marginTop: 2 }}>₹{fmt(totals.totalExpenses)}</div>
               </div>
-              <div style={{ background: "#f5f3ff", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd6fe" }}>
-                <div style={{ fontSize: 10, color: "#5b21b6", fontWeight: 700, textTransform: "uppercase" }}>Bank Expenses</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: "#7c3aed", marginTop: 2 }}>₹{fmt(totals.bankExpenses)}</div>
+              <div style={{ background: totals.totalInvestments > 0 ? "#f0fdfa" : "#f5f3ff", padding: "8px 10px", borderRadius: 8, border: totals.totalInvestments > 0 ? "1px solid #99f6e4" : "1px solid #ddd6fe" }}>
+                <div style={{ fontSize: 10, color: totals.totalInvestments > 0 ? "#0f766e" : "#5b21b6", fontWeight: 700, textTransform: "uppercase" }}>
+                  {totals.totalInvestments > 0 ? "Investments" : "Bank Outflow"}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: totals.totalInvestments > 0 ? "#0d9488" : "#7c3aed", marginTop: 2 }}>
+                  ₹{fmt(totals.totalInvestments > 0 ? totals.totalInvestments : totals.bankExpenses)}
+                </div>
               </div>
               <div style={{
                 gridColumn: "1 / -1",
@@ -966,61 +1138,191 @@ const DailyLedgerPage = () => {
                 justifyContent: "space-between",
                 alignItems: "center"
               }}>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#94a3b8" }}>Total Expenses</span>
-                <span style={{ fontSize: 17, fontWeight: 900, color: "#f87171" }}>₹{fmt(totals.totalExpenses)}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "#94a3b8" }}>Total Outflows</span>
+                <span style={{ fontSize: 17, fontWeight: 900, color: "#f87171" }}>₹{fmt(totals.totalOutflows)}</span>
               </div>
             </div>
           </div>
         )}
       </Card>
 
-      {/* ─── MAA / HOME ─── */}
+      {/* ─── MAA / HOME & HOME INTAKE BALANCE ─── */}
       <Card
         bordered={false}
-        style={{ borderRadius: 16, marginBottom: 16, borderLeft: "4px solid #8b5cf6", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+        style={{
+          borderRadius: 16,
+          marginBottom: 16,
+          borderLeft: "4px solid #8b5cf6",
+          background: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        }}
         bodyStyle={{ padding: isMobile ? "14px 16px" : "20px 24px" }}
       >
-        <Row gutter={[16, 12]} align="middle">
-          <Col xs={24} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <HomeOutlined style={{ fontSize: 20, color: "#8b5cf6" }} />
-              <div>
-                <Text style={{ fontSize: 12, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                  Maa / Home
-                </Text>
-                <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-                  Cash & digital taken home (auto-synced from Home Expenses)
-                </Text>
+        <Row gutter={[20, 16]} align="stretch">
+          {/* Left Column: Today's Home Intake Transfer */}
+          <Col xs={24} lg={13} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                    <HomeOutlined />
+                  </div>
+                  <div>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: "#334155", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Maa / Home Intake
+                    </Text>
+                    <Text type="secondary" style={{ display: "block", fontSize: 11 }}>
+                      Cash & digital taken home today (auto-synced to Home Expenses)
+                    </Text>
+                  </div>
+                </div>
+                {((Number(ledgerData.cashToHome) || 0) + (Number(ledgerData.digitalToHome) || 0)) > 0 && (
+                  <Tag color="purple" style={{ borderRadius: 10, fontWeight: 700, fontSize: 12, padding: "2px 10px", margin: 0 }}>
+                    Today: ₹{fmt((Number(ledgerData.cashToHome) || 0) + (Number(ledgerData.digitalToHome) || 0))}
+                  </Tag>
+                )}
               </div>
+
+              <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
+                <Col xs={12}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <WalletOutlined style={{ color: "#8b5cf6" }} />
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash to Home</Text>
+                  </div>
+                  <InputNumber
+                    value={ledgerData.cashToHome === 0 ? null : ledgerData.cashToHome}
+                    onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v ?? 0 })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
+                    style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
+                    prefix="₹" min={0} precision={0} controls={false}
+                  />
+                </Col>
+                <Col xs={12}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <BankOutlined style={{ color: "#8b5cf6" }} />
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Account to Home</Text>
+                  </div>
+                  <InputNumber
+                    value={ledgerData.digitalToHome === 0 ? null : ledgerData.digitalToHome}
+                    onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v ?? 0 })}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="0"
+                    style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
+                    prefix="₹" min={0} precision={0} controls={false}
+                  />
+                </Col>
+              </Row>
+            </div>
+
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#faf5ff", borderRadius: 8, border: "1px dashed #e9d5ff" }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                💡 Any amount entered here auto-updates the Home Intake ledger upon saving.
+              </Text>
             </div>
           </Col>
-          <Col xs={12} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <WalletOutlined style={{ color: "#8b5cf6" }} />
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Cash to Home</Text>
-            </div>
-            <InputNumber
-              value={ledgerData.cashToHome === 0 ? null : ledgerData.cashToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, cashToHome: v ?? 0 })}
-              onFocus={(e) => e.target.select()}
-              placeholder="0"
-              style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹" min={0} precision={0} controls={false}
-            />
-          </Col>
-          <Col xs={12} sm={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <BankOutlined style={{ color: "#8b5cf6" }} />
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>Account to Home</Text>
-            </div>
-            <InputNumber
-              value={ledgerData.digitalToHome === 0 ? null : ledgerData.digitalToHome}
-              onChange={(v) => setLedgerData({ ...ledgerData, digitalToHome: v ?? 0 })}
-              onFocus={(e) => e.target.select()}
-              placeholder="0"
-              style={{ width: "100%", fontWeight: 700, fontSize: 16, borderRadius: 8, backgroundColor: "#f5f3ff", borderColor: "#c4b5fd" }}
-              prefix="₹" min={0} precision={0} controls={false}
-            />
+
+          {/* Right Column: HOME INTAKE BALANCE CARD (Exact match to Expense page) */}
+          <Col xs={24} lg={11}>
+            <Card
+              bordered={false}
+              style={{
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%)",
+                boxShadow: "0 2px 10px rgba(236, 72, 153, 0.08)",
+                border: "1px solid #fce7f3",
+                height: "100%",
+              }}
+              bodyStyle={{ padding: "14px 16px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                    <HomeOutlined />
+                  </div>
+                  <div>
+                    <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>
+                      HOME INTAKE BALANCE
+                    </Text>
+                    <Text type="secondary" style={{ display: "block", fontSize: 10 }}>
+                      {homeIntakePeriod === "all_time" ? "All-Time Overall" : `Period: ${date.format("MMMM YYYY")}`}
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Period Selector: Month / All-Time */}
+                <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
+                  <Button
+                    size="small"
+                    type={homeIntakePeriod === "month" ? "primary" : "text"}
+                    onClick={() => setHomeIntakePeriod("month")}
+                    style={{
+                      height: 24,
+                      padding: "0 8px",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      background: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                      borderColor: homeIntakePeriod === "month" ? "#ec4899" : "transparent",
+                    }}
+                  >
+                    {date.format("MMM")}
+                  </Button>
+                  <Button
+                    size="small"
+                    type={homeIntakePeriod === "all_time" ? "primary" : "text"}
+                    onClick={() => setHomeIntakePeriod("all_time")}
+                    style={{
+                      height: 24,
+                      padding: "0 8px",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      background: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                      borderColor: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                    }}
+                  >
+                    All Time
+                  </Button>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <Title
+                    level={3}
+                    style={{
+                      margin: 0,
+                      fontWeight: 800,
+                      fontSize: 24,
+                      color: (activeHomeIntakeSummary?.remaining?.total || 0) >= 0 ? "#0f172a" : "#e11d48",
+                    }}
+                  >
+                    ₹{fmt(activeHomeIntakeSummary?.remaining?.total || 0)}
+                  </Title>
+                  <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Remaining Balance</Text>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px dashed #fbcfe8", marginTop: 10, paddingTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                  <span style={{ color: "#10b981", fontWeight: 700 }}>
+                    📥 Received: ₹{fmt(activeHomeIntakeSummary?.totalReceived || 0)}
+                  </span>
+                  <span style={{ color: "#ef4444", fontWeight: 700 }}>
+                    📤 Spent: ₹{fmt(activeHomeIntakeSummary?.totalSpent || 0)}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                  <span style={{ color: (activeHomeIntakeSummary?.remaining?.cash || 0) >= 0 ? "#10b981" : "#e11d48", fontWeight: 600 }}>
+                    💵 Cash: ₹{fmt(activeHomeIntakeSummary?.remaining?.cash || 0)}
+                  </span>
+                  <span style={{ color: (activeHomeIntakeSummary?.remaining?.bank || 0) >= 0 ? "#3b82f6" : "#e11d48", fontWeight: 600 }}>
+                    🏦 Bank: ₹{fmt(activeHomeIntakeSummary?.remaining?.bank || 0)}
+                  </span>
+                </div>
+              </div>
+            </Card>
           </Col>
         </Row>
       </Card>
@@ -1137,7 +1439,7 @@ const DailyLedgerPage = () => {
               </Row>
               <div style={{ marginTop: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 8, wordBreak: "break-word", border: "1px solid #f1f5f9" }}>
                 <Text type="secondary" style={{ fontSize: 11, fontFamily: "monospace" }}>
-                  Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Expenses ({fmt(totals.totalExpenses)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
+                  Sell = Closing ({fmt(ledgerData.closingBalance)}+{fmt(ledgerData.closingBankBalance)}) + Outflows ({fmt(totals.totalOutflows)}) + Home ({fmt(totals.cashHome)}+{fmt(totals.digitalHome)}) − Opening ({fmt(ledgerData.openingBalance)}+{fmt(ledgerData.openingBankBalance)})
                 </Text>
               </div>
             </>
@@ -1169,6 +1471,183 @@ const DailyLedgerPage = () => {
           placeholder="e.g., Heavy rain in afternoon, extra 50kg samosa prepared for evening rush, staff advance given..."
           style={{ borderRadius: 10, fontSize: 13, padding: "10px 14px" }}
         />
+      </Card>
+
+      {/* ─── CUSTOMER CREDIT (BAKKI) ─── */}
+      <Card
+        bordered={false}
+        title={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <ContactsOutlined style={{ fontSize: 18, color: "#ea580c" }} />
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>
+                  Customer Credit (Bakki)
+                </Title>
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  Record counter credit/bakki given today — auto-syncs with the Customer Credit section.
+                </Text>
+              </div>
+            </div>
+            <Button
+              onClick={addCustomerCreditRow}
+              icon={<PlusOutlined />}
+              type="primary"
+              style={{
+                borderRadius: 8,
+                background: "#ea580c",
+                border: "none",
+                fontWeight: 600,
+              }}
+            >
+              Add Credit Entry
+            </Button>
+          </div>
+        }
+        style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #ea580c", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+        bodyStyle={{ padding: isMobile ? "12px 14px" : "20px 24px" }}
+      >
+        {(ledgerData.customerCredits || []).length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
+            <ContactsOutlined style={{ fontSize: 30, marginBottom: 8, display: "block", color: "#fdba74" }} />
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              No customer credit logged today. Click "Add Credit Entry" to record counter bakki/credit.
+            </Text>
+          </div>
+        ) : !isMobile ? (
+          <Table
+            dataSource={ledgerData.customerCredits || []}
+            columns={customerCreditColumns}
+            pagination={false}
+            rowKey={(_, index) => index}
+            size="middle"
+            scroll={{ x: 750 }}
+            footer={() => {
+              const totalCredit = (ledgerData.customerCredits || []).reduce(
+                (sum, c) => sum + (Number(c.amount) || 0), 0
+              );
+              return (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Text style={{ fontWeight: 700, fontSize: 14 }}>
+                    Total Customer Credit: <Text strong style={{ color: "#ea580c", fontSize: 16 }}>₹{fmt(totalCredit)}</Text>
+                  </Text>
+                </div>
+              );
+            }}
+          />
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {(ledgerData.customerCredits || []).map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #ffedd5",
+                  borderRadius: 12,
+                  padding: "12px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+                }}
+              >
+                {/* Row 1: Index + Customer Name + Delete */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{
+                    background: "#ffedd5",
+                    color: "#c2410c",
+                    fontWeight: 700,
+                    fontSize: 11,
+                    padding: "2px 6px",
+                    borderRadius: 6,
+                    minWidth: 26,
+                    textAlign: "center"
+                  }}>
+                    #{i + 1}
+                  </span>
+                  <AutoComplete
+                    options={bakkiCustomers.map((c) => ({
+                      value: c.customerName,
+                      label: (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontWeight: 600 }}>{c.customerName}</span>
+                          {c.phone && c.phone !== "N/A" && (
+                            <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 8 }}>{c.phone}</span>
+                          )}
+                        </div>
+                      ),
+                    }))}
+                    value={item.customerName}
+                    onSelect={(selectedVal) => handleCustomerSelect(i, selectedVal)}
+                    onChange={(v) => updateCustomerCreditRow(i, "customerName", v)}
+                    placeholder="Customer Name..."
+                    filterOption={(inp, opt) =>
+                      String(opt?.value || "").toLowerCase().includes(inp.toLowerCase())
+                    }
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                    onClick={() => removeCustomerCreditRow(i)}
+                    style={{ width: 30, height: 30, borderRadius: 6, background: "#fef2f2" }}
+                  />
+                </div>
+
+                {/* Row 2: Phone, Amount */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Phone</div>
+                    <Input
+                      value={item.phone}
+                      onChange={(e) => updateCustomerCreditRow(i, "phone", e.target.value)}
+                      placeholder="9876543210"
+                      style={{ borderRadius: 6 }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Amount (₹)</div>
+                    <InputNumber
+                      value={item.amount === 0 ? null : item.amount}
+                      onChange={(v) => updateCustomerCreditRow(i, "amount", v)}
+                      style={{ width: "100%", borderRadius: 6 }}
+                      prefix="₹"
+                      min={0}
+                      precision={0}
+                      placeholder="0"
+                      controls={false}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Notes */}
+                <div>
+                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Notes / Items</div>
+                  <Input
+                    value={item.notes}
+                    onChange={(e) => updateCustomerCreditRow(i, "notes", e.target.value)}
+                    placeholder="e.g. 2kg Rasgolla on credit..."
+                    style={{ borderRadius: 6 }}
+                  />
+                </div>
+              </div>
+            ))}
+            {/* Mobile Footer Total */}
+            <div style={{
+              background: "#fff7ed",
+              border: "1px solid #fed7aa",
+              borderRadius: 10,
+              padding: "10px 14px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <Text strong style={{ color: "#c2410c", fontSize: 13 }}>Total Customer Credit:</Text>
+              <Text strong style={{ color: "#ea580c", fontSize: 16 }}>
+                ₹{fmt((ledgerData.customerCredits || []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0))}
+              </Text>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* ─── INVESTMENT TRACKING ─── */}

@@ -135,8 +135,10 @@ const createHomeExpense = (data) => {
               card.transactions.push({
                 date: data.date ? new Date(data.date) : new Date(),
                 description: data.description || "Expense via Credit Card",
+                notes: data.notes || data.description || "",
                 amount: Number(data.amount) || 0,
                 category: "business",
+                expenseId: saved._id,
                 isSettled: false,
               });
             }
@@ -414,8 +416,10 @@ const updateHomeExpense = (id, data) => {
             newCard.transactions.push({
               date: updated.date ? new Date(updated.date) : new Date(),
               description: updated.description || "Expense via Credit Card",
+              notes: updated.notes || updated.description || "",
               amount: Number(updated.amount) || 0,
               category: "business",
+              expenseId: updated._id,
               isSettled: false,
             });
             await newCard.save();
@@ -436,8 +440,10 @@ const updateHomeExpense = (id, data) => {
               destCard.transactions.push({
                 date: updated.date ? new Date(updated.date) : new Date(),
                 description: updated.description || "Expense via Credit Card",
+                notes: updated.notes || updated.description || "",
                 amount: Number(updated.amount) || 0,
                 category: "business",
+                expenseId: updated._id,
                 isSettled: false,
               });
               await destCard.save();
@@ -449,14 +455,17 @@ const updateHomeExpense = (id, data) => {
               if (txn) {
                 txn.amount = Number(updated.amount) || 0;
                 txn.description = updated.description || txn.description;
+                txn.notes = updated.notes || updated.description || txn.notes || "";
                 txn.date = updated.date ? new Date(updated.date) : txn.date;
                 await card.save();
               } else {
                 card.transactions.push({
                   date: updated.date ? new Date(updated.date) : new Date(),
                   description: updated.description || "Expense via Credit Card",
+                  notes: updated.notes || updated.description || "",
                   amount: Number(updated.amount) || 0,
                   category: "business",
+                  expenseId: updated._id,
                   isSettled: false,
                 });
                 await card.save();

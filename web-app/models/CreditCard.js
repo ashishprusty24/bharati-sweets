@@ -9,6 +9,8 @@ const transactionSchema = new mongoose.Schema({
     enum: ["fuel", "shopping", "vendor_payment", "personal", "business", "other"],
     default: "other",
   },
+  notes: { type: String, default: "" },
+  expenseId: { type: mongoose.Schema.Types.ObjectId, ref: "HomeExpense" },
   isSettled: { type: Boolean, default: false },
 });
 
