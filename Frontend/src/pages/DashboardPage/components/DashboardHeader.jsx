@@ -74,12 +74,13 @@ const DashboardHeader = ({ period, setPeriod, setCustomRange }) => {
         suffixIcon={<CalendarOutlined style={{ color: "#64748b" }} />}
         className="header-select-pill"
       >
+        <Option value="from_corrected">✅ Corrected</Option>
+        <Option value="all">All Time</Option>
         <Option value="30d">Last 30 Days</Option>
         <Option value="today">Today</Option>
         <Option value="6m">Last 6 Months</Option>
         <Option value="1y">Last 1 Year</Option>
         <Option value="2y">Last 2 Years</Option>
-        <Option value="all">All Time</Option>
         <Option value="custom_month">📅 Pick Month/Year (Till Now)</Option>
         <Option value="custom_range">📅 Custom Date Range</Option>
       </Select>

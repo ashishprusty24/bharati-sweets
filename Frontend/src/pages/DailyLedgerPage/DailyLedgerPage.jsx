@@ -67,9 +67,10 @@ const DailyLedgerPage = () => {
   const [date, setDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
   const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
-  const [homeIntakePeriod, setHomeIntakePeriod] = useState("month");
+  const [homeIntakePeriod, setHomeIntakePeriod] = useState("corrected");
   const [homeIntakeSummary, setHomeIntakeSummary] = useState(null);
   const [allTimeHomeIntakeSummary, setAllTimeHomeIntakeSummary] = useState(null);
+  const [rawAllHomeIntakeSummary, setRawAllHomeIntakeSummary] = useState(null);
   const [bakkiCustomers, setBakkiCustomers] = useState([]);
   const [ledgerData, setLedgerData] = useState({
     openingBalance: 0,
@@ -138,12 +139,14 @@ const DailyLedgerPage = () => {
       try {
         const startOfMonth = targetDate.startOf("month").format("YYYY-MM-DD");
         const endOfMonth = targetDate.endOf("month").format("YYYY-MM-DD");
-        const [monthRes, allRes] = await Promise.all([
+        const [monthRes, allRes, rawRes] = await Promise.all([
           api.get(`/home-expenses/summary?startDate=${startOfMonth}&endDate=${endOfMonth}`),
           api.get(`/home-expenses/summary?allTime=true`),
+          api.get(`/home-expenses/summary?allTime=true&raw=true`),
         ]);
         if (monthRes?.homeIntakeSummary) setHomeIntakeSummary(monthRes.homeIntakeSummary);
         if (allRes?.homeIntakeSummary) setAllTimeHomeIntakeSummary(allRes.homeIntakeSummary);
+        if (rawRes?.homeIntakeSummary) setRawAllHomeIntakeSummary(rawRes.homeIntakeSummary);
       } catch (sumErr) {
         // Fallback to ledger endpoint summary
       }
@@ -204,9 +207,12 @@ const DailyLedgerPage = () => {
     }
   };
 
-  const activeHomeIntakeSummary = homeIntakePeriod === "all_time"
-    ? (allTimeHomeIntakeSummary || homeIntakeSummary)
-    : (homeIntakeSummary || allTimeHomeIntakeSummary);
+  const activeHomeIntakeSummary =
+    homeIntakePeriod === "raw_all"
+      ? (rawAllHomeIntakeSummary || allTimeHomeIntakeSummary)
+      : homeIntakePeriod === "month"
+      ? (homeIntakeSummary || allTimeHomeIntakeSummary)
+      : (allTimeHomeIntakeSummary || homeIntakeSummary);
 
   useEffect(() => {
     fetchLedger(date);
@@ -1294,7 +1300,11 @@ const DailyLedgerPage = () => {
                       HOME INTAKE BALANCE
                     </Text>
                     <Text type="secondary" style={{ display: "block", fontSize: 10 }}>
-                      {homeIntakePeriod === "all_time" ? "All-Time Overall" : `Period: ${date.format("MMMM YYYY")}`}
+                      {homeIntakePeriod === "corrected"
+                        ? "✅ Corrected Overall"
+                        : homeIntakePeriod === "raw_all"
+                        ? "All-Time Raw (Unadjusted)"
+                        : `Period: ${date.format("MMMM YYYY")}`}
                     </Text>
                   </div>
                 </div>
@@ -1302,6 +1312,22 @@ const DailyLedgerPage = () => {
                 {/* Period Selector & Settings Button */}
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
+                    <Button
+                      size="small"
+                      type={homeIntakePeriod === "corrected" ? "primary" : "text"}
+                      onClick={() => setHomeIntakePeriod("corrected")}
+                      style={{
+                        height: 24,
+                        padding: "0 8px",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        borderRadius: 10,
+                        background: homeIntakePeriod === "corrected" ? "#ec4899" : "transparent",
+                        borderColor: homeIntakePeriod === "corrected" ? "#ec4899" : "transparent",
+                      }}
+                    >
+                      ✅ Corrected
+                    </Button>
                     <Button
                       size="small"
                       type={homeIntakePeriod === "month" ? "primary" : "text"}
@@ -1320,16 +1346,16 @@ const DailyLedgerPage = () => {
                     </Button>
                     <Button
                       size="small"
-                      type={homeIntakePeriod === "all_time" ? "primary" : "text"}
-                      onClick={() => setHomeIntakePeriod("all_time")}
+                      type={homeIntakePeriod === "raw_all" ? "primary" : "text"}
+                      onClick={() => setHomeIntakePeriod("raw_all")}
                       style={{
                         height: 24,
                         padding: "0 8px",
                         fontSize: 10,
                         fontWeight: 700,
                         borderRadius: 10,
-                        background: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
-                        borderColor: homeIntakePeriod === "all_time" ? "#ec4899" : "transparent",
+                        background: homeIntakePeriod === "raw_all" ? "#ec4899" : "transparent",
+                        borderColor: homeIntakePeriod === "raw_all" ? "#ec4899" : "transparent",
                       }}
                     >
                       All Time
@@ -1373,10 +1399,10 @@ const DailyLedgerPage = () => {
                   </Title>
                   <Text style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Remaining Balance</Text>
                 </div>
-                {activeHomeIntakeSummary?.openingBalance?.total > 0 && (
+                {activeHomeIntakeSummary?.openingBalance?.isApplied && (activeHomeIntakeSummary?.openingBalance?.total > 0) && (
                   <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <Tag color="magenta" style={{ fontSize: 10, borderRadius: 8, padding: "1px 6px", margin: 0, fontWeight: 600 }}>
-                      Base from {dayjs(activeHomeIntakeSummary.openingBalance.effectiveDate).format("DD MMM")}: 💵 ₹{fmt(activeHomeIntakeSummary.openingBalance.cash)} | 🏦 ₹{fmt(activeHomeIntakeSummary.openingBalance.bank)}
+                      Reconciled Base: 💵 ₹{fmt(activeHomeIntakeSummary.openingBalance.cash)} | 🏦 ₹{fmt(activeHomeIntakeSummary.openingBalance.bank)}
                     </Tag>
                   </div>
                 )}

@@ -583,16 +583,60 @@ const deleteHomeExpense = (id) => {
 const getHomeExpenseSummary = (query = {}) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const startDate = query.startDate
-        ? dayjs(query.startDate).startOf("day").toDate()
-        : dayjs().startOf("month").toDate();
-      const endDate = query.endDate
-        ? dayjs(query.endDate).endOf("day").toDate()
-        : dayjs().endOf("month").toDate();
+      let setting = null;
+      try {
+        setting = await HomeIntakeSetting.findOne();
+      } catch (sErr) {
+        console.error("Error loading HomeIntakeSetting:", sErr);
+      }
+
+      const effectiveCutoff = setting?.effectiveDate
+        ? dayjs(setting.effectiveDate).startOf("day")
+        : dayjs("2026-10-01").startOf("day");
+
+      const isAllTime = query.allTime === "true" || query.allTime === true;
+      const isRaw = query.raw === "true" || query.raw === true;
+
+      let dateFilter = {};
+      let isApplied = true;
+      let startPeriod = null;
+      let endPeriod = null;
+
+      if (query.startDate || query.endDate) {
+        dateFilter.date = {};
+        if (query.startDate) {
+          startPeriod = dayjs(query.startDate).startOf("day").toDate();
+          dateFilter.date.$gte = startPeriod;
+        }
+        if (query.endDate) {
+          endPeriod = dayjs(query.endDate).endOf("day").toDate();
+          dateFilter.date.$lte = endPeriod;
+        }
+        // Opening balance applies if startDate is on/after cutoff date OR in cutoff month
+        const startDay = query.startDate ? dayjs(query.startDate) : null;
+        if (startDay && startDay.isBefore(effectiveCutoff, "day") && !startDay.isSame(effectiveCutoff, "month")) {
+          isApplied = false;
+        }
+      } else if (isRaw) {
+        // True raw historical data (unadjusted)
+        dateFilter = {};
+        isApplied = false;
+      } else if (isAllTime) {
+        // All-Time Corrected (from effective cutoff date)
+        startPeriod = effectiveCutoff.toDate();
+        dateFilter.date = { $gte: startPeriod };
+        isApplied = true;
+      } else {
+        // Default current month
+        startPeriod = dayjs().startOf("month").toDate();
+        endPeriod = dayjs().endOf("month").toDate();
+        dateFilter.date = { $gte: startPeriod, $lte: endPeriod };
+        isApplied = dayjs().isSame(effectiveCutoff, "month") || dayjs().isAfter(effectiveCutoff);
+      }
 
       // Exclude auto-synced daily ledger shop expenses — same logic as getHomeExpenses
       const expenses = await HomeExpense.find({
-        date: { $gte: startDate, $lte: endDate },
+        ...dateFilter,
         sourceTag: { $ne: "daily_ledger" },
         $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
       });
@@ -616,13 +660,6 @@ const getHomeExpenseSummary = (query = {}) => {
       }, {});
 
       // ── HOME INTAKE BALANCE CALCULATION (WITH OPENING BALANCE RECONCILIATION) ──
-      let setting = null;
-      try {
-        setting = await HomeIntakeSetting.findOne();
-      } catch (sErr) {
-        console.error("Error loading HomeIntakeSetting:", sErr);
-      }
-
       const isIntakeCategory = (cat = "") => {
         const norm = String(cat).toLowerCase().trim();
         return (
@@ -657,12 +694,8 @@ const getHomeExpenseSummary = (query = {}) => {
         .filter((e) => e.paymentSource === "cc_loan")
         .reduce((s, e) => s + (e.amount || 0), 0);
 
-      const effectiveCutoff = setting?.effectiveDate
-        ? dayjs(setting.effectiveDate).startOf("day")
-        : dayjs("2026-10-01").startOf("day");
-
-      const cashOpening = Number(setting?.cashOpeningBalance || 0);
-      const bankOpening = Number(setting?.bankOpeningBalance || 0);
+      const cashOpening = isApplied ? Number(setting?.cashOpeningBalance || 0) : 0;
+      const bankOpening = isApplied ? Number(setting?.bankOpeningBalance || 0) : 0;
 
       const remainingCash = cashOpening + receivedCash - spentCash;
       const remainingBank = bankOpening + receivedBank - spentBank;
@@ -682,7 +715,7 @@ const getHomeExpenseSummary = (query = {}) => {
             total: Number(setting?.cashOpeningBalance || 0) + Number(setting?.bankOpeningBalance || 0),
             effectiveDate: effectiveCutoff.format("YYYY-MM-DD"),
             notes: setting?.notes || "",
-            isApplied: true,
+            isApplied,
           },
           received: { cash: receivedCash, bank: receivedBank },
           spent: { cash: spentCash, bank: spentBank, creditCard: spentCreditCard, ccLoan: spentCCLoan },
@@ -696,7 +729,7 @@ const getHomeExpenseSummary = (query = {}) => {
           cash: receivedCash,
           bank: receivedBank,
         },
-        period: { startDate, endDate },
+        period: { startDate: startPeriod, endDate: endPeriod },
       });
     } catch (err) {
       reject({ status: 500, message: err.message });

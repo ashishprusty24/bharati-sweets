@@ -11,7 +11,7 @@ import { Row, Col } from "antd";
 import "./DashboardPage.css";
 
 const DashboardPage = () => {
-  const [period, setPeriod] = useState("30d");
+  const [period, setPeriod] = useState("from_corrected");
   const [customRange, setCustomRange] = useState(null);
 
   const queryStr = useMemo(() => {

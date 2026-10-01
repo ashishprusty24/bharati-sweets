@@ -7,6 +7,8 @@ const Reminder = require("../models/Reminder");
 const CreditCard = require("../models/CreditCard");
 const CCLoan = require("../models/CCLoan");
 const RegularOrder = require("../models/RegularOrder");
+const HomeIntakeSetting = require("../models/HomeIntakeSetting");
+const dayjs = require("dayjs");
 
 const calculateLedgerSales = (ledger) => {
   const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
@@ -45,7 +47,7 @@ const calculateLedgerSales = (ledger) => {
   return cashSales + digitalSales;
 };
 
-const getDateRange = (period = "30d", customStartDate, customEndDate) => {
+const getDateRange = async (period = "from_corrected", customStartDate, customEndDate) => {
   const now = new Date();
   let startDate;
   let endDate = customEndDate ? new Date(customEndDate) : new Date();
@@ -56,6 +58,17 @@ const getDateRange = (period = "30d", customStartDate, customEndDate) => {
     startDate = new Date();
     if (period === "today") {
       startDate.setHours(0, 0, 0, 0);
+    } else if (period === "from_corrected" || period === "corrected") {
+      let setting = null;
+      try {
+        setting = await HomeIntakeSetting.findOne();
+      } catch (sErr) {
+        console.error("Error loading setting in getDateRange:", sErr);
+      }
+      const cutoff = setting?.effectiveDate
+        ? dayjs(setting.effectiveDate).startOf("day")
+        : dayjs("2026-10-01").startOf("day");
+      startDate = cutoff.toDate();
     } else if (period === "6m") {
       startDate.setMonth(now.getMonth() - 6);
       startDate.setHours(0, 0, 0, 0);
@@ -76,9 +89,9 @@ const getDateRange = (period = "30d", customStartDate, customEndDate) => {
   return { startDate, endDate };
 };
 
-const getSummaryData = async (period = "30d", customStartDate, customEndDate) => {
+const getSummaryData = async (period = "from_corrected", customStartDate, customEndDate) => {
   try {
-    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
+    const { startDate, endDate } = await getDateRange(period, customStartDate, customEndDate);
 
     // Event sales
     const [eventSalesData] = await EventOrder.aggregate([
@@ -206,12 +219,29 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
     }
 
     // Home Intake Cash & Bank Balance
+    let setting = null;
+    try {
+      setting = await HomeIntakeSetting.findOne();
+    } catch (sErr) {
+      console.error("Error loading HomeIntakeSetting in dashboard:", sErr);
+    }
+
+    const effectiveCutoff = setting?.effectiveDate
+      ? dayjs(setting.effectiveDate).startOf("day")
+      : dayjs("2026-10-01").startOf("day");
+
     const isIntakeCat = (cat = "") => {
       const norm = String(cat).toLowerCase().trim();
       return norm === "home_intake" || norm === "home intake" || norm === "personal" || norm === "intake";
     };
 
+    // If period is "all" (raw all-time), fetch all history; otherwise filter from effectiveCutoff
+    const homeExpenseDateQuery = period === "all"
+      ? {}
+      : { date: { $gte: effectiveCutoff.toDate() } };
+
     const allHomeExpenses = await HomeExpense.find({
+      ...homeExpenseDateQuery,
       sourceTag: { $ne: "daily_ledger" },
       $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
     });
@@ -232,8 +262,11 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
       .filter((e) => e.paymentSource === "bank_account")
       .reduce((s, e) => s + (e.amount || 0), 0);
 
-    const homeRemainingCash = Math.max(0, homeReceivedCash - homeSpentCash);
-    const homeRemainingBank = Math.max(0, homeReceivedBank - homeSpentBank);
+    const cashOpening = period === "all" ? 0 : Number(setting?.cashOpeningBalance || 0);
+    const bankOpening = period === "all" ? 0 : Number(setting?.bankOpeningBalance || 0);
+
+    const homeRemainingCash = cashOpening + homeReceivedCash - homeSpentCash;
+    const homeRemainingBank = bankOpening + homeReceivedBank - homeSpentBank;
 
     // Combined Cash In Hand & Bank Balance (Home + Shop)
     const cashInHand = shopCash + homeRemainingCash;
@@ -273,9 +306,9 @@ const getSummaryData = async (period = "30d", customStartDate, customEndDate) =>
   }
 };
 
-const getSalesData = async (period = "30d", customStartDate, customEndDate) => {
+const getSalesData = async (period = "from_corrected", customStartDate, customEndDate) => {
   try {
-    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
+    const { startDate, endDate } = await getDateRange(period, customStartDate, customEndDate);
     const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
     const isMonthly = diffDays > 60 || ["2y", "1y", "all"].includes(period);
 
@@ -343,9 +376,9 @@ const classifyExpenseCategory = (item) => {
   return cat || "other";
 };
 
-const getExpensesData = async (period = "30d", customStartDate, customEndDate) => {
+const getExpensesData = async (period = "from_corrected", customStartDate, customEndDate) => {
   try {
-    const { startDate, endDate } = getDateRange(period, customStartDate, customEndDate);
+    const { startDate, endDate } = await getDateRange(period, customStartDate, customEndDate);
 
     const isCCItem = (i) =>
       /cc loan|cc_loan|credit_card/i.test(i.category || "") ||

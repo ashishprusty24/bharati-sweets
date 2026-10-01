@@ -574,6 +574,17 @@ const saveLedger = (date, payload) => {
 
       const ledgerResult = ledger.toObject ? ledger.toObject() : { ...ledger };
       try {
+        let setting = null;
+        try {
+          setting = await HomeIntakeSetting.findOne();
+        } catch (sErr) {
+          console.error("Error loading HomeIntakeSetting in saveLedger:", sErr);
+        }
+
+        const effectiveCutoff = setting?.effectiveDate
+          ? dayjs(setting.effectiveDate).startOf("day")
+          : dayjs("2026-10-01").startOf("day");
+
         const startOfMonth = dayjs(date).startOf("month").toDate();
         const endOfMonth = dayjs(date).endOf("month").toDate();
 
@@ -584,18 +595,19 @@ const saveLedger = (date, payload) => {
             $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
           }),
           HomeExpense.find({
+            date: { $gte: effectiveCutoff.toDate() },
             sourceTag: { $ne: "daily_ledger" },
             $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
           }),
         ]);
 
         ledgerResult.homeIntakeSummary = {
-          ...computeHomeIntakeSummary(monthExpenses),
+          ...computeHomeIntakeSummary(monthExpenses, setting, date),
           periodName: dayjs(date).format("MMMM YYYY"),
         };
         ledgerResult.allTimeHomeIntakeSummary = {
-          ...computeHomeIntakeSummary(allExpenses),
-          periodName: "All-Time",
+          ...computeHomeIntakeSummary(allExpenses, setting, null),
+          periodName: `All-Time (from ${effectiveCutoff.format("DD MMM YYYY")})`,
         };
       } catch (sumErr) {
         console.error("Error computing home intake summary on save:", sumErr);

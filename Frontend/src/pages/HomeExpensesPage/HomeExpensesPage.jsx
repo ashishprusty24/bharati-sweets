@@ -158,6 +158,10 @@ const HomeExpensesPage = () => {
       const params = new URLSearchParams();
       if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
       if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+      if (!dateRange || (!dateRange[0] && !dateRange[1])) {
+        params.append("allTime", "true");
+        params.append("raw", "true");
+      }
 
       const data = await api.get(`/home-expenses?${params.toString()}`);
       setExpenses(data || []);
@@ -173,6 +177,10 @@ const HomeExpensesPage = () => {
       const params = new URLSearchParams();
       if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
       if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
+      if (!dateRange || (!dateRange[0] && !dateRange[1])) {
+        params.append("allTime", "true");
+        params.append("raw", "true");
+      }
 
       const data = await api.get(`/home-expenses/summary?${params.toString()}`);
       setSummary(data);
