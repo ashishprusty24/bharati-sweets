@@ -30,7 +30,8 @@ const getAllBakkiEntries = async () => {
 
     return {
       _id: c._id.toString(),
-      source: "customer_credit",
+      source: c.source || (c.orderId ? "event_order" : "customer_credit"),
+      orderId: c.orderId ? c.orderId.toString() : null,
       customerName: c.customerName,
       phone: c.phone,
       totalAmount: c.totalAmount,
@@ -88,13 +89,44 @@ const recordBakkiPayment = async (id, source, paymentData) => {
   const credit = await CustomerCredit.findById(id);
   if (!credit) throw new Error("Bakki entry not found");
 
+  const paymentDate = paymentData.date ? new Date(paymentData.date) : new Date();
+
   credit.payments.push({
     amount,
     method: paymentData.method || "cash",
-    date: paymentData.date || new Date(),
+    date: paymentDate,
   });
 
-  return await credit.save();
+  const savedCredit = await credit.save();
+
+  // If this credit is linked to an EventOrder, also record payment on the EventOrder
+  if (credit.orderId) {
+    try {
+      const order = await EventOrder.findById(credit.orderId);
+      if (order) {
+        order.payments.push({
+          amount,
+          method: paymentData.method || "cash",
+          timestamp: paymentDate,
+        });
+        order.paidAmount = (order.payments || []).reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0
+        );
+        const totalSettled = order.paidAmount + Number(order.adminWaiver || 0);
+        order.paymentStatus = (totalSettled >= order.totalAmount
+          ? "paid"
+          : totalSettled > 0
+            ? "partial"
+            : "pending");
+        await order.save();
+      }
+    } catch (orderErr) {
+      console.error("⚠️ Failed to sync CustomerCredit payment to EventOrder:", orderErr.message);
+    }
+  }
+
+  return savedCredit;
 };
 
 // ─── TOGGLE AUTO REMINDER ───────────────────────────────────
@@ -326,6 +358,94 @@ const getPaymentHistoryReport = async (query = {}) => {
   };
 };
 
+// ─── SYNC / MIGRATE EVENT ORDERS (SEPT 1 ONWARDS) TO BAKKI ───
+const syncEventOrdersToBakki = async (cutoffDate = "2026-09-01") => {
+  const cutoff = dayjs(cutoffDate).startOf("day").toDate();
+
+  // Find all event orders created or delivered on/after cutoff
+  const orders = await EventOrder.find({
+    $or: [
+      { deliveryDate: { $gte: cutoff } },
+      { createdAt: { $gte: cutoff } },
+    ],
+    orderStatus: { $ne: "cancelled" },
+  }).sort({ deliveryDate: -1 });
+
+  let syncedCount = 0;
+  let totalDue = 0;
+  const migratedDetails = [];
+
+  for (const order of orders) {
+    const totalSettled = Number(order.paidAmount || 0) + Number(order.adminWaiver || 0);
+    const balance = Math.max(0, Number(order.totalAmount || 0) - totalSettled);
+
+    let credit = await CustomerCredit.findOne({ orderId: order._id });
+
+    const paymentsMapped = (order.payments || []).map((p) => ({
+      amount: Number(p.amount || 0),
+      method: p.method || "cash",
+      date: p.timestamp || p.date || order.createdAt || new Date(),
+    }));
+
+    if (balance > 0) {
+      if (!credit) {
+        credit = new CustomerCredit({
+          customerName: order.customerName,
+          phone: (order.phone || "").trim(),
+          totalAmount: Number(order.totalAmount || 0),
+          paidAmount: Number(order.paidAmount || 0),
+          balance,
+          notes: order.purpose ? `Event: ${order.purpose}` : "Event Order",
+          dueDate: order.deliveryDate || order.createdAt,
+          autoReminderEnabled: Boolean(order.phone && order.phone.replace(/\D/g, "").length >= 10),
+          orderId: order._id,
+          source: "event_order",
+          status: order.paymentStatus || (order.paidAmount > 0 ? "partial" : "pending"),
+          payments: paymentsMapped,
+          createdAt: order.createdAt || new Date(),
+        });
+      } else {
+        credit.customerName = order.customerName;
+        if (order.phone) credit.phone = order.phone.trim();
+        credit.totalAmount = Number(order.totalAmount || 0);
+        credit.notes = order.purpose ? `Event: ${order.purpose}` : credit.notes;
+        credit.dueDate = order.deliveryDate || credit.dueDate;
+        credit.payments = paymentsMapped;
+        credit.paidAmount = Number(order.paidAmount || 0);
+        credit.balance = balance;
+        credit.status = order.paymentStatus || (order.paidAmount > 0 ? "partial" : "pending");
+      }
+      await credit.save();
+      syncedCount++;
+      totalDue += balance;
+
+      migratedDetails.push({
+        orderId: order._id,
+        customerName: order.customerName,
+        phone: order.phone,
+        totalAmount: order.totalAmount,
+        paidAmount: order.paidAmount,
+        balance,
+        deliveryDate: order.deliveryDate,
+      });
+    } else if (credit) {
+      credit.payments = paymentsMapped;
+      credit.paidAmount = Number(order.paidAmount || 0);
+      credit.balance = 0;
+      credit.status = "paid";
+      await credit.save();
+    }
+  }
+
+  return {
+    cutoffDate: dayjs(cutoffDate).format("YYYY-MM-DD"),
+    totalOrdersScanned: orders.length,
+    unpaidOrdersSynced: syncedCount,
+    totalDueAmount: totalDue,
+    migratedDetails,
+  };
+};
+
 module.exports = {
   getAllBakkiEntries,
   createBakkiEntry,
@@ -335,5 +455,6 @@ module.exports = {
   triggerWeeklyAutoReminders,
   deleteBakkiEntry,
   getPaymentHistoryReport,
+  syncEventOrdersToBakki,
 };
 

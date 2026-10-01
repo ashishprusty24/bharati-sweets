@@ -79,6 +79,17 @@ router.post("/trigger-auto-reminders", async (req, res) => {
   }
 });
 
+// SYNC / MIGRATE unpaid event orders (from Sept 1 onwards) into Bakki
+router.post("/sync-event-orders", async (req, res) => {
+  try {
+    const cutoffDate = req.body?.cutoffDate || req.query?.cutoffDate || "2026-09-01";
+    const result = await customerCreditController.syncEventOrdersToBakki(cutoffDate);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE Bakki entry
 router.delete("/:id", async (req, res) => {
   try {

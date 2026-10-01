@@ -21,6 +21,8 @@ const customerCreditSchema = new mongoose.Schema(
       enum: ["pending", "partial", "paid"],
       default: "pending",
     },
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "EventOrder" },
+    source: { type: String, default: "customer_credit" },
     payments: [paymentSchema],
   },
   { timestamps: true }

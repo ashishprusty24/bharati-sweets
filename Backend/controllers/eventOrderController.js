@@ -16,6 +16,8 @@ const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const CustomerCredit = require("../models/CustomerCredit");
+
 // Helper to ensure delivery date is always normalized to UTC midnight of the intended day in IST
 const parseDeliveryDate = (d) => {
   if (!d) return new Date();
@@ -27,6 +29,69 @@ const parseDeliveryDate = (d) => {
 const normalizePurpose = (str = "") => {
   if (!str) return "Other Celebration";
   return str.trim();
+};
+
+// Helper to sync EventOrder dues to CustomerCredit (Customer Baki ledger)
+const syncOrderToCustomerCredit = async (order) => {
+  if (!order || !order._id) return;
+  try {
+    const totalSettled = Number(order.paidAmount || 0) + Number(order.adminWaiver || 0);
+    const balance = Math.max(0, Number(order.totalAmount || 0) - totalSettled);
+    let credit = await CustomerCredit.findOne({ orderId: order._id });
+
+    const paymentsMapped = (order.payments || []).map((p) => ({
+      amount: Number(p.amount || 0),
+      method: p.method || "cash",
+      date: p.timestamp || p.date || order.createdAt || new Date(),
+    }));
+
+    if (balance > 0) {
+      if (!credit) {
+        credit = new CustomerCredit({
+          customerName: order.customerName,
+          phone: (order.phone || "").trim(),
+          totalAmount: Number(order.totalAmount || 0),
+          paidAmount: Number(order.paidAmount || 0),
+          balance,
+          notes: order.purpose ? `Event: ${order.purpose}` : "Event Order",
+          dueDate: order.deliveryDate || order.createdAt,
+          autoReminderEnabled: Boolean(order.phone && order.phone.replace(/\D/g, "").length >= 10),
+          orderId: order._id,
+          source: "event_order",
+          status: order.paymentStatus || (order.paidAmount > 0 ? "partial" : "pending"),
+          payments: paymentsMapped,
+          createdAt: order.createdAt || new Date(),
+        });
+      } else {
+        credit.customerName = order.customerName;
+        if (order.phone) credit.phone = order.phone.trim();
+        credit.totalAmount = Number(order.totalAmount || 0);
+        credit.notes = order.purpose ? `Event: ${order.purpose}` : credit.notes;
+        credit.dueDate = order.deliveryDate || credit.dueDate;
+        credit.payments = paymentsMapped;
+        credit.paidAmount = Number(order.paidAmount || 0);
+        credit.balance = balance;
+        credit.status = order.paymentStatus || (order.paidAmount > 0 ? "partial" : "pending");
+      }
+      await credit.save();
+    } else if (credit) {
+      credit.payments = paymentsMapped;
+      credit.paidAmount = Number(order.paidAmount || 0);
+      credit.balance = 0;
+      credit.status = "paid";
+      await credit.save();
+    }
+  } catch (syncErr) {
+    console.error("❌ Failed to sync EventOrder to CustomerCredit:", syncErr.message);
+  }
+};
+
+const removeOrderFromCustomerCredit = async (orderId) => {
+  try {
+    await CustomerCredit.deleteMany({ orderId });
+  } catch (err) {
+    console.error("❌ Failed to remove CustomerCredit on order delete:", err.message);
+  }
 };
 
 // ─── CREATE EVENT ORDER ───────────────────────────────────────
@@ -56,6 +121,7 @@ const createEventOrder = (payload) => {
       const savedOrder = await newOrder.save();
 
       await inventoryController.updateInventoryFromOrder(itemsWithPackets);
+      await syncOrderToCustomerCredit(savedOrder);
 
       // Generate booking receipt PDF
       await generateBookingReceipt(savedOrder);
@@ -142,6 +208,7 @@ const addPayment = (orderId, paymentData) => {
       });
       order.paidAmount = order.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
       const updatedOrder = await order.save();
+      await syncOrderToCustomerCredit(updatedOrder);
 
       const timestamp = Date.now();
       const totalSettled = updatedOrder.paidAmount + (updatedOrder.adminWaiver || 0);
@@ -397,6 +464,8 @@ const updateEventOrder = (orderId, updateData) => {
         runValidators: true,
       });
 
+      await syncOrderToCustomerCredit(updatedOrder);
+
       // Regenerate appropriate invoice/receipt after update & send via WhatsApp
       try {
         const timestamp = Date.now();
@@ -517,6 +586,7 @@ const deleteEventOrder = (orderId) => {
       }
 
       await EventOrder.findByIdAndDelete(orderId);
+      await removeOrderFromCustomerCredit(orderId);
       resolve({ message: "Event order deleted successfully" });
     } catch (err) {
       console.error("❌ Delete order error:", err);

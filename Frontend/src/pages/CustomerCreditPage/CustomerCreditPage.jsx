@@ -55,6 +55,7 @@ const CustomerCreditPage = () => {
   const [addForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchBakkiData = async () => {
     setLoading(true);
@@ -195,6 +196,22 @@ const CustomerCreditPage = () => {
     });
   };
 
+  // Sync Unpaid Event Orders
+  const handleSyncOrders = async () => {
+    setSyncing(true);
+    try {
+      const res = await api.post("/customer-credit/sync-event-orders", { cutoffDate: "2026-09-01" });
+      const result = res?.data || res || {};
+      message.success(`Synced ${result.unpaidOrdersSynced || 0} unpaid orders! Total dues: ₹${(result.totalDueAmount || 0).toLocaleString()}`);
+      fetchBakkiData();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to sync event orders");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const columns = [
     {
       title: "Customer",
@@ -226,7 +243,14 @@ const CustomerCreditPage = () => {
       key: "notes",
       render: (_, record) => (
         <div>
-          <Text style={{ fontSize: 12, color: "#475569" }}>{record.notes}</Text>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+            {record.source === "event_order" && (
+              <Tag color="purple" style={{ fontSize: 10, borderRadius: 4, margin: 0, padding: "0 4px", fontWeight: 600 }}>
+                Event Order
+              </Tag>
+            )}
+            <Text style={{ fontSize: 12, color: "#475569" }}>{record.notes}</Text>
+          </div>
           {record.dueDate && (
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
               <CalendarOutlined /> Due: {dayjs(record.dueDate).format("DD MMM YYYY")}
@@ -341,6 +365,14 @@ const CustomerCreditPage = () => {
         </div>
 
         <div className="header-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <Button
+            icon={<SyncOutlined spin={syncing} />}
+            loading={syncing}
+            onClick={handleSyncOrders}
+            style={{ borderRadius: 10, height: 45, fontWeight: 600, borderColor: "#3b82f6", color: "#1d4ed8" }}
+          >
+            Sync Orders
+          </Button>
           <Button
             icon={<SyncOutlined />}
             onClick={fetchBakkiData}
