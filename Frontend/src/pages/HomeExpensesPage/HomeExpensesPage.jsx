@@ -80,8 +80,8 @@ const HomeExpensesPage = () => {
   // Filters
   const [searchText, setSearchText] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [datePreset, setDatePreset] = useState("this_month");
-  const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
+  const [datePreset, setDatePreset] = useState("from_corrected");
+  const [dateRange, setDateRange] = useState([dayjs("2026-10-01").startOf("day"), dayjs().endOf("day")]);
 
   const [effectiveCutoffDate, setEffectiveCutoffDate] = useState(null);
 
@@ -192,7 +192,10 @@ const HomeExpensesPage = () => {
       try {
         const setting = await api.get("/home-expenses/opening-balance");
         if (setting?.effectiveDate) {
-          setEffectiveCutoffDate(dayjs(setting.effectiveDate));
+          const cutoff = dayjs(setting.effectiveDate);
+          setEffectiveCutoffDate(cutoff);
+          // Update the date range to use the actual effective date
+          setDateRange([cutoff.startOf("day"), dayjs().endOf("day")]);
         }
       } catch (err) {
         console.error("Failed to fetch opening balance setting:", err);
