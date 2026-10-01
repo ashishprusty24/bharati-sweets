@@ -83,6 +83,8 @@ const HomeExpensesPage = () => {
   const [datePreset, setDatePreset] = useState("this_month");
   const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
 
+  const [effectiveCutoffDate, setEffectiveCutoffDate] = useState(null);
+
   const [form] = Form.useForm();
   const [openingBalanceModalOpen, setOpeningBalanceModalOpen] = useState(false);
   const [openingBalanceForm] = Form.useForm();
@@ -142,6 +144,9 @@ const HomeExpensesPage = () => {
       setDateRange([dayjs().startOf("week"), dayjs().endOf("week")]);
     } else if (preset === "this_month") {
       setDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    } else if (preset === "from_corrected") {
+      const cutoff = effectiveCutoffDate || dayjs("2026-10-01");
+      setDateRange([cutoff.startOf("day"), dayjs().endOf("day")]);
     } else if (preset === "all") {
       setDateRange(null);
     }
@@ -181,9 +186,17 @@ const HomeExpensesPage = () => {
     fetchSummary();
   }, [dateRange]);
 
-  // Fetch CC Loan accounts and Credit Cards for payment source dropdowns
+  // Fetch effective cutoff date and CC Loan / Credit Card accounts on mount
   useEffect(() => {
-    const fetchAccounts = async () => {
+    const fetchInitialData = async () => {
+      try {
+        const setting = await api.get("/home-expenses/opening-balance");
+        if (setting?.effectiveDate) {
+          setEffectiveCutoffDate(dayjs(setting.effectiveDate));
+        }
+      } catch (err) {
+        console.error("Failed to fetch opening balance setting:", err);
+      }
       try {
         const [loanData, cardData] = await Promise.all([
           api.get("/cc-loans"),
@@ -195,7 +208,7 @@ const HomeExpensesPage = () => {
         console.error("Failed to fetch CC Loan / Credit Card accounts:", err);
       }
     };
-    fetchAccounts();
+    fetchInitialData();
   }, []);
 
   const filteredExpenses = useMemo(() => {
@@ -668,7 +681,7 @@ const HomeExpensesPage = () => {
 
         <Col xs={24} md={14} style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {/* Preset Buttons */}
-          <div style={{ background: "#ffffff", padding: 3, borderRadius: 18, border: "1px solid #e2e8f0", display: "flex", gap: 2 }}>
+          <div style={{ background: "#ffffff", padding: 3, borderRadius: 18, border: "1px solid #e2e8f0", display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Button
               type={datePreset === "today" ? "primary" : "text"}
               onClick={() => handlePresetChange("today")}
@@ -689,6 +702,20 @@ const HomeExpensesPage = () => {
               style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "this_month" ? "#6366f1" : "transparent" }}
             >
               This Month
+            </Button>
+            <Button
+              type={datePreset === "from_corrected" ? "primary" : "text"}
+              onClick={() => handlePresetChange("from_corrected")}
+              style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "from_corrected" ? "#10b981" : "transparent", color: datePreset === "from_corrected" ? "#fff" : undefined }}
+            >
+              ✅ Corrected
+            </Button>
+            <Button
+              type={datePreset === "all" ? "primary" : "text"}
+              onClick={() => handlePresetChange("all")}
+              style={{ borderRadius: 14, height: 32, fontSize: 12, fontWeight: 600, background: datePreset === "all" ? "#6366f1" : "transparent" }}
+            >
+              All Time
             </Button>
           </div>
 
