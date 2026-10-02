@@ -409,15 +409,17 @@ const CreditCardPage = () => {
                 {
                   title: "Description",
                   dataIndex: "description",
-                  render: (text, record) => (
-                    <div>
-                      <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>
-                      {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
-                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                          📝 {record.notes}
-                        </div>
-                      )}
-                    </div>
+                  render: (text) => <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>,
+                },
+                {
+                  title: "Notes / Details",
+                  dataIndex: "notes",
+                  render: (notes) => notes ? (
+                    <Text style={{ fontSize: 12.5, color: "#475569" }}>
+                      📝 {notes}
+                    </Text>
+                  ) : (
+                    <Text type="secondary" style={{ fontSize: 12 }}>—</Text>
                   ),
                 },
                 {
@@ -468,15 +470,17 @@ const CreditCardPage = () => {
       {
         title: "Description",
         dataIndex: "description",
-        render: (text, record) => (
-          <div>
-            <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>
-            {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                📝 {record.notes}
-              </div>
-            )}
-          </div>
+        render: (text) => <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>,
+      },
+      {
+        title: "Notes / Details",
+        dataIndex: "notes",
+        render: (notes) => notes ? (
+          <Text style={{ fontSize: 12.5, color: "#475569" }}>
+            📝 {notes}
+          </Text>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 12 }}>—</Text>
         ),
       },
       {

@@ -406,15 +406,17 @@ const CCLoanPage = () => {
       {
         title: "Description",
         dataIndex: "description",
-        render: (text, record) => (
-          <div>
-            <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Withdrawal"}</Text>
-            {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                📝 {record.notes}
-              </div>
-            )}
-          </div>
+        render: (text) => <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Withdrawal"}</Text>,
+      },
+      {
+        title: "Notes / Details",
+        dataIndex: "notes",
+        render: (notes) => notes ? (
+          <Text style={{ fontSize: 12.5, color: "#475569" }}>
+            📝 {notes}
+          </Text>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 12 }}>—</Text>
         ),
       },
       {
@@ -749,8 +751,11 @@ const CCLoanPage = () => {
               ))}
             </Space>
           </div>
-          <Form.Item name="description" label="Description">
+          <Form.Item name="description" label="Description" rules={[{ required: true, message: "Enter description" }]}>
             <Input placeholder="e.g., Business stock purchase, Working capital" style={{ height: 42, borderRadius: 10 }} />
+          </Form.Item>
+          <Form.Item name="notes" label="Notes / Reason Details (Optional)">
+            <Input.TextArea rows={2} placeholder="e.g., Supplier invoice #, specific purpose or reason..." style={{ borderRadius: 10 }} />
           </Form.Item>
         </Form>
       </Modal>

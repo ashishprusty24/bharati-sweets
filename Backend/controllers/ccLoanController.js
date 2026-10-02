@@ -87,6 +87,7 @@ const addWithdrawal = (accountId, withdrawalData) => {
         date: txDate,
         amount,
         description,
+        notes: (withdrawalData.notes || "").trim(),
         isRepaid: false,
       };
 
@@ -116,7 +117,7 @@ const addWithdrawal = (accountId, withdrawalData) => {
             paymentSource: "cc_loan",
             ccLoanId: account._id,
             sourceTag: "direct",
-            notes: `Auto-created from CC Loan (${account.accountName})`,
+            notes: (withdrawalData.notes || "").trim() || `Auto-created from CC Loan (${account.accountName})`,
           });
         }
       } catch (hErr) {
