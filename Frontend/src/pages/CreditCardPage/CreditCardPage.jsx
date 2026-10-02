@@ -26,9 +26,23 @@ const TXN_CATEGORY_CONFIG = {
   fuel: { label: "Fuel", color: "#f59e0b" },
   shopping: { label: "Shopping", color: "#ec4899" },
   vendor_payment: { label: "Vendor Payment", color: "#3b82f6" },
+  supplier_payment: { label: "Supplier Payment", color: "#3b82f6" },
+  staff_salary: { label: "Staff Salary", color: "#06b6d4" },
+  utilities: { label: "Utilities / Bills", color: "#eab308" },
   personal: { label: "Personal", color: "#8b5cf6" },
   business: { label: "Business", color: "#10b981" },
+  raw_materials: { label: "Raw Materials", color: "#d97706" },
+  home_intake: { label: "Home Intake", color: "#ec4899" },
   other: { label: "Other", color: "#64748b" },
+};
+
+const getCategoryConfig = (cat) => {
+  if (!cat) return TXN_CATEGORY_CONFIG.other;
+  const key = String(cat).toLowerCase();
+  return TXN_CATEGORY_CONFIG[key] || {
+    label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    color: "#64748b",
+  };
 };
 
 const CreditCardPage = () => {
@@ -184,7 +198,7 @@ const CreditCardPage = () => {
   const openAddTxnModal = (cardId) => {
     setSelectedCardId(cardId);
     txnForm.resetFields();
-    txnForm.setFieldsValue({ date: dayjs() });
+    txnForm.setFieldsValue({ date: dayjs(), category: "other" });
     setTxnModalVisible(true);
   };
 
@@ -196,6 +210,16 @@ const CreditCardPage = () => {
   };
 
   const totalOutstanding = summary?.totalOutstanding || 0;
+
+  // Flatten all transactions for the overview tab
+  const allCardTransactions = cards.flatMap((card) =>
+    (card.transactions || []).map((t) => ({
+      ...t,
+      cardId: card._id,
+      cardName: card.cardName,
+      last4Digits: card.last4Digits,
+    }))
+  ).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // --- OVERVIEW TAB ---
   const renderOverview = () => (
@@ -234,7 +258,7 @@ const CreditCardPage = () => {
       </Row>
 
       {/* Card Grid */}
-      <Row gutter={[20, 20]}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
         {cards.length === 0 && (
           <Col span={24}>
             <Card bordered={false} style={{ borderRadius: 16, textAlign: "center", padding: "40px 0", background: "#ffffff" }}>
@@ -340,6 +364,92 @@ const CreditCardPage = () => {
           );
         })}
       </Row>
+
+      {/* Overview Recent Transactions */}
+      {cards.length > 0 && (
+        <Card
+          bordered={false}
+          style={{ borderRadius: 16, background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+          title={
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Title level={5} style={{ margin: 0, fontWeight: 700 }}>
+                💳 All Credit Card Transactions ({allCardTransactions.length})
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Showing reasons & details for all card expenses</Text>
+            </div>
+          }
+        >
+          <div className="responsive-table-container">
+            <Table
+              dataSource={allCardTransactions}
+              rowKey="_id"
+              size="middle"
+              pagination={{ pageSize: 10 }}
+              locale={{ emptyText: <Empty description="No credit card transactions yet" /> }}
+              columns={[
+                {
+                  title: "Date",
+                  dataIndex: "date",
+                  width: 110,
+                  render: (d) => dayjs(d).format("DD MMM YY"),
+                  sorter: (a, b) => new Date(a.date) - new Date(b.date),
+                },
+                {
+                  title: "Card",
+                  dataIndex: "cardName",
+                  width: 140,
+                  render: (name, rec) => (
+                    <Space size={4}>
+                      <CreditCardOutlined style={{ color: "#6366f1" }} />
+                      <Text strong style={{ fontSize: 12 }}>{name}</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>({rec.last4Digits})</Text>
+                    </Space>
+                  ),
+                },
+                {
+                  title: "Description",
+                  dataIndex: "description",
+                  render: (text, record) => (
+                    <div>
+                      <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>
+                      {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                          📝 {record.notes}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  title: "Category",
+                  dataIndex: "category",
+                  width: 140,
+                  render: (cat) => {
+                    const cfg = getCategoryConfig(cat);
+                    return <Tag color={cfg.color}>{cfg.label}</Tag>;
+                  },
+                },
+                {
+                  title: "Amount",
+                  dataIndex: "amount",
+                  width: 120,
+                  align: "right",
+                  render: (amt) => <Text strong style={{ fontSize: 14 }}>₹{Number(amt).toLocaleString("en-IN")}</Text>,
+                  sorter: (a, b) => a.amount - b.amount,
+                },
+                {
+                  title: "Status",
+                  dataIndex: "isSettled",
+                  width: 100,
+                  render: (settled) => settled
+                    ? <Tag icon={<CheckCircleOutlined />} color="success">Settled</Tag>
+                    : <Tag icon={<ClockCircleOutlined />} color="warning">Pending</Tag>,
+                },
+              ]}
+            />
+          </div>
+        </Card>
+      )}
     </>
   );
 
@@ -356,14 +466,14 @@ const CreditCardPage = () => {
         sorter: (a, b) => new Date(a.date) - new Date(b.date),
       },
       {
-        title: "Description & Details",
+        title: "Description",
         dataIndex: "description",
         render: (text, record) => (
           <div>
-            <Text strong style={{ color: "#1e293b", fontSize: 13 }}>{text}</Text>
-            {record.notes && record.notes.trim() !== String(text || "").trim() && (
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ color: "#94a3b8" }}>📝</span> {record.notes}
+            <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>
+            {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                📝 {record.notes}
               </div>
             )}
           </div>
@@ -372,27 +482,27 @@ const CreditCardPage = () => {
       {
         title: "Category",
         dataIndex: "category",
-        width: 140,
+        width: 150,
         render: (cat) => {
-          const cfg = TXN_CATEGORY_CONFIG[cat] || TXN_CATEGORY_CONFIG.other;
-          return <Tag color={cfg.color}>{cfg.label}</Tag>;
+          const cfg = getCategoryConfig(cat);
+          return <Tag color={cfg.color} style={{ borderRadius: 6, fontWeight: 500 }}>{cfg.label}</Tag>;
         },
       },
       {
         title: "Amount",
         dataIndex: "amount",
-        width: 120,
+        width: 130,
         align: "right",
-        render: (amt) => <Text strong style={{ fontSize: 14 }}>₹{Number(amt).toLocaleString("en-IN")}</Text>,
+        render: (amt) => <Text strong style={{ fontSize: 14, color: "#ef4444" }}>₹{Number(amt).toLocaleString("en-IN")}</Text>,
         sorter: (a, b) => a.amount - b.amount,
       },
       {
         title: "Status",
         dataIndex: "isSettled",
-        width: 100,
+        width: 110,
         render: (settled) => settled
-          ? <Tag icon={<CheckCircleOutlined />} color="success">Settled</Tag>
-          : <Tag icon={<ClockCircleOutlined />} color="warning">Pending</Tag>,
+          ? <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: 6 }}>Settled</Tag>
+          : <Tag icon={<ClockCircleOutlined />} color="warning" style={{ borderRadius: 6 }}>Pending</Tag>,
       },
       {
         title: "",

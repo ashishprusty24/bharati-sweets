@@ -356,22 +356,28 @@ router.get("/fix-cc-visibility", async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/home-expenses/sync-expense-notes-to-cc
-// Backfills notes and descriptions from HomeExpense into CreditCard transactions
+// Backfills notes, categories and descriptions from HomeExpense into CreditCard and CCLoan
 // ─────────────────────────────────────────────────────────────────────────────
 router.get("/sync-expense-notes-to-cc", async (req, res) => {
   try {
     const HomeExpense = require("../models/HomeExpense");
     const CreditCard = require("../models/CreditCard");
+    const CCLoan = require("../models/CCLoan");
     const dayjs = require("dayjs");
 
-    const ccExpenses = await HomeExpense.find({ paymentSource: "credit_card" });
+    const ccExpenses = await HomeExpense.find({
+      $or: [
+        { paymentSource: "credit_card" },
+        { category: "credit_card" },
+        { creditCardId: { $ne: null } }
+      ]
+    });
     let updatedTxns = 0;
 
     const cards = await CreditCard.find({});
     for (const card of cards) {
       let cardChanged = false;
       for (const txn of card.transactions) {
-        // Find matching HomeExpense by expenseId or amount + date
         const match = ccExpenses.find(
           (e) =>
             (txn.expenseId && String(txn.expenseId) === String(e._id)) ||
@@ -381,12 +387,20 @@ router.get("/sync-expense-notes-to-cc", async (req, res) => {
         );
 
         if (match) {
-          if (!txn.notes && (match.notes || match.description)) {
-            txn.notes = match.notes || match.description;
+          const expDesc = (match.description || "").trim() || (match.notes || "").trim();
+          const expNotes = match.notes && match.notes.trim() !== expDesc ? match.notes.trim() : (match.notes || "");
+          const expCat = match.category || "other";
+
+          if (expDesc && (!txn.description || txn.description === "Credit Card Transaction" || txn.description === "Expense via Credit Card" || txn.description.startsWith("CC:"))) {
+            txn.description = expDesc.replace(/^CC:\s*/i, "");
             cardChanged = true;
           }
-          if (match.description && (!txn.description || txn.description === "Credit Card Transaction" || txn.description === "Expense via Credit Card")) {
-            txn.description = match.description.replace(/^CC:\s*/i, "");
+          if (expNotes && !txn.notes) {
+            txn.notes = expNotes;
+            cardChanged = true;
+          }
+          if (expCat && (!txn.category || txn.category === "business" || txn.category === "other")) {
+            txn.category = expCat;
             cardChanged = true;
           }
           if (!txn.expenseId) {
@@ -402,13 +416,66 @@ router.get("/sync-expense-notes-to-cc", async (req, res) => {
       }
     }
 
+    // Also sync CC Loan withdrawals
+    const loanExpenses = await HomeExpense.find({
+      $or: [
+        { paymentSource: "cc_loan" },
+        { category: "cc_loan" },
+        { ccLoanId: { $ne: null } }
+      ]
+    });
+    let updatedWithdrawals = 0;
+
+    const loans = await CCLoan.find({});
+    for (const loan of loans) {
+      let loanChanged = false;
+      for (const wd of loan.withdrawals) {
+        const match = loanExpenses.find(
+          (e) =>
+            (wd.expenseId && String(wd.expenseId) === String(e._id)) ||
+            (Number(e.amount) === Number(wd.amount) &&
+              dayjs(e.date).isSame(dayjs(wd.date), "day") &&
+              (String(e.ccLoanId) === String(loan._id) || !e.ccLoanId))
+        );
+
+        if (match) {
+          const expDesc = (match.description || "").trim() || (match.notes || "").trim();
+          const expNotes = match.notes && match.notes.trim() !== expDesc ? match.notes.trim() : (match.notes || "");
+          const expCat = match.category || "other";
+
+          if (expDesc && (!wd.description || wd.description === "Withdrawal via Home Expense" || wd.description.startsWith("CC Loan:"))) {
+            wd.description = expDesc.replace(/^CC Loan:\s*/i, "");
+            loanChanged = true;
+          }
+          if (expNotes && !wd.notes) {
+            wd.notes = expNotes;
+            loanChanged = true;
+          }
+          if (expCat && (!wd.category || wd.category === "other")) {
+            wd.category = expCat;
+            loanChanged = true;
+          }
+          if (!wd.expenseId) {
+            wd.expenseId = match._id;
+            loanChanged = true;
+          }
+          if (loanChanged) updatedWithdrawals++;
+        }
+      }
+
+      if (loanChanged) {
+        await loan.save();
+      }
+    }
+
     res.json({
       success: true,
-      message: `Successfully synchronized notes and descriptions for ${updatedTxns} credit card transactions.`,
+      message: `Successfully synchronized notes and descriptions for ${updatedTxns} credit card transactions and ${updatedWithdrawals} CC loan withdrawals.`,
       updatedTxns,
+      updatedWithdrawals,
     });
   } catch (err) {
-    console.error("Error syncing expense notes to CC:", err);
+    console.error("Error syncing expense notes to CC/Loan:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

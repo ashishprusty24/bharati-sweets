@@ -4,6 +4,9 @@ const withdrawalSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   amount: { type: Number, required: true },
   description: { type: String, default: "" },
+  category: { type: String, default: "other" },
+  notes: { type: String, default: "" },
+  expenseId: { type: mongoose.Schema.Types.ObjectId, ref: "HomeExpense" },
   isRepaid: { type: Boolean, default: false },
 });
 

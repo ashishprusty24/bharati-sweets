@@ -406,7 +406,16 @@ const CCLoanPage = () => {
       {
         title: "Description",
         dataIndex: "description",
-        ellipsis: true,
+        render: (text, record) => (
+          <div>
+            <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Withdrawal"}</Text>
+            {record.notes && record.notes.trim() !== "" && record.notes.trim() !== String(text || "").trim() && (
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                📝 {record.notes}
+              </div>
+            )}
+          </div>
+        ),
       },
       {
         title: "Amount",

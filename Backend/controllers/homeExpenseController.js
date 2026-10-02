@@ -132,12 +132,15 @@ const createHomeExpense = (data) => {
                 notes: data.notes || data.description || "Bill payment from Home Expense",
               });
             } else {
+              const expDesc = (data.description || "").trim() || (data.notes || "").trim() || "Card Expense";
+              const expNotes = data.notes && data.notes.trim() !== expDesc ? data.notes.trim() : (data.notes || "");
+              const expCat = data.category || "other";
               card.transactions.push({
                 date: data.date ? new Date(data.date) : new Date(),
-                description: data.description || "Expense via Credit Card",
-                notes: data.notes || data.description || "",
+                description: expDesc,
+                notes: expNotes,
                 amount: Number(data.amount) || 0,
-                category: "business",
+                category: expCat,
                 expenseId: saved._id,
                 isSettled: false,
               });
@@ -163,9 +166,15 @@ const createHomeExpense = (data) => {
                 notes: data.notes || data.description || "Repayment via Home Expense",
               });
             } else {
+              const expDesc = (data.description || "").trim() || (data.notes || "").trim() || "Loan Withdrawal";
+              const expNotes = data.notes && data.notes.trim() !== expDesc ? data.notes.trim() : (data.notes || "");
+              const expCat = data.category || "other";
               ccAccount.withdrawals.push({
                 date: data.date ? new Date(data.date) : new Date(),
-                description: data.description || "Withdrawal via Home Expense",
+                description: expDesc,
+                category: expCat,
+                notes: expNotes,
+                expenseId: saved._id,
                 amount: Number(data.amount) || 0,
                 isRepaid: false,
               });
@@ -279,6 +288,7 @@ const updateHomeExpense = (id, data) => {
           if (!oldAccount) {
             oldAccount = await CCLoan.findOne({
               $or: [
+                { "withdrawals.expenseId": oldExp._id },
                 { "withdrawals.amount": Number(oldExp.amount) },
                 { "repayments.amount": Number(oldExp.amount) }
               ]
@@ -296,10 +306,11 @@ const updateHomeExpense = (id, data) => {
             } else {
               const wdIdx = oldAccount.withdrawals.findIndex(
                 (w) =>
-                  Number(w.amount) === Number(oldExp.amount) &&
-                  (w.description === oldExp.description ||
-                    w.description === "Withdrawal via Home Expense" ||
-                    dayjs(w.date).isSame(dayjs(oldExp.date), "day"))
+                  (w.expenseId && String(w.expenseId) === String(oldExp._id)) ||
+                  (Number(w.amount) === Number(oldExp.amount) &&
+                    (w.description === oldExp.description ||
+                      w.description === "Withdrawal via Home Expense" ||
+                      dayjs(w.date).isSame(dayjs(oldExp.date), "day")))
               );
               const finalIdx = wdIdx > -1 ? wdIdx : oldAccount.withdrawals.findIndex((w) => Number(w.amount) === Number(oldExp.amount));
               if (finalIdx > -1) {
@@ -320,9 +331,15 @@ const updateHomeExpense = (id, data) => {
                 notes: updated.notes || updated.description || "Repayment via Home Expense",
               });
             } else {
+              const expDesc = (updated.description || "").trim() || (updated.notes || "").trim() || "Loan Withdrawal";
+              const expNotes = updated.notes && updated.notes.trim() !== expDesc ? updated.notes.trim() : (updated.notes || "");
+              const expCat = updated.category || "other";
               newAccount.withdrawals.push({
                 date: updated.date ? new Date(updated.date) : new Date(),
-                description: updated.description || "Withdrawal via Home Expense",
+                description: expDesc,
+                category: expCat,
+                notes: expNotes,
+                expenseId: updated._id,
                 amount: Number(updated.amount) || 0,
                 isRepaid: false,
               });
@@ -332,12 +349,24 @@ const updateHomeExpense = (id, data) => {
         } else if (oldIsLoan && newIsLoan) {
           // REMAINED on CC Loan: Update or move withdrawal / repayment
           const sameAccount = oldLoanId && newLoanId && oldLoanId === newLoanId;
-          let oldAccount = oldLoanId ? await CCLoan.findById(oldLoanId) : await CCLoan.findOne({ "withdrawals.amount": Number(oldExp.amount) });
+          let oldAccount = oldLoanId ? await CCLoan.findById(oldLoanId) : await CCLoan.findOne({
+            $or: [
+              { "withdrawals.expenseId": oldExp._id },
+              { "withdrawals.amount": Number(oldExp.amount) }
+            ]
+          });
+
+          const expDesc = (updated.description || "").trim() || (updated.notes || "").trim() || "Loan Withdrawal";
+          const expNotes = updated.notes && updated.notes.trim() !== expDesc ? updated.notes.trim() : (updated.notes || "");
+          const expCat = updated.category || "other";
 
           if (!sameAccount && oldLoanId && newLoanId) {
             // Account changed
             if (oldAccount) {
-              const wdIdx = oldAccount.withdrawals.findIndex((w) => Number(w.amount) === Number(oldExp.amount));
+              const wdIdx = oldAccount.withdrawals.findIndex((w) =>
+                (w.expenseId && String(w.expenseId) === String(oldExp._id)) ||
+                Number(w.amount) === Number(oldExp.amount)
+              );
               if (wdIdx > -1) {
                 oldAccount.withdrawals.splice(wdIdx, 1);
                 await oldAccount.save();
@@ -347,7 +376,10 @@ const updateHomeExpense = (id, data) => {
             if (destAccount) {
               destAccount.withdrawals.push({
                 date: updated.date ? new Date(updated.date) : new Date(),
-                description: updated.description || "Withdrawal via Home Expense",
+                description: expDesc,
+                category: expCat,
+                notes: expNotes,
+                expenseId: updated._id,
                 amount: Number(updated.amount) || 0,
                 isRepaid: false,
               });
@@ -359,22 +391,29 @@ const updateHomeExpense = (id, data) => {
             if (account) {
               const wd = account.withdrawals.find(
                 (w) =>
-                  Number(w.amount) === Number(oldExp.amount) &&
-                  (w.description === oldExp.description ||
-                    w.description === "Withdrawal via Home Expense" ||
-                    dayjs(w.date).isSame(dayjs(oldExp.date), "day"))
+                  (w.expenseId && String(w.expenseId) === String(updated._id)) ||
+                  (Number(w.amount) === Number(oldExp.amount) &&
+                    (w.description === oldExp.description ||
+                      w.description === "Withdrawal via Home Expense" ||
+                      dayjs(w.date).isSame(dayjs(oldExp.date), "day")))
               ) || account.withdrawals.find((w) => Number(w.amount) === Number(oldExp.amount));
 
               if (wd) {
                 wd.amount = Number(updated.amount) || 0;
-                wd.description = updated.description || wd.description;
+                wd.description = expDesc;
+                wd.notes = expNotes;
+                wd.category = expCat;
+                wd.expenseId = updated._id;
                 wd.date = updated.date ? new Date(updated.date) : wd.date;
                 await account.save();
               } else {
                 // If not found, create new withdrawal
                 account.withdrawals.push({
                   date: updated.date ? new Date(updated.date) : new Date(),
-                  description: updated.description || "Withdrawal via Home Expense",
+                  description: expDesc,
+                  category: expCat,
+                  notes: expNotes,
+                  expenseId: updated._id,
                   amount: Number(updated.amount) || 0,
                   isRepaid: false,
                 });
@@ -401,10 +440,22 @@ const updateHomeExpense = (id, data) => {
       }
 
       try {
+        const expDesc = (updated.description || "").trim() || (updated.notes || "").trim() || "Card Expense";
+        const expNotes = updated.notes && updated.notes.trim() !== expDesc ? updated.notes.trim() : (updated.notes || "");
+        const expCat = updated.category || "other";
+
         if (oldIsCC && !newIsCC) {
-          let oldCard = oldCardId ? await CreditCard.findById(oldCardId) : await CreditCard.findOne({ "transactions.amount": Number(oldExp.amount) });
+          let oldCard = oldCardId ? await CreditCard.findById(oldCardId) : await CreditCard.findOne({
+            $or: [
+              { "transactions.expenseId": oldExp._id },
+              { "transactions.amount": Number(oldExp.amount) }
+            ]
+          });
           if (oldCard) {
-            const idx = oldCard.transactions.findIndex((t) => Number(t.amount) === Number(oldExp.amount));
+            const idx = oldCard.transactions.findIndex((t) =>
+              (t.expenseId && String(t.expenseId) === String(oldExp._id)) ||
+              Number(t.amount) === Number(oldExp.amount)
+            );
             if (idx > -1) {
               oldCard.transactions.splice(idx, 1);
               await oldCard.save();
@@ -415,10 +466,10 @@ const updateHomeExpense = (id, data) => {
           if (newCard) {
             newCard.transactions.push({
               date: updated.date ? new Date(updated.date) : new Date(),
-              description: updated.description || "Expense via Credit Card",
-              notes: updated.notes || updated.description || "",
+              description: expDesc,
+              notes: expNotes,
               amount: Number(updated.amount) || 0,
-              category: "business",
+              category: expCat,
               expenseId: updated._id,
               isSettled: false,
             });
@@ -426,10 +477,18 @@ const updateHomeExpense = (id, data) => {
           }
         } else if (oldIsCC && newIsCC) {
           const sameCard = oldCardId && newCardId && oldCardId === newCardId;
-          let oldCard = oldCardId ? await CreditCard.findById(oldCardId) : await CreditCard.findOne({ "transactions.amount": Number(oldExp.amount) });
+          let oldCard = oldCardId ? await CreditCard.findById(oldCardId) : await CreditCard.findOne({
+            $or: [
+              { "transactions.expenseId": oldExp._id },
+              { "transactions.amount": Number(oldExp.amount) }
+            ]
+          });
           if (!sameCard && oldCardId && newCardId) {
             if (oldCard) {
-              const idx = oldCard.transactions.findIndex((t) => Number(t.amount) === Number(oldExp.amount));
+              const idx = oldCard.transactions.findIndex((t) =>
+                (t.expenseId && String(t.expenseId) === String(oldExp._id)) ||
+                Number(t.amount) === Number(oldExp.amount)
+              );
               if (idx > -1) {
                 oldCard.transactions.splice(idx, 1);
                 await oldCard.save();
@@ -439,10 +498,10 @@ const updateHomeExpense = (id, data) => {
             if (destCard) {
               destCard.transactions.push({
                 date: updated.date ? new Date(updated.date) : new Date(),
-                description: updated.description || "Expense via Credit Card",
-                notes: updated.notes || updated.description || "",
+                description: expDesc,
+                notes: expNotes,
                 amount: Number(updated.amount) || 0,
-                category: "business",
+                category: expCat,
                 expenseId: updated._id,
                 isSettled: false,
               });
@@ -451,20 +510,27 @@ const updateHomeExpense = (id, data) => {
           } else {
             let card = oldCard || (newCardId ? await CreditCard.findById(newCardId) : await CreditCard.findOne());
             if (card) {
-              const txn = card.transactions.find((t) => Number(t.amount) === Number(oldExp.amount));
+              const txn = card.transactions.find((t) =>
+                (t.expenseId && String(t.expenseId) === String(updated._id)) ||
+                (Number(t.amount) === Number(oldExp.amount) &&
+                  (t.description === oldExp.description || dayjs(t.date).isSame(dayjs(oldExp.date), "day")))
+              ) || card.transactions.find((t) => Number(t.amount) === Number(oldExp.amount));
+
               if (txn) {
                 txn.amount = Number(updated.amount) || 0;
-                txn.description = updated.description || txn.description;
-                txn.notes = updated.notes || updated.description || txn.notes || "";
+                txn.description = expDesc;
+                txn.notes = expNotes;
+                txn.category = expCat;
+                txn.expenseId = updated._id;
                 txn.date = updated.date ? new Date(updated.date) : txn.date;
                 await card.save();
               } else {
                 card.transactions.push({
                   date: updated.date ? new Date(updated.date) : new Date(),
-                  description: updated.description || "Expense via Credit Card",
-                  notes: updated.notes || updated.description || "",
+                  description: expDesc,
+                  notes: expNotes,
                   amount: Number(updated.amount) || 0,
-                  category: "business",
+                  category: expCat,
                   expenseId: updated._id,
                   isSettled: false,
                 });
@@ -496,6 +562,7 @@ const deleteHomeExpense = (id) => {
           const cardId = exp.creditCardId?._id || exp.creditCardId;
           const card = cardId ? await CreditCard.findById(cardId) : await CreditCard.findOne({
             $or: [
+              { "transactions.expenseId": exp._id },
               { "transactions.amount": Number(exp.amount) },
               { "billPayments.amount": Number(exp.amount) }
             ]
@@ -512,12 +579,13 @@ const deleteHomeExpense = (id) => {
             } else {
               const txnIndex = card.transactions.findIndex(
                 (t) =>
-                  Number(t.amount) === Number(exp.amount) &&
-                  (t.description === exp.description ||
-                    t.description === `Expense via Credit Card` ||
-                    exp.description?.includes(t.description) ||
-                    t.description?.includes(exp.description?.replace(/^CC:\s*/i, "")) ||
-                    dayjs(t.date).isSame(dayjs(exp.date), "day"))
+                  (t.expenseId && String(t.expenseId) === String(exp._id)) ||
+                  (Number(t.amount) === Number(exp.amount) &&
+                    (t.description === exp.description ||
+                      t.description === `Expense via Credit Card` ||
+                      exp.description?.includes(t.description) ||
+                      t.description?.includes(exp.description?.replace(/^CC:\s*/i, "")) ||
+                      dayjs(t.date).isSame(dayjs(exp.date), "day")))
               );
               const finalIdx = txnIndex > -1 ? txnIndex : card.transactions.findIndex((t) => Number(t.amount) === Number(exp.amount));
               if (finalIdx > -1) {
@@ -537,6 +605,7 @@ const deleteHomeExpense = (id) => {
           const accountId = exp.ccLoanId?._id || exp.ccLoanId;
           const ccAccount = accountId ? await CCLoan.findById(accountId) : await CCLoan.findOne({
             $or: [
+              { "withdrawals.expenseId": exp._id },
               { "withdrawals.amount": Number(exp.amount) },
               { "repayments.amount": Number(exp.amount) }
             ]
@@ -553,12 +622,13 @@ const deleteHomeExpense = (id) => {
             } else {
               const wdIndex = ccAccount.withdrawals.findIndex(
                 (w) =>
-                  Number(w.amount) === Number(exp.amount) &&
-                  (w.description === exp.description ||
-                    w.description === `Withdrawal via Home Expense` ||
-                    exp.description?.includes(w.description) ||
-                    w.description?.includes(exp.description?.replace(/^CC Loan:\s*/i, "")) ||
-                    dayjs(w.date).isSame(dayjs(exp.date), "day"))
+                  (w.expenseId && String(w.expenseId) === String(exp._id)) ||
+                  (Number(w.amount) === Number(exp.amount) &&
+                    (w.description === exp.description ||
+                      w.description === `Withdrawal via Home Expense` ||
+                      exp.description?.includes(w.description) ||
+                      w.description?.includes(exp.description?.replace(/^CC Loan:\s*/i, "")) ||
+                      dayjs(w.date).isSame(dayjs(exp.date), "day")))
               );
               const finalIdx = wdIndex > -1 ? wdIndex : ccAccount.withdrawals.findIndex((w) => Number(w.amount) === Number(exp.amount));
               if (finalIdx > -1) {
