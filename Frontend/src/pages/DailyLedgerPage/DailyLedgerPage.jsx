@@ -286,27 +286,21 @@ const DailyLedgerPage = () => {
     setLedgerData({ ...ledgerData, sweetProduction: arr });
   };
 
-  // ── Investments ───────────────────────────────────────────────────
-  const addInvestmentRow = () => {
+  // ── Investments (Added into Daily Outflows / Items) ───────────────
+  const addInvestmentItem = () => {
     setLedgerData({
       ...ledgerData,
-      investments: [
-        ...(ledgerData.investments || []),
-        { name: "", amount: null, type: "SIP", notes: "" },
+      items: [
+        ...(ledgerData.items || []),
+        {
+          description: "SIP Investment",
+          amount: null,
+          type: "investment",
+          paymentMode: "bank",
+          category: "emi_loan",
+        },
       ],
     });
-  };
-
-  const removeInvestmentRow = (index) => {
-    const arr = [...(ledgerData.investments || [])];
-    arr.splice(index, 1);
-    setLedgerData({ ...ledgerData, investments: arr });
-  };
-
-  const updateInvestmentRow = (index, field, value) => {
-    const arr = [...(ledgerData.investments || [])];
-    arr[index][field] = value;
-    setLedgerData({ ...ledgerData, investments: arr });
   };
 
   // ── Customer Credit (Bakki) ───────────────────────────────────────
@@ -635,86 +629,6 @@ const DailyLedgerPage = () => {
     },
   ];
 
-  const investmentColumns = [
-    {
-      title: "#",
-      width: 50,
-      render: (_, __, i) => <Text type="secondary" style={{ fontWeight: 600 }}>{i + 1}</Text>,
-    },
-    {
-      title: "Investment Name",
-      dataIndex: "name",
-      render: (val, _, i) => (
-        <AutoComplete
-          options={[
-            { value: "SIP Investment" },
-            { value: "FD Investment" },
-            { value: "Mutual Fund" },
-            { value: "Gold Savings" },
-            { value: "PPF" },
-            { value: "LIC Premium" },
-          ]}
-          value={val}
-          onChange={(v) => updateInvestmentRow(i, "name", v)}
-          placeholder="e.g. SIP Investment, FD..."
-          filterOption={(inp, opt) => opt.value.toLowerCase().includes(inp.toLowerCase())}
-          style={{ width: "100%" }}
-        />
-      ),
-    },
-    {
-      title: "Type",
-      dataIndex: "type",
-      width: 130,
-      render: (val, _, i) => (
-        <Select
-          value={val || "SIP"}
-          onChange={(v) => updateInvestmentRow(i, "type", v)}
-          style={{ width: "100%" }}
-        >
-          <Option value="SIP">💰 SIP</Option>
-          <Option value="FD">🏦 FD</Option>
-          <Option value="Other">📋 Other</Option>
-        </Select>
-      ),
-    },
-    {
-      title: "Amount (₹)",
-      dataIndex: "amount",
-      width: 150,
-      render: (val, _, i) => (
-        <InputNumber
-          value={val === 0 ? null : val}
-          onChange={(v) => updateInvestmentRow(i, "amount", v)}
-          onFocus={(e) => e.target.select()}
-          style={{ width: "100%" }}
-          prefix="₹"
-          min={0}
-          precision={0}
-          placeholder="0"
-          controls={false}
-        />
-      ),
-    },
-    {
-      title: "Notes",
-      dataIndex: "notes",
-      render: (val, _, i) => (
-        <Input
-          value={val}
-          onChange={(e) => updateInvestmentRow(i, "notes", e.target.value)}
-          placeholder="e.g. Monthly SIP for Sep..."
-        />
-      ),
-    },
-    {
-      title: "",
-      width: 45,
-      render: (_, __, i) => (
-        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeInvestmentRow(i)} />
-      ),
-    },
-  ];
 
   const customerCreditColumns = [
     {
@@ -1013,12 +927,27 @@ const DailyLedgerPage = () => {
         title={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Daily Expenses & Investments</Title>
-              <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP, Mutual Funds, Suppliers, etc.</Text>
+              <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Daily Expenses & Outflows</Title>
+              <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP / Investments, Suppliers, etc.</Text>
             </div>
-            <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
-              Add Entry
-            </Button>
+            <Space>
+              <Button
+                onClick={addInvestmentItem}
+                icon={<FundOutlined />}
+                style={{
+                  borderRadius: 8,
+                  color: "#0f766e",
+                  borderColor: "#99f6e4",
+                  background: "#f0fdfa",
+                  fontWeight: 600,
+                }}
+              >
+                + Add Investment
+              </Button>
+              <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
+                + Add Entry
+              </Button>
+            </Space>
           </div>
         }
         style={{ borderRadius: 20, marginBottom: 16 }}
@@ -1054,7 +983,7 @@ const DailyLedgerPage = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ledgerData.items.length === 0 ? (
               <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-                <Text type="secondary">No expense or investment entries yet. Tap "+ Add Entry" above.</Text>
+                <Text type="secondary">No expense or investment entries yet. Tap "+ Add Entry" or "+ Add Investment" above.</Text>
               </div>
             ) : (
               ledgerData.items.map((item, index) => (
@@ -1142,23 +1071,40 @@ const DailyLedgerPage = () => {
               ))
             )}
 
-            <Button
-              type="dashed"
-              onClick={addItem}
-              icon={<PlusOutlined />}
-              block
-              style={{
-                height: 40,
-                borderRadius: 10,
-                fontWeight: 600,
-                color: "#2563eb",
-                borderColor: "#93c5fd",
-                background: "#eff6ff",
-                marginTop: 4
-              }}
-            >
-              Add Entry
-            </Button>
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <Button
+                type="dashed"
+                onClick={addInvestmentItem}
+                icon={<FundOutlined />}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  color: "#0f766e",
+                  borderColor: "#99f6e4",
+                  background: "#f0fdfa",
+                }}
+              >
+                + Add Investment
+              </Button>
+              <Button
+                type="dashed"
+                onClick={addItem}
+                icon={<PlusOutlined />}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  color: "#2563eb",
+                  borderColor: "#93c5fd",
+                  background: "#eff6ff",
+                }}
+              >
+                + Add Entry
+              </Button>
+            </div>
 
             {/* Mobile Summary Grid */}
             <div style={{
@@ -1754,177 +1700,6 @@ const DailyLedgerPage = () => {
         )}
       </Card>
 
-      {/* ─── INVESTMENT TRACKING ─── */}
-      <Card
-        bordered={false}
-        title={
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <FundOutlined style={{ fontSize: 18, color: "#0d9488" }} />
-              <div>
-                <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Investment Tracking</Title>
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  Track SIP, FD, and other investments — manual entry for daily investment records.
-                </Text>
-              </div>
-            </div>
-            <Button
-              onClick={addInvestmentRow}
-              icon={<PlusOutlined />}
-              type="primary"
-              style={{
-                borderRadius: 8,
-                background: "#0d9488",
-                border: "none",
-                fontWeight: 600,
-              }}
-            >
-              Add Investment
-            </Button>
-          </div>
-        }
-        style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #0d9488", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-        bodyStyle={{ padding: isMobile ? "12px 14px" : "20px 24px" }}
-      >
-        {(ledgerData.investments || []).length === 0 ? (
-          <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-            <FundOutlined style={{ fontSize: 30, marginBottom: 8, display: "block" }} />
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              No investments logged today. Click "Add Investment" to record SIP, FD, or other investments.
-            </Text>
-          </div>
-        ) : !isMobile ? (
-          <Table
-            dataSource={ledgerData.investments || []}
-            columns={investmentColumns}
-            pagination={false}
-            rowKey={(_, index) => index}
-            size="middle"
-            scroll={{ x: 750 }}
-            footer={() => {
-              const totalInvestment = (ledgerData.investments || []).reduce(
-                (sum, inv) => sum + (Number(inv.amount) || 0), 0
-              );
-              return (
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Text style={{ fontWeight: 700, fontSize: 14 }}>
-                    Total Investment: <Text strong style={{ color: "#0d9488", fontSize: 16 }}>₹{fmt(totalInvestment)}</Text>
-                  </Text>
-                </div>
-              );
-            }}
-          />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {(ledgerData.investments || []).map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #ccfbf1",
-                  borderRadius: 12,
-                  padding: "12px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
-                }}
-              >
-                {/* Row 1: Index + Investment Name + Delete */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <span style={{
-                    background: "#ccfbf1",
-                    color: "#0f766e",
-                    fontWeight: 700,
-                    fontSize: 11,
-                    padding: "2px 6px",
-                    borderRadius: 6,
-                    minWidth: 26,
-                    textAlign: "center"
-                  }}>
-                    #{i + 1}
-                  </span>
-                  <AutoComplete
-                    options={[
-                      { value: "SIP Investment" },
-                      { value: "FD Investment" },
-                      { value: "Mutual Fund" },
-                      { value: "Gold Savings" },
-                      { value: "PPF" },
-                      { value: "LIC Premium" },
-                    ]}
-                    value={item.name}
-                    onChange={(v) => updateInvestmentRow(i, "name", v)}
-                    placeholder="e.g. SIP Investment, FD..."
-                    filterOption={(inp, opt) => opt.value.toLowerCase().includes(inp.toLowerCase())}
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
-                    onClick={() => removeInvestmentRow(i)}
-                    style={{ width: 30, height: 30, borderRadius: 6, background: "#fef2f2" }}
-                  />
-                </div>
-
-                {/* Row 2: Type, Amount */}
-                <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 6, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Type</div>
-                    <Select
-                      value={item.type || "SIP"}
-                      onChange={(v) => updateInvestmentRow(i, "type", v)}
-                      style={{ width: "100%" }}
-                    >
-                      <Option value="SIP">💰 SIP</Option>
-                      <Option value="FD">🏦 FD</Option>
-                      <Option value="Other">📋 Other</Option>
-                    </Select>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Amount (₹)</div>
-                    <InputNumber
-                      value={item.amount === 0 ? null : item.amount}
-                      onChange={(v) => updateInvestmentRow(i, "amount", v)}
-                      style={{ width: "100%", borderRadius: 6 }}
-                      prefix="₹"
-                      min={0}
-                      precision={0}
-                      placeholder="0"
-                      controls={false}
-                    />
-                  </div>
-                </div>
-
-                {/* Row 3: Notes */}
-                <div>
-                  <div style={{ fontSize: 10, color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Notes</div>
-                  <Input
-                    value={item.notes}
-                    onChange={(e) => updateInvestmentRow(i, "notes", e.target.value)}
-                    placeholder="e.g. Monthly SIP for Sep..."
-                    style={{ borderRadius: 6 }}
-                  />
-                </div>
-              </div>
-            ))}
-            {/* Mobile Footer Total */}
-            <div style={{
-              background: "#f0fdfa",
-              border: "1px solid #99f6e4",
-              borderRadius: 10,
-              padding: "10px 14px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <Text strong style={{ color: "#0f766e", fontSize: 13 }}>Total Investment:</Text>
-              <Text strong style={{ color: "#0d9488", fontSize: 16 }}>
-                ₹{fmt((ledgerData.investments || []).reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0))}
-              </Text>
-            </div>
-          </div>
-        )}
-      </Card>
 
       {/* ─── SWEET PRODUCTION TABLE ─── */}
       <Card

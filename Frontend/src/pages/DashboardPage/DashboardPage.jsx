@@ -3,6 +3,7 @@ import DashboardHeader from "./components/DashboardHeader";
 import DashboardSummary from "./components/DashboardSummary";
 import SalesChart from "./components/SalesChart";
 import ExpenseChart from "./components/ExpenseChart";
+import InvestmentPortfolio from "./components/InvestmentPortfolio";
 import PopularProducts from "./components/PopularProducts";
 import RecentEventOrders from "./components/RecentEventOrders";
 import QuickActions from "./components/QuickActions";
@@ -41,7 +42,10 @@ const DashboardPage = () => {
         </Col>
       </Row>
 
-      {/* Row 3: Top Selling Products, Recent Event Orders, Quick Actions */}
+      {/* Row 3: Investment Portfolio & Wealth Tracking */}
+      <InvestmentPortfolio queryStr={queryStr} />
+
+      {/* Row 4: Top Selling Products, Recent Event Orders, Quick Actions */}
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12} lg={8}>
           <PopularProducts />

@@ -296,26 +296,35 @@ const saveLedger = (date, payload) => {
       const sanitizedItems = (items || []).filter((item) => !isCCExpenseItem(item));
 
       // Auto-sync items with type === "investment" into investments array
-      let syncedInvestments = [...(investments || [])];
+      let syncedInvestments = [];
       for (const item of sanitizedItems) {
         if (item.type === "investment" && item.description && Number(item.amount) > 0) {
           const itemDesc = item.description.trim();
           const itemAmt = Number(item.amount);
+          let invType = "SIP";
+          if (/fd|fixed deposit/i.test(itemDesc)) invType = "FD";
+          else if (/mutual fund|mf/i.test(itemDesc)) invType = "Mutual Fund";
+          else if (/sip/i.test(itemDesc)) invType = "SIP";
+          else if (/gold/i.test(itemDesc)) invType = "Gold";
+          else if (/ppf|lic/i.test(itemDesc)) invType = "PPF / LIC";
+          else invType = "Other";
+
+          syncedInvestments.push({
+            name: itemDesc,
+            amount: itemAmt,
+            type: invType,
+            notes: `From daily ledger (${item.paymentMode || "cash"})`,
+          });
+        }
+      }
+
+      for (const inv of investments || []) {
+        if (inv.name && Number(inv.amount) > 0) {
           const alreadyExists = syncedInvestments.some(
-            (inv) => inv.name?.toLowerCase().trim() === itemDesc.toLowerCase() && Number(inv.amount) === itemAmt
+            (s) => s.name?.toLowerCase().trim() === inv.name?.toLowerCase().trim() && Number(s.amount) === Number(inv.amount)
           );
           if (!alreadyExists) {
-            let invType = "SIP";
-            if (/fd|fixed deposit/i.test(itemDesc)) invType = "FD";
-            else if (/sip|mutual fund|mf/i.test(itemDesc)) invType = "SIP";
-            else invType = "Other";
-
-            syncedInvestments.push({
-              name: itemDesc,
-              amount: itemAmt,
-              type: invType,
-              notes: `From daily ledger (${item.paymentMode || "cash"})`,
-            });
+            syncedInvestments.push(inv);
           }
         }
       }

@@ -14,10 +14,10 @@ const calculateLedgerSales = (ledger) => {
   const ledgerObj = ledger.toObject ? ledger.toObject() : { ...ledger };
   const items = ledgerObj.items || [];
   const cashExpenseTotal = items
-    .filter((i) => i.type === "expense" && i.paymentMode !== "bank")
+    .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode !== "bank")
     .reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const bankExpenseTotal = items
-    .filter((i) => i.type === "expense" && i.paymentMode === "bank")
+    .filter((i) => (i.type === "expense" || i.type === "investment") && i.paymentMode === "bank")
     .reduce((s, i) => s + (Number(i.amount) || 0), 0);
   const cashIncomeTotal = items
     .filter((i) => i.type === "income" && i.paymentMode !== "bank")
@@ -557,6 +557,115 @@ const getUpcomingReminders = async () => {
   }
 };
 
+const getInvestmentsData = async (period = "from_corrected", customStartDate, customEndDate) => {
+  try {
+    const { startDate, endDate } = await getDateRange(period, customStartDate, customEndDate);
+
+    // 1. Fetch ledgers for the requested period
+    const ledgers = await DailyLedger.find({ date: { $gte: startDate, $lte: endDate } }).sort({ date: -1 });
+
+    // 2. Fetch all ledgers for lifetime/all-time stats
+    const allLedgers = await DailyLedger.find().sort({ date: -1 });
+
+    const extractInvestments = (ledgerList) => {
+      const list = [];
+      for (const l of ledgerList) {
+        const dateStr = l.date ? dayjs(l.date).format("YYYY-MM-DD") : "";
+        const seenInLedger = new Set();
+
+        // 1. From ledger items (type === "investment")
+        (l.items || []).forEach((item) => {
+          if (item.type === "investment" && Number(item.amount) > 0) {
+            const desc = item.description ? item.description.trim() : "Investment";
+            let invType = "SIP";
+            if (/fd|fixed deposit/i.test(desc)) invType = "FD";
+            else if (/mutual fund|mf/i.test(desc)) invType = "Mutual Fund";
+            else if (/sip/i.test(desc)) invType = "SIP";
+            else if (/gold/i.test(desc)) invType = "Gold";
+            else if (/ppf|lic/i.test(desc)) invType = "PPF / LIC";
+            else invType = "Other";
+
+            const key = `${desc.toLowerCase()}_${Number(item.amount)}`;
+            seenInLedger.add(key);
+
+            list.push({
+              id: item._id ? item._id.toString() : `${dateStr}_${Math.random()}`,
+              date: dateStr,
+              name: desc,
+              amount: Number(item.amount),
+              type: invType,
+              paymentMode: item.paymentMode || "cash",
+              notes: `Daily Ledger entry (${item.paymentMode || "cash"})`,
+            });
+          }
+        });
+
+        // 2. Also check l.investments for any entries not captured in items
+        (l.investments || []).forEach((inv) => {
+          if (Number(inv.amount) > 0 && inv.name) {
+            const key = `${inv.name.trim().toLowerCase()}_${Number(inv.amount)}`;
+            if (!seenInLedger.has(key)) {
+              seenInLedger.add(key);
+              list.push({
+                id: inv._id ? inv._id.toString() : `${dateStr}_${Math.random()}`,
+                date: dateStr,
+                name: inv.name.trim(),
+                amount: Number(inv.amount),
+                type: inv.type || "SIP",
+                paymentMode: "bank",
+                notes: inv.notes || "Recorded in Daily Ledger",
+              });
+            }
+          }
+        });
+      }
+      return list;
+    };
+
+    const periodInvestments = extractInvestments(ledgers);
+    const allInvestments = extractInvestments(allLedgers);
+
+    const periodTotal = periodInvestments.reduce((s, i) => s + i.amount, 0);
+    const allTimeTotal = allInvestments.reduce((s, i) => s + i.amount, 0);
+
+    const activeList = periodInvestments.length > 0 ? periodInvestments : allInvestments;
+    const typeMap = {};
+    const modeMap = { cash: 0, bank: 0 };
+
+    activeList.forEach((i) => {
+      typeMap[i.type] = (typeMap[i.type] || 0) + i.amount;
+      const mode = (i.paymentMode || "cash").toLowerCase();
+      modeMap[mode] = (modeMap[mode] || 0) + i.amount;
+    });
+
+    const breakdownByType = Object.keys(typeMap)
+      .map((k) => ({
+        type: k,
+        amount: typeMap[k],
+        percent: (periodInvestments.length > 0 ? periodTotal : allTimeTotal) > 0
+          ? Math.round((typeMap[k] / (periodInvestments.length > 0 ? periodTotal : allTimeTotal)) * 100)
+          : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const recentInvestments = [...(periodInvestments.length > 0 ? periodInvestments : allInvestments)]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+
+    return {
+      periodTotal,
+      allTimeTotal,
+      count: periodInvestments.length,
+      allTimeCount: allInvestments.length,
+      breakdownByType,
+      breakdownByMode: modeMap,
+      recentInvestments,
+    };
+  } catch (err) {
+    throw { status: 500, message: err.message };
+  }
+};
+
 const getFinancialHealthData = async () => {
   try {
     const creditCards = await CreditCard.find();
@@ -575,4 +684,5 @@ module.exports = {
   getPendingOrders,
   getUpcomingReminders,
   getFinancialHealthData,
+  getInvestmentsData,
 };

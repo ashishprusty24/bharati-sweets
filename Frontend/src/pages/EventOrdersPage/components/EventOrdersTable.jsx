@@ -176,9 +176,19 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
                     </div>
                   </div>
 
-                  {record.purpose && (
-                    <Tag style={{ borderRadius: 4, marginTop: 4, fontSize: 11, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0" }}>{record.purpose}</Tag>
-                  )}
+                  {/* Event Purpose & Booking Date */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, flexWrap: "wrap", gap: 4 }}>
+                    {record.purpose && (
+                      <Tag style={{ borderRadius: 4, fontSize: 11, color: "#64748b", background: "#f1f5f9", border: "1px solid #e2e8f0", margin: 0 }}>
+                        {record.purpose}
+                      </Tag>
+                    )}
+                    {record.createdAt && (
+                      <Text type="secondary" style={{ fontSize: 11, color: "#94a3b8" }}>
+                        🕒 Booked: <span style={{ fontWeight: 600, color: "#475569" }}>{dayjs(record.createdAt).format("DD MMM YYYY")}</span>
+                      </Text>
+                    )}
+                  </div>
 
                   {/* Payment progress bar */}
                   <div className="payment-progress-container">
@@ -285,8 +295,19 @@ const EventOrdersTable = memo(({ data, loading, orderStatusOptions, paymentStatu
       title: "Order ID",
       dataIndex: "_id",
       key: "_id",
-      width: 100,
-      render: (id) => <Text strong style={{ color: "var(--primary-color)", fontSize: 13 }}>#{id?.substring(id.length - 5).toUpperCase()}</Text>,
+      width: 120,
+      render: (id, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ color: "var(--primary-color)", fontSize: 13 }}>
+            #{id?.substring(id.length - 5).toUpperCase()}
+          </Text>
+          {record.createdAt && (
+            <Text type="secondary" style={{ fontSize: 11, color: "#94a3b8" }}>
+              Booked: {dayjs(record.createdAt).format("DD MMM YYYY")}
+            </Text>
+          )}
+        </Space>
+      ),
     },
     {
       title: "Customer",

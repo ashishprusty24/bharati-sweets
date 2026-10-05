@@ -71,8 +71,9 @@ const EventOrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [occasionFilter, setOccasionFilter] = useState("all");
+  const [dateFilterType, setDateFilterType] = useState("booking");
   const [dateRange, setDateRange] = useState(null);
-  const [sortBy, setSortBy] = useState("deliveryDate_asc");
+  const [sortBy, setSortBy] = useState("createdAt_desc");
 
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -144,21 +145,26 @@ const EventOrdersPage = () => {
     if (dateRange && dateRange.length === 2) {
       const start = dateRange[0].startOf("day");
       const end = dateRange[1].endOf("day");
-      result = result.filter((o) => dayjs(o.deliveryDate || o.eventDate).isBetween(start, end, null, "[]"));
+      result = result.filter((o) => {
+        const targetDate = dateFilterType === "delivery"
+          ? (o.deliveryDate || o.eventDate)
+          : (o.createdAt || o.orderDate || o.deliveryDate);
+        return dayjs(targetDate).isBetween(start, end, null, "[]");
+      });
     }
 
     result.sort((a, b) => {
-      if (sortBy === "deliveryDate_asc") {
-        return dayjs(a.deliveryDate || a.eventDate).valueOf() - dayjs(b.deliveryDate || b.eventDate).valueOf();
-      }
-      if (sortBy === "deliveryDate_desc") {
-        return dayjs(b.deliveryDate || b.eventDate).valueOf() - dayjs(a.deliveryDate || a.eventDate).valueOf();
-      }
       if (sortBy === "createdAt_desc") {
         return dayjs(b.createdAt || b.orderDate).valueOf() - dayjs(a.createdAt || a.orderDate).valueOf();
       }
       if (sortBy === "createdAt_asc") {
         return dayjs(a.createdAt || a.orderDate).valueOf() - dayjs(b.createdAt || b.orderDate).valueOf();
+      }
+      if (sortBy === "deliveryDate_asc") {
+        return dayjs(a.deliveryDate || a.eventDate).valueOf() - dayjs(b.deliveryDate || b.eventDate).valueOf();
+      }
+      if (sortBy === "deliveryDate_desc") {
+        return dayjs(b.deliveryDate || b.eventDate).valueOf() - dayjs(a.deliveryDate || a.eventDate).valueOf();
       }
       if (sortBy === "totalAmount_desc") {
         return (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0);
@@ -170,7 +176,7 @@ const EventOrdersPage = () => {
     });
 
     return result;
-  }, [orders, searchText, statusFilter, paymentFilter, occasionFilter, dateRange, sortBy]);
+  }, [orders, searchText, statusFilter, paymentFilter, occasionFilter, dateFilterType, dateRange, sortBy]);
 
   const handleAddEdit = (order = null) => {
     setEditingOrder(order);
@@ -331,32 +337,32 @@ const EventOrdersPage = () => {
       </div>
 
       <Card bordered={false} style={{ borderRadius: 20 }}>
-        <Row gutter={[12, 12]} className="search-filter-row">
-          <Col xs={24} md={5}>
+        <Row gutter={[10, 10]} className="search-filter-row">
+          <Col xs={24} sm={12} md={4}>
             <Input
               placeholder="Search orders..."
               prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-              style={{ height: 45, borderRadius: 12, background: "#f8fafc" }}
+              style={{ height: 42, borderRadius: 10, background: "#f8fafc" }}
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
             />
           </Col>
-          <Col xs={12} sm={8} md={3}>
+          <Col xs={12} sm={6} md={3}>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
-              style={{ width: "100%", height: 45 }}
+              style={{ width: "100%", height: 42 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
               <Option value="all">All Status</Option>
               {ORDER_STATUS_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={6} md={3}>
             <Select
               value={paymentFilter}
               onChange={setPaymentFilter}
-              style={{ width: "100%", height: 45 }}
+              style={{ width: "100%", height: 42 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
               {PAYMENT_FILTER_OPTIONS.map(p => (
@@ -364,36 +370,53 @@ const EventOrdersPage = () => {
               ))}
             </Select>
           </Col>
-          <Col xs={12} sm={8} md={4}>
+          <Col xs={12} sm={6} md={3}>
             <Select
               value={occasionFilter}
               onChange={setOccasionFilter}
-              style={{ width: "100%", height: 45 }}
+              style={{ width: "100%", height: 42 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
               <Option value="all">All Occasions</Option>
               {allPurposeOptions.map(p => <Option key={p} value={p}>{p}</Option>)}
             </Select>
           </Col>
-          <Col xs={12} sm={12} md={4}>
+          <Col xs={12} sm={6} md={3}>
             <Select
               value={sortBy}
               onChange={setSortBy}
-              style={{ width: "100%", height: 45 }}
+              style={{ width: "100%", height: 42 }}
               dropdownStyle={{ borderRadius: 12 }}
             >
-              <Option value="deliveryDate_asc">📅 Delivery Date (Earliest)</Option>
-              <Option value="deliveryDate_desc">📅 Delivery Date (Latest)</Option>
               <Option value="createdAt_desc">🕒 Booking Date (Newest)</Option>
               <Option value="createdAt_asc">🕒 Booking Date (Oldest)</Option>
+              <Option value="deliveryDate_asc">📅 Delivery Date (Earliest)</Option>
+              <Option value="deliveryDate_desc">📅 Delivery Date (Latest)</Option>
               <Option value="totalAmount_desc">💰 Amount (High → Low)</Option>
               <Option value="totalAmount_asc">💰 Amount (Low → High)</Option>
             </Select>
           </Col>
-          <Col xs={24} sm={12} md={4}>
+          <Col xs={12} sm={6} md={3}>
+            <Select
+              value={dateFilterType}
+              onChange={setDateFilterType}
+              style={{ width: "100%", height: 42 }}
+              dropdownStyle={{ borderRadius: 12 }}
+            >
+              <Option value="booking">🕒 Booking Date</Option>
+              <Option value="delivery">🚚 Delivery Date</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={18} md={5}>
             <RangePicker
+              value={dateRange}
               onChange={setDateRange}
-              style={{ width: "100%", height: 45, borderRadius: 12 }}
+              placeholder={
+                dateFilterType === "booking"
+                  ? ["Booked From", "Booked To"]
+                  : ["Delivery From", "Delivery To"]
+              }
+              style={{ width: "100%", height: 42, borderRadius: 10 }}
             />
           </Col>
         </Row>

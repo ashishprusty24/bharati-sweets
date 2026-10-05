@@ -17,7 +17,7 @@ const actions = [
   { label: "New Event Order", path: "/event-orders", icon: <CalendarOutlined />, color: "#8b5cf6", bg: "#f3e8ff" },
   { label: "Add Expense", path: "/expenses", icon: <FileTextOutlined />, color: "#10b981", bg: "#d1fae5" },
   { label: "Inventory Entry", path: "/inventory", icon: <InboxOutlined />, color: "#3b82f6", bg: "#dbeafe" },
-  { label: "Daily Ledger", path: "/daily-ledger", icon: <BookOutlined />, color: "#ef4444", bg: "#fee2e2" },
+  { label: "Daily Ledger", path: "/ledger", icon: <BookOutlined />, color: "#ef4444", bg: "#fee2e2" },
   { label: "Add Vendor", path: "/vendors", icon: <UserAddOutlined />, color: "#f97316", bg: "#ffedd5" },
   { label: "Marketing Campaign", path: "/marketing", icon: <NotificationOutlined />, color: "#ec4899", bg: "#fce7f3" },
 ];

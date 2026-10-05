@@ -69,4 +69,14 @@ router.get("/financial-health", async (req, res) => {
   }
 });
 
+router.get("/investments", async (req, res) => {
+  try {
+    const { period, startDate, endDate } = req.query;
+    const data = await dashboardController.getInvestmentsData(period, startDate, endDate);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

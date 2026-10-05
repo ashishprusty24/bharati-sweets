@@ -388,7 +388,7 @@ const updateStatus = (orderId, status) => {
 const getAllEventOrders = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const orders = await EventOrder.find().sort({ deliveryDate: -1 });
+      const orders = await EventOrder.find().sort({ createdAt: -1 });
       resolve(orders);
     } catch (err) {
       reject({ status: 500, message: err.message });
