@@ -930,24 +930,26 @@ const DailyLedgerPage = () => {
               <Title level={4} style={{ margin: 0, fontSize: isMobile ? "1.1rem" : "1.25rem" }}>Daily Expenses & Outflows</Title>
               <Text type="secondary" style={{ fontSize: 11 }}>All payments: Staff Meal, Gas, Milk, SIP / Investments, Suppliers, etc.</Text>
             </div>
-            <Space>
-              <Button
-                onClick={addInvestmentItem}
-                icon={<FundOutlined />}
-                style={{
-                  borderRadius: 8,
-                  color: "#0f766e",
-                  borderColor: "#99f6e4",
-                  background: "#f0fdfa",
-                  fontWeight: 600,
-                }}
-              >
-                + Add Investment
-              </Button>
-              <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
-                + Add Entry
-              </Button>
-            </Space>
+            {!isMobile && (
+              <Space>
+                <Button
+                  onClick={addInvestmentItem}
+                  icon={<FundOutlined />}
+                  style={{
+                    borderRadius: 8,
+                    color: "#0f766e",
+                    borderColor: "#99f6e4",
+                    background: "#f0fdfa",
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Investment
+                </Button>
+                <Button type="primary" onClick={addItem} icon={<PlusOutlined />} style={{ borderRadius: 8 }}>
+                  Add Entry
+                </Button>
+              </Space>
+            )}
           </div>
         }
         style={{ borderRadius: 20, marginBottom: 16 }}
@@ -982,8 +984,8 @@ const DailyLedgerPage = () => {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ledgerData.items.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-                <Text type="secondary">No expense or investment entries yet. Tap "+ Add Entry" or "+ Add Investment" above.</Text>
+              <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8" }}>
+                <Text type="secondary">No expense or investment entries logged yet for today.</Text>
               </div>
             ) : (
               ledgerData.items.map((item, index) => (
@@ -1086,7 +1088,7 @@ const DailyLedgerPage = () => {
                   background: "#f0fdfa",
                 }}
               >
-                + Add Investment
+                Add Investment
               </Button>
               <Button
                 type="dashed"
@@ -1102,7 +1104,7 @@ const DailyLedgerPage = () => {
                   background: "#eff6ff",
                 }}
               >
-                + Add Entry
+                Add Entry
               </Button>
             </div>
 
@@ -1236,16 +1238,16 @@ const DailyLedgerPage = () => {
               }}
               bodyStyle={{ padding: "14px 16px" }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 150 }}>
+                  <div style={{ width: 34, height: 34, minWidth: 34, borderRadius: 10, background: "#fce7f3", color: "#ec4899", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
                     <HomeOutlined />
                   </div>
                   <div>
-                    <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px" }}>
+                    <Text style={{ color: "#ec4899", fontWeight: 700, fontSize: 11, letterSpacing: "0.4px", whiteSpace: "nowrap", display: "block" }}>
                       HOME INTAKE BALANCE
                     </Text>
-                    <Text type="secondary" style={{ display: "block", fontSize: 10 }}>
+                    <Text type="secondary" style={{ display: "block", fontSize: 10, whiteSpace: "nowrap" }}>
                       {homeIntakePeriod === "corrected"
                         ? "✅ Corrected Overall"
                         : homeIntakePeriod === "raw_all"
@@ -1256,7 +1258,7 @@ const DailyLedgerPage = () => {
                 </div>
 
                 {/* Period Selector & Settings Button */}
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                   <div style={{ background: "#fdf2f8", padding: 2, borderRadius: 12, border: "1px solid #fbcfe8", display: "flex", gap: 2 }}>
                     <Button
                       size="small"
@@ -1539,30 +1541,49 @@ const DailyLedgerPage = () => {
                 </Text>
               </div>
             </div>
-            <Button
-              onClick={addCustomerCreditRow}
-              icon={<PlusOutlined />}
-              type="primary"
-              style={{
-                borderRadius: 8,
-                background: "#ea580c",
-                border: "none",
-                fontWeight: 600,
-              }}
-            >
-              Add Credit Entry
-            </Button>
+            {!isMobile && (
+              <Button
+                onClick={addCustomerCreditRow}
+                icon={<PlusOutlined />}
+                type="primary"
+                style={{
+                  borderRadius: 8,
+                  background: "#ea580c",
+                  border: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Add Credit Entry
+              </Button>
+            )}
           </div>
         }
         style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #ea580c", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "12px 14px" : "20px 24px" }}
       >
         {(ledgerData.customerCredits || []).length === 0 ? (
-          <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-            <ContactsOutlined style={{ fontSize: 30, marginBottom: 8, display: "block", color: "#fdba74" }} />
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              No customer credit logged today. Click "Add Credit Entry" to record counter bakki/credit.
+          <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8" }}>
+            <ContactsOutlined style={{ fontSize: 28, marginBottom: 6, display: "block", color: "#fdba74" }} />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              No customer credit logged today.
             </Text>
+            {isMobile && (
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  onClick={addCustomerCreditRow}
+                  icon={<PlusOutlined />}
+                  type="primary"
+                  style={{
+                    borderRadius: 8,
+                    background: "#ea580c",
+                    border: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Credit Entry
+                </Button>
+              </div>
+            )}
           </div>
         ) : !isMobile ? (
           <Table
@@ -1681,6 +1702,25 @@ const DailyLedgerPage = () => {
                 </div>
               </div>
             ))}
+
+            <Button
+              type="dashed"
+              onClick={addCustomerCreditRow}
+              icon={<PlusOutlined />}
+              block
+              style={{
+                height: 40,
+                borderRadius: 10,
+                fontWeight: 600,
+                color: "#c2410c",
+                borderColor: "#fed7aa",
+                background: "#fff7ed",
+                marginTop: 4
+              }}
+            >
+              Add Credit Entry
+            </Button>
+
             {/* Mobile Footer Total */}
             <div style={{
               background: "#fff7ed",
@@ -1715,33 +1755,51 @@ const DailyLedgerPage = () => {
                 </Text>
               </div>
             </div>
-            <Button
-              onClick={addSweetRow}
-              icon={<PlusOutlined />}
-              type="primary"
-              style={{
-                borderRadius: 8,
-                background: "#4a151b",
-                border: "none",
-                fontWeight: 600,
-              }}
-            >
-              Add Sweet
-            </Button>
+            {!isMobile && (
+              <Button
+                onClick={addSweetRow}
+                icon={<PlusOutlined />}
+                type="primary"
+                style={{
+                  borderRadius: 8,
+                  background: "#4a151b",
+                  border: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Add Sweet
+              </Button>
+            )}
           </div>
         }
         style={{ borderRadius: 20, marginBottom: 16, borderLeft: "4px solid #6366f1", background: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         bodyStyle={{ padding: isMobile ? "12px 14px" : "20px 24px" }}
       >
         {ledgerData.sweetProduction.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
-            <ExperimentOutlined style={{ fontSize: 30, marginBottom: 8, display: "block" }} />
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              No sweets logged yet. Click "Add Sweet" to record production for{" "}
-              {ledgerData.festival ? (
+          <div style={{ textAlign: "center", padding: "16px 0", color: "#94a3b8" }}>
+            <ExperimentOutlined style={{ fontSize: 28, marginBottom: 6, display: "block" }} />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              No sweets logged yet for {ledgerData.festival ? (
                 <Text strong style={{ color: "#f59e0b" }}>{ledgerData.festival}</Text>
               ) : "today"}.
             </Text>
+            {isMobile && (
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  onClick={addSweetRow}
+                  icon={<PlusOutlined />}
+                  type="primary"
+                  style={{
+                    borderRadius: 8,
+                    background: "#4a151b",
+                    border: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Add Sweet
+                </Button>
+              </div>
+            )}
           </div>
         ) : !isMobile ? (
           <Table

@@ -203,7 +203,7 @@ const RegularOrderModal = ({ visible, item, inventoryItems, paymentMethods, onCa
                 </div>
               ))}
               <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{ borderRadius: 10, marginTop: 4, height: 38 }}>
-                + Add Sweet / Item
+                Add Sweet / Item
               </Button>
             </>
           )}
