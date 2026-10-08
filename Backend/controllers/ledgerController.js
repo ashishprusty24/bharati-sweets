@@ -10,7 +10,6 @@ const isIntakeCategory = (cat = "") => {
   return (
     norm === "home_intake" ||
     norm === "home intake" ||
-    norm === "personal" ||
     norm === "intake"
   );
 };

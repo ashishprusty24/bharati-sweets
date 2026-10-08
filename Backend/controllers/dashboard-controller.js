@@ -232,7 +232,7 @@ const getSummaryData = async (period = "from_corrected", customStartDate, custom
 
     const isIntakeCat = (cat = "") => {
       const norm = String(cat).toLowerCase().trim();
-      return norm === "home_intake" || norm === "home intake" || norm === "personal" || norm === "intake";
+      return norm === "home_intake" || norm === "home intake" || norm === "intake";
     };
 
     // If period is "all" (raw all-time), fetch all history; otherwise filter from effectiveCutoff

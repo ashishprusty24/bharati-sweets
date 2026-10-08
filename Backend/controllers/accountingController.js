@@ -55,7 +55,6 @@ const isExcludedExpenseCategory = (cat = "") => {
   return (
     norm === "home_intake" ||
     norm === "home intake" ||
-    norm === "personal" ||
     norm === "intake" ||
     norm === "cc_loan"
   );

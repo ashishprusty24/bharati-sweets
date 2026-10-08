@@ -48,7 +48,6 @@ const isIntakeCategory = (cat = "") => {
   return (
     norm === "home_intake" ||
     norm === "home intake" ||
-    norm === "personal" ||
     norm === "intake"
   );
 };
@@ -56,8 +55,8 @@ const isIntakeCategory = (cat = "") => {
 const createHomeExpense = (data) => {
   return new Promise(async (resolve, reject) => {
     try {
-      // Auto-vendor creation and transaction logging for any named expense item (e.g., Electricity Bill, Pradip Alu wala)
-      if (data.description && !isIntakeCategory(data.category)) {
+      // Auto-vendor creation and transaction logging for supplier/named expense items
+      if (data.description && !isIntakeCategory(data.category) && data.category !== "personal" && data.category !== "staff_salary") {
         try {
           const vendorName = data.description.trim();
           let vendor = null;
@@ -236,7 +235,8 @@ const updateHomeExpense = (id, data) => {
       }
 
       // If updating vendor info
-      if (data.description && !isIntakeCategory(data.category || oldExp.category)) {
+      const effectiveCat = data.category || oldExp.category;
+      if (data.description && !isIntakeCategory(effectiveCat) && effectiveCat !== "personal" && effectiveCat !== "staff_salary") {
         try {
           const vendorName = data.description.trim();
           let vendor = null;
@@ -735,7 +735,6 @@ const getHomeExpenseSummary = (query = {}) => {
         return (
           norm === "home_intake" ||
           norm === "home intake" ||
-          norm === "personal" ||
           norm === "intake"
         );
       };
