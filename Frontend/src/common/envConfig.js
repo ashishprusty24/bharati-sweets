@@ -42,24 +42,25 @@ export const getEnvironmentMetadata = () => {
       documentTitle: "🟢 [DEV] Bharati Sweets",
       themeColor: "#10b981",
       iconUrl: "/assets/icons/icon-dev.svg",
+      manifestUrl: "/manifest-dev.webmanifest",
       icons: [
         {
           src: "/assets/icons/icon-dev.svg",
           sizes: "any",
           type: "image/svg+xml",
-          purpose: "any maskable",
+          purpose: "any",
         },
         {
           src: "/assets/icons/icon-192.webp",
           sizes: "192x192",
           type: "image/webp",
-          purpose: "any maskable",
+          purpose: "any",
         },
         {
           src: "/assets/icons/icon-512.webp",
           sizes: "512x512",
           type: "image/webp",
-          purpose: "any maskable",
+          purpose: "any",
         },
       ],
     };
@@ -73,24 +74,25 @@ export const getEnvironmentMetadata = () => {
       documentTitle: "🟡 [QA] Bharati Sweets",
       themeColor: "#f59e0b",
       iconUrl: "/assets/icons/icon-qa.svg",
+      manifestUrl: "/manifest-qa.webmanifest",
       icons: [
         {
           src: "/assets/icons/icon-qa.svg",
           sizes: "any",
           type: "image/svg+xml",
-          purpose: "any maskable",
+          purpose: "any",
         },
         {
           src: "/assets/icons/icon-192.webp",
           sizes: "192x192",
           type: "image/webp",
-          purpose: "any maskable",
+          purpose: "any",
         },
         {
           src: "/assets/icons/icon-512.webp",
           sizes: "512x512",
           type: "image/webp",
-          purpose: "any maskable",
+          purpose: "any",
         },
       ],
     };
@@ -104,30 +106,31 @@ export const getEnvironmentMetadata = () => {
     documentTitle: "Bharati Sweets - Management System",
     themeColor: "#0d7377",
     iconUrl: "/assets/bharati-sweets-icon.png",
+    manifestUrl: "/manifest.webmanifest",
     icons: [
       {
         src: "/assets/icons/icon-prod.svg",
         sizes: "any",
         type: "image/svg+xml",
-        purpose: "any maskable",
+        purpose: "any",
       },
       {
         src: "/assets/bharati-sweets-icon.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "any maskable",
+        purpose: "any",
       },
       {
         src: "/assets/icons/icon-192.webp",
         sizes: "192x192",
         type: "image/webp",
-        purpose: "any maskable",
+        purpose: "any",
       },
       {
         src: "/assets/icons/icon-512.webp",
         sizes: "512x512",
         type: "image/webp",
-        purpose: "any maskable",
+        purpose: "any",
       },
     ],
   };
@@ -163,28 +166,12 @@ export const applyEnvironment = () => {
   }
   themeMeta.content = meta.themeColor;
 
-  // 4. Update or inject dynamic Web Manifest
-  const manifestData = {
-    name: meta.appName,
-    short_name: meta.shortName,
-    description: "Bharati Sweets Inventory & Business Management System",
-    start_url: "/",
-    display: "standalone",
-    background_color: "#ffffff",
-    theme_color: meta.themeColor,
-    icons: meta.icons,
-  };
-
-  const manifestBlob = new Blob([JSON.stringify(manifestData, null, 2)], {
-    type: "application/manifest+json",
-  });
-  const manifestUrl = URL.createObjectURL(manifestBlob);
-
+  // 4. Update Web Manifest to point to static HTTP path (Chrome rejects blob: URLs for PWA installation)
   let manifestLink = document.querySelector('link[rel="manifest"]');
   if (!manifestLink) {
     manifestLink = document.createElement("link");
     manifestLink.rel = "manifest";
     document.head.appendChild(manifestLink);
   }
-  manifestLink.href = manifestUrl;
+  manifestLink.href = meta.manifestUrl || "/manifest.webmanifest";
 };

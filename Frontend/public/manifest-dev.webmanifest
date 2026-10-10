@@ -1,25 +1,19 @@
 {
   "id": "/",
-  "name": "Bharati Sweets",
-  "short_name": "Bharati Sweets",
-  "description": "Bharati Sweets Inventory & Business Management System",
+  "name": "Bharati Sweets (DEV)",
+  "short_name": "BS (DEV)",
+  "description": "Bharati Sweets Inventory & Business Management System (Development)",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#0d7377",
+  "theme_color": "#10b981",
   "icons": [
     {
-      "src": "/assets/icons/icon-prod.svg",
+      "src": "/assets/icons/icon-dev.svg",
       "type": "image/svg+xml",
       "sizes": "any",
-      "purpose": "any"
-    },
-    {
-      "src": "/assets/bharati-sweets-icon.png",
-      "type": "image/png",
-      "sizes": "512x512",
       "purpose": "any"
     },
     {

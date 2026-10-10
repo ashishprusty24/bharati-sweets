@@ -16,6 +16,7 @@ import {
   SettingOutlined,
   UserOutlined,
   LogoutOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -36,7 +37,48 @@ const HeaderBar = ({
   const isMobile = !screens.lg;
   const navigate = useNavigate();
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+
+  React.useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    window.addEventListener("appinstalled", () => {
+      setDeferredPrompt(null);
+      console.log("PWA was installed successfully");
+    });
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setDeferredPrompt(null);
+    }
+  };
+
   const menuItems = [
+    ...(deferredPrompt
+      ? [
+          {
+            key: "install",
+            icon: <DownloadOutlined style={{ color: "#0d7377" }} />,
+            label: <strong>Install App</strong>,
+            onClick: handleInstallClick,
+          },
+          { type: "divider" },
+        ]
+      : []),
     {
       key: "1",
       icon: <UserOutlined />,
@@ -178,6 +220,30 @@ const HeaderBar = ({
             }}
           />
         </Badge>
+
+        {/* PWA Install Button */}
+        {deferredPrompt && (
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={handleInstallClick}
+            style={{
+              background: "linear-gradient(135deg, #0d7377, #14919b)",
+              borderColor: "#0d7377",
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              height: isMobile ? 36 : 40,
+              padding: isMobile ? "0 10px" : "0 14px",
+              boxShadow: "0 2px 8px rgba(13, 115, 119, 0.25)",
+            }}
+          >
+            {!isMobile && "Install App"}
+          </Button>
+        )}
 
         {/* User avatar dropdown */}
         <Dropdown
