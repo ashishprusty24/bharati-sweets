@@ -34,13 +34,14 @@ const EventOrderModal = memo(({ visible, item, inventoryItems = [], purposeOptio
           phone: item.customerPhone || item.phone,
           advancePayment: initialAdvance,
           advancePaymentMethod: initialMethod,
+          orderStatus: item.orderStatus || item.status || "confirmed",
         });
       } else {
         form.resetFields();
         form.setFieldsValue({
           purpose: "",
           deliveryDate: dayjs(),
-          orderStatus: "pending",
+          orderStatus: "confirmed",
           packets: 1,
           items: [{}],
           advancePayment: 0,

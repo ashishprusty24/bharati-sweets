@@ -5,6 +5,7 @@ const customerCreditController = require("../controllers/customerCreditControlle
 // GET all Bakki entries & summary
 router.get("/list", async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
     const data = await customerCreditController.getAllBakkiEntries();
     res.json(data);
   } catch (err) {

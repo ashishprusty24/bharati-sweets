@@ -213,6 +213,7 @@ const EventOrdersPage = () => {
 
       const orderData = {
         ...values,
+        orderStatus: values.orderStatus || "confirmed",
         purpose: normalizePurpose(values.purpose),
         items,
         subtotal,

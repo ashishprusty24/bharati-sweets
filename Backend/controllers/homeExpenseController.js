@@ -711,7 +711,15 @@ const getHomeExpenseSummary = (query = {}) => {
         $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
       });
 
-      const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+      const isExcludedFromNetExpenses = (e) =>
+        isIntakeCategory(e.category) ||
+        e.category === "cc_loan" ||
+        e.paymentSource === "credit_card" ||
+        e.paymentSource === "cc_loan";
+
+      const total = expenses
+        .filter((e) => !isExcludedFromNetExpenses(e))
+        .reduce((s, e) => s + (e.amount || 0), 0);
 
       const byCategory = expenses.reduce((acc, e) => {
         acc[e.category] = (acc[e.category] || 0) + (e.amount || 0);

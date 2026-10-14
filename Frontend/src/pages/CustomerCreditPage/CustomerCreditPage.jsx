@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Card,
   Row,
@@ -87,6 +87,17 @@ const CustomerCreditPage = () => {
 
     return matchesSearch && matchesStatus;
   });
+
+  // Calculate dynamic summary based on entries
+  const totalDues = useMemo(() => {
+    const list = (searchText || statusFilter !== "all") ? filteredEntries : (data.entries || []);
+    return list.reduce((sum, item) => sum + (Number(item.balance) || 0), 0);
+  }, [filteredEntries, data.entries, searchText, statusFilter]);
+
+  const pendingCustomersCount = useMemo(() => {
+    const list = (searchText || statusFilter !== "all") ? filteredEntries : (data.entries || []);
+    return list.filter((item) => (Number(item.balance) || 0) > 0).length;
+  }, [filteredEntries, data.entries, searchText, statusFilter]);
 
   // Handle Add New Bakki Entry
   const handleAddSubmit = async (values) => {
@@ -404,8 +415,8 @@ const CustomerCreditPage = () => {
         <Col xs={24} sm={12} md={8}>
           <Card bordered={false} style={{ borderRadius: 16 }}>
             <Statistic
-              title={<Text strong style={{ color: "#64748b" }}>💳 Total Pending Bakki Dues</Text>}
-              value={data.summary?.totalDues || 0}
+              title={<Text strong style={{ color: "#64748b" }}>💳 Total Dues</Text>}
+              value={totalDues}
               prefix="₹"
               valueStyle={{ color: "#dc2626", fontWeight: 800, fontSize: 26 }}
             />
@@ -416,7 +427,7 @@ const CustomerCreditPage = () => {
           <Card bordered={false} style={{ borderRadius: 16 }}>
             <Statistic
               title={<Text strong style={{ color: "#64748b" }}>👥 Customers with Pending Dues</Text>}
-              value={data.summary?.totalCustomers || 0}
+              value={pendingCustomersCount}
               valueStyle={{ color: "#ea580c", fontWeight: 800, fontSize: 26 }}
             />
           </Card>

@@ -16,6 +16,13 @@ const formatIST = (dateVal) => {
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
 const getAllBakkiEntries = async () => {
+  // Always auto-sync recent unpaid event orders so dues are guaranteed up-to-date
+  try {
+    await syncEventOrdersToBakki("2026-09-01");
+  } catch (syncErr) {
+    console.error("⚠️ Background sync in getAllBakkiEntries failed:", syncErr.message);
+  }
+
   const credits = await CustomerCredit.find().sort({ createdAt: -1 });
 
   const entries = credits.map((c) => {
@@ -28,26 +35,30 @@ const getAllBakkiEntries = async () => {
       }];
     }
 
+    const totalAmt = Number(c.totalAmount || 0);
+    const paidAmt = Number(c.paidAmount || (payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0));
+    const bal = Math.max(0, totalAmt - paidAmt);
+
     return {
       _id: c._id.toString(),
       source: c.source || (c.orderId ? "event_order" : "customer_credit"),
       orderId: c.orderId ? c.orderId.toString() : null,
       customerName: c.customerName,
       phone: c.phone,
-      totalAmount: c.totalAmount,
-      paidAmount: c.paidAmount,
-      balance: c.balance,
+      totalAmount: totalAmt,
+      paidAmount: paidAmt,
+      balance: bal,
       notes: c.notes || "Counter Credit (Bakki)",
       dueDate: c.dueDate,
       autoReminderEnabled: c.autoReminderEnabled !== false,
-      status: c.status,
+      status: bal === 0 ? "paid" : (paidAmt > 0 ? "partial" : "pending"),
       payments: payments,
       createdAt: c.createdAt,
     };
   });
 
-  const totalDues = entries.reduce((sum, item) => sum + item.balance, 0);
-  const totalCustomers = entries.length;
+  const totalDues = entries.reduce((sum, item) => sum + (Number(item.balance) || 0), 0);
+  const totalCustomers = entries.filter((item) => (Number(item.balance) || 0) > 0).length;
 
   return {
     summary: {

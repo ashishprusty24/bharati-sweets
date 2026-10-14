@@ -240,9 +240,27 @@ const HomeExpensesPage = () => {
     return list;
   }, [expenses, filterCategory, searchText]);
 
+  const isExcludedFromPeriodExpense = (e) =>
+    e.category === "home_intake" ||
+    e.category === "cc_loan" ||
+    e.paymentSource === "credit_card" ||
+    e.paymentSource === "cc_loan";
+
   const totalAmount = useMemo(() => {
+    if (filterCategory === "all") {
+      return filteredExpenses
+        .filter((e) => !isExcludedFromPeriodExpense(e))
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    }
     return filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  }, [filteredExpenses]);
+  }, [filteredExpenses, filterCategory]);
+
+  const activeExpenseCount = useMemo(() => {
+    if (filterCategory === "all") {
+      return filteredExpenses.filter((e) => !isExcludedFromPeriodExpense(e)).length;
+    }
+    return filteredExpenses.length;
+  }, [filteredExpenses, filterCategory]);
 
   // Category counts for pill tabs
   const categoryCounts = useMemo(() => {
@@ -526,13 +544,22 @@ const HomeExpensesPage = () => {
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f3e8ff", color: "#8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 8 }}>
                 <WalletOutlined />
               </div>
-              <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>TOTAL PERIOD EXPENSES</Text>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Text style={{ color: "#94a3b8", fontWeight: 600, fontSize: 11, letterSpacing: "0.4px" }}>TOTAL PERIOD EXPENSES</Text>
+                {filterCategory === "all" && (
+                  <Tooltip title="Net actual outflow. Excludes credit card/loan borrowings to prevent double-counting when bills/repayments are paid, and excludes home intake.">
+                    <Tag color="purple" style={{ margin: 0, fontSize: 10, borderRadius: 6, padding: "0 4px", fontWeight: 600 }}>Net Outflow</Tag>
+                  </Tooltip>
+                )}
+              </div>
               <div style={{ marginTop: 2 }}>
                 <Title level={3} style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0f172a" }}>
                   ₹{totalAmount.toLocaleString("en-IN")}
                 </Title>
               </div>
-              <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2, display: "block" }}>{filteredExpenses.length} transactions recorded</Text>
+              <Text style={{ color: "#94a3b8", fontSize: 11, marginTop: 2, display: "block" }}>
+                {filterCategory === "all" ? `${activeExpenseCount} expense payments` : `${filteredExpenses.length} transactions recorded`}
+              </Text>
             </div>
             <Sparkline color="#8b5cf6" />
           </Card>

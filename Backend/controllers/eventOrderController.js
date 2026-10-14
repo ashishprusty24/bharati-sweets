@@ -100,7 +100,8 @@ const createEventOrder = (payload) => {
     try {
       const {
         customerName, phone, spouseName, anniversaryDate, purpose, address, deliveryDate,
-        deliveryTime, items = [], payments, discount = 0, packets = 1, totalAmount,
+        deliveryTime, items = [], payments, discount = 0, packets = 1, packetType = "",
+        totalAmount, orderStatus, status, notes = "", adminWaiver = 0,
       } = payload;
 
       const itemsWithPackets = items.map((item) => ({
@@ -112,10 +113,24 @@ const createEventOrder = (payload) => {
       const paidAmount = (payments || []).reduce((sum, p) => sum + p.amount, 0);
 
       const newOrder = new EventOrder({
-        customerName, phone, purpose: normalizePurpose(purpose), address,
-        deliveryDate: parseDeliveryDate(deliveryDate), deliveryTime,
-        items: itemsWithPackets, payments: payments || [], discount, packets,
-        totalAmount, paidAmount,
+        customerName,
+        spouseName,
+        phone,
+        anniversaryDate: anniversaryDate ? new Date(anniversaryDate) : undefined,
+        purpose: normalizePurpose(purpose),
+        address,
+        deliveryDate: parseDeliveryDate(deliveryDate),
+        deliveryTime,
+        items: itemsWithPackets,
+        payments: payments || [],
+        discount,
+        packets,
+        packetType: packetType || "",
+        totalAmount,
+        paidAmount,
+        adminWaiver: Number(adminWaiver || 0),
+        orderStatus: orderStatus || status || "confirmed",
+        notes: notes || "",
       });
 
       const savedOrder = await newOrder.save();
@@ -422,6 +437,10 @@ const updateEventOrder = (orderId, updateData) => {
 
       if (updateData.purpose) {
         updateData.purpose = normalizePurpose(updateData.purpose);
+      }
+
+      if (updateData.status && !updateData.orderStatus) {
+        updateData.orderStatus = updateData.status;
       }
 
       // Preserve existing payments or use updated payments array
