@@ -16,14 +16,7 @@ const formatIST = (dateVal) => {
 
 // ─── GET ALL BAKKI (CUSTOMER CREDIT) ENTRIES ─────────────────
 const getAllBakkiEntries = async () => {
-  // Always auto-sync recent unpaid event orders so dues are guaranteed up-to-date
-  try {
-    await syncEventOrdersToBakki("2026-09-01");
-  } catch (syncErr) {
-    console.error("⚠️ Background sync in getAllBakkiEntries failed:", syncErr.message);
-  }
-
-  const credits = await CustomerCredit.find().sort({ createdAt: -1 });
+  const credits = await CustomerCredit.find().sort({ createdAt: -1 }).lean();
 
   const entries = credits.map((c) => {
     let payments = c.payments || [];
