@@ -199,8 +199,21 @@ body {
     margin-bottom: 16px;
 }
 
+.responsive-table-container table {
+    min-width: 650px;
+}
+
+.responsive-table-container .ant-table-cell {
+    white-space: nowrap;
+}
+
 .responsive-table-container::-webkit-scrollbar {
-    height: 4px;
+    height: 5px;
+}
+
+.responsive-table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
 }
 
 .mobile-hide {

@@ -384,6 +384,7 @@ const CreditCardPage = () => {
               dataSource={allCardTransactions}
               rowKey="_id"
               size="middle"
+              scroll={{ x: 880 }}
               pagination={{ pageSize: 10 }}
               locale={{ emptyText: <Empty description="No credit card transactions yet" /> }}
               columns={[
@@ -391,29 +392,31 @@ const CreditCardPage = () => {
                   title: "Date",
                   dataIndex: "date",
                   width: 110,
-                  render: (d) => dayjs(d).format("DD MMM YY"),
+                  render: (d) => <span style={{ whiteSpace: "nowrap" }}>{dayjs(d).format("DD MMM YY")}</span>,
                   sorter: (a, b) => new Date(a.date) - new Date(b.date),
                 },
                 {
                   title: "Card",
                   dataIndex: "cardName",
-                  width: 140,
+                  width: 170,
                   render: (name, rec) => (
-                    <Space size={4}>
-                      <CreditCardOutlined style={{ color: "#6366f1" }} />
-                      <Text strong style={{ fontSize: 12 }}>{name}</Text>
-                      <Text type="secondary" style={{ fontSize: 11 }}>({rec.last4Digits})</Text>
-                    </Space>
+                    <div style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+                      <CreditCardOutlined style={{ color: "#6366f1", flexShrink: 0 }} />
+                      <Text strong style={{ fontSize: 13, whiteSpace: "nowrap" }}>{name}</Text>
+                      <Text type="secondary" style={{ fontSize: 11, whiteSpace: "nowrap" }}>({rec.last4Digits})</Text>
+                    </div>
                   ),
                 },
                 {
                   title: "Description",
                   dataIndex: "description",
+                  width: 180,
                   render: (text) => <Text strong style={{ color: "#1e293b", fontSize: 13.5 }}>{text || "Card Expense"}</Text>,
                 },
                 {
                   title: "Notes / Details",
                   dataIndex: "notes",
+                  width: 180,
                   render: (notes) => notes ? (
                     <Text style={{ fontSize: 12.5, color: "#475569" }}>
                       📝 {notes}
@@ -428,7 +431,7 @@ const CreditCardPage = () => {
                   width: 140,
                   render: (cat) => {
                     const cfg = getCategoryConfig(cat);
-                    return <Tag color={cfg.color}>{cfg.label}</Tag>;
+                    return <Tag color={cfg.color} style={{ margin: 0, whiteSpace: "nowrap" }}>{cfg.label}</Tag>;
                   },
                 },
                 {
@@ -436,16 +439,16 @@ const CreditCardPage = () => {
                   dataIndex: "amount",
                   width: 120,
                   align: "right",
-                  render: (amt) => <Text strong style={{ fontSize: 14 }}>₹{Number(amt).toLocaleString("en-IN")}</Text>,
+                  render: (amt) => <Text strong style={{ fontSize: 14, whiteSpace: "nowrap" }}>₹{Number(amt).toLocaleString("en-IN")}</Text>,
                   sorter: (a, b) => a.amount - b.amount,
                 },
                 {
                   title: "Status",
                   dataIndex: "isSettled",
-                  width: 100,
+                  width: 110,
                   render: (settled) => settled
-                    ? <Tag icon={<CheckCircleOutlined />} color="success">Settled</Tag>
-                    : <Tag icon={<ClockCircleOutlined />} color="warning">Pending</Tag>,
+                    ? <Tag icon={<CheckCircleOutlined />} color="success" style={{ margin: 0, whiteSpace: "nowrap" }}>Settled</Tag>
+                    : <Tag icon={<ClockCircleOutlined />} color="warning" style={{ margin: 0, whiteSpace: "nowrap" }}>Pending</Tag>,
                 },
               ]}
             />
@@ -584,6 +587,7 @@ const CreditCardPage = () => {
           title={<Title level={5} style={{ margin: 0 }}>Transactions ({sortedTxns.length})</Title>}>
           <div className="responsive-table-container">
             <Table dataSource={sortedTxns} columns={txnColumns} rowKey="_id" size="small"
+              scroll={{ x: 750 }}
               pagination={{ pageSize: 10 }} locale={{ emptyText: <Empty description="No transactions" /> }} />
           </div>
         </Card>
@@ -592,6 +596,7 @@ const CreditCardPage = () => {
           title={<Title level={5} style={{ margin: 0 }}>Bill Payments ({sortedBills.length})</Title>}>
           <div className="responsive-table-container">
             <Table dataSource={sortedBills} columns={billColumns} rowKey="_id" size="small"
+              scroll={{ x: 600 }}
               pagination={{ pageSize: 10 }} locale={{ emptyText: <Empty description="No bill payments" /> }} />
           </div>
         </Card>
