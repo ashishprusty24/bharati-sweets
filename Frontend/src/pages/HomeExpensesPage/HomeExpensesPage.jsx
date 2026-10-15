@@ -175,11 +175,14 @@ const HomeExpensesPage = () => {
   const fetchSummary = async () => {
     try {
       const params = new URLSearchParams();
-      if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
-      if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
-      if (!dateRange || (!dateRange[0] && !dateRange[1])) {
+      if (datePreset === "from_corrected") {
+        params.append("allTime", "true");
+      } else if (datePreset === "all") {
         params.append("allTime", "true");
         params.append("raw", "true");
+      } else {
+        if (dateRange && dateRange[0]) params.append("startDate", dateRange[0].format("YYYY-MM-DD"));
+        if (dateRange && dateRange[1]) params.append("endDate", dateRange[1].format("YYYY-MM-DD"));
       }
 
       const data = await api.get(`/home-expenses/summary?${params.toString()}`);
@@ -192,7 +195,7 @@ const HomeExpensesPage = () => {
   useEffect(() => {
     fetchExpenses();
     fetchSummary();
-  }, [dateRange]);
+  }, [dateRange, datePreset]);
 
   // Fetch effective cutoff date and CC Loan / Credit Card accounts on mount
   useEffect(() => {

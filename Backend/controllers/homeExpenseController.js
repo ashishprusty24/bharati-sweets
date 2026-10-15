@@ -738,14 +738,7 @@ const getHomeExpenseSummary = (query = {}) => {
       }, {});
 
       // ── HOME INTAKE BALANCE CALCULATION (WITH OPENING BALANCE RECONCILIATION) ──
-      const isIntakeCategory = (cat = "") => {
-        const norm = String(cat).toLowerCase().trim();
-        return (
-          norm === "home_intake" ||
-          norm === "home intake" ||
-          norm === "intake"
-        );
-      };
+      // (isIntakeCategory is defined at top-level)
 
       // Money RECEIVED into home (intake entries)
       const intakeEntries = expenses.filter((e) => isIntakeCategory(e.category));
