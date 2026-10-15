@@ -10,13 +10,17 @@ const getHomeExpenses = (query = {}) => {
   return new Promise(async (resolve, reject) => {
     try {
       const filter = {
-        // Exclude records auto-synced from the Daily Ledger:
-        // 1. Records explicitly tagged "daily_ledger" (created by Backend auto-sync)
-        // 2. Records with a ledgerItemId (linked to a specific ledger item)
-        // After running /api/home-expenses/cleanup-ledger-sync, all stale records
-        // will be tagged "daily_ledger" and hidden by condition #1.
-        sourceTag: { $ne: "daily_ledger" },
-        $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+        // Exclude general auto-synced daily ledger shop expenses, but include staff_salary synced from Daily Ledger
+        $or: [
+          {
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          },
+          {
+            sourceTag: "daily_ledger",
+            category: "staff_salary",
+          },
+        ],
       };
 
       if (query.startDate || query.endDate) {
@@ -704,11 +708,19 @@ const getHomeExpenseSummary = (query = {}) => {
         isApplied = dayjs().isSame(effectiveCutoff, "month") || dayjs().isAfter(effectiveCutoff);
       }
 
-      // Exclude auto-synced daily ledger shop expenses — same logic as getHomeExpenses
+      // Include normal expenses + synced staff salary from Daily Ledger
       const expenses = await HomeExpense.find({
         ...dateFilter,
-        sourceTag: { $ne: "daily_ledger" },
-        $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+        $or: [
+          {
+            sourceTag: { $ne: "daily_ledger" },
+            $or: [{ ledgerItemId: null }, { ledgerItemId: { $exists: false } }, { ledgerItemId: "" }],
+          },
+          {
+            sourceTag: "daily_ledger",
+            category: "staff_salary",
+          },
+        ],
       });
 
       const isExcludedFromNetExpenses = (e) =>
@@ -750,7 +762,10 @@ const getHomeExpenseSummary = (query = {}) => {
         .reduce((s, e) => s + (e.amount || 0), 0);
 
       // Money SPENT from home funds (non-intake entries)
-      const spentEntries = expenses.filter((e) => !isIntakeCategory(e.category));
+      // NOTE: Exclude daily_ledger staff salaries from spentCash/spentBank because shop counter cash already paid it!
+      const spentEntries = expenses.filter(
+        (e) => !isIntakeCategory(e.category) && e.sourceTag !== "daily_ledger"
+      );
       const spentCash = spentEntries
         .filter((e) => e.paymentSource === "home_cash" || !e.paymentSource)
         .reduce((s, e) => s + (e.amount || 0), 0);

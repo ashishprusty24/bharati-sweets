@@ -540,6 +540,11 @@ const saveLedger = (date, payload) => {
 
         for (const item of savedItems) {
           if (item.type === "expense" && item.description && item.description.trim()) {
+            // Skip staff salary / payments from vendor auto-creation
+            if (item.category === "staff_payment" || /salary|staff payment|daily wage|wage/i.test(item.description)) {
+              continue;
+            }
+
             const descName = item.description.trim();
             const itemAmount = Number(item.amount) || 0;
             const escapedName = descName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -578,6 +583,56 @@ const saveLedger = (date, payload) => {
         }
       } catch (syncErr) {
         console.error("Ledger save auto-sync error:", syncErr);
+      }
+
+      // --- AUTO SYNC STAFF SALARIES TO HOME EXPENSES ---
+      try {
+        const savedItems = ledger.items || [];
+        const isStaffItem = (item) => {
+          if (item.type !== "expense") return false;
+          if (item.category === "staff_payment") return true;
+          const desc = (item.description || "").toLowerCase();
+          return /salary|staff payment|staff wage|daily wage|staff advance/i.test(desc);
+        };
+
+        const staffItems = savedItems.filter(isStaffItem);
+        const currentStaffItemIds = [];
+
+        for (const item of staffItems) {
+          const itemAmount = Number(item.amount) || 0;
+          if (itemAmount <= 0) continue;
+
+          const itemIdStr = String(item._id || "");
+          currentStaffItemIds.push(itemIdStr);
+
+          await HomeExpense.findOneAndUpdate(
+            {
+              ledgerItemId: itemIdStr,
+            },
+            {
+              date: targetDate,
+              description: item.description.trim(),
+              amount: itemAmount,
+              category: "staff_salary",
+              paymentSource: item.paymentMode === "bank" ? "bank_account" : "home_cash",
+              sourceTag: "daily_ledger",
+              ledgerItemId: itemIdStr,
+              notes: `Auto-synced from Daily Ledger (${dayjs(targetDate).format("DD MMM YYYY")})`,
+            },
+            { upsert: true, new: true }
+          );
+        }
+
+        // Clean up any previously synced staff salary items for this date that are no longer in ledger.items
+        const endOfDay = dayjs(date).endOf("day").toDate();
+        await HomeExpense.deleteMany({
+          date: { $gte: targetDate, $lte: endOfDay },
+          sourceTag: "daily_ledger",
+          category: "staff_salary",
+          ledgerItemId: { $nin: currentStaffItemIds },
+        });
+      } catch (staffSyncErr) {
+        console.error("Ledger save auto-sync staff salary error:", staffSyncErr);
       }
 
       const ledgerResult = ledger.toObject ? ledger.toObject() : { ...ledger };

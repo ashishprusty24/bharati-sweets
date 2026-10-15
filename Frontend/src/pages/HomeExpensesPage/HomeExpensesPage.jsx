@@ -383,7 +383,14 @@ const HomeExpensesPage = () => {
       key: "description",
       render: (text, record) => (
         <div>
-          <Text strong style={{ color: "#0f172a", fontSize: 14, display: "block" }}>{text}</Text>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <Text strong style={{ color: "#0f172a", fontSize: 14 }}>{text}</Text>
+            {record.sourceTag === "daily_ledger" && (
+              <Tag color="cyan" style={{ fontSize: 10, borderRadius: 6, margin: 0, padding: "0 6px", fontWeight: 600 }}>
+                From Daily Ledger
+              </Tag>
+            )}
+          </div>
           {record.notes ? (
             <Text type="secondary" style={{ fontSize: 11 }}>{record.notes}</Text>
           ) : (
